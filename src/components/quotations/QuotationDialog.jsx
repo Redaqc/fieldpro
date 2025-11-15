@@ -35,14 +35,6 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
     if (customer) {
       handleChange('customer_id', customerId);
       handleChange('customer_name', `${customer.first_name} ${customer.last_name}`);
-      
-      // Load customer's price list if assigned
-      if (customer.price_list_id) {
-        const priceList = priceLists.find(pl => pl.id === customer.price_list_id);
-        if (priceList?.items) {
-          // You could auto-populate some items here
-        }
-      }
     }
   };
 
@@ -313,15 +305,6 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
             <Textarea
               value={formData.notes}
               onChange={(e) => handleChange('notes', e.target.value)}
-              rows={2}
-            />
-          </div>
-
-          <div>
-            <Label>Terms & Conditions</Label>
-            <Textarea
-              value={formData.terms}
-              onChange={(e) => handleChange('terms', e.target.value)}
               rows={2}
             />
           </div>
