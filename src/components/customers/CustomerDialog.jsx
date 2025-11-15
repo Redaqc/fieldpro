@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 
 export default function CustomerDialog({ open, onClose, onSave, customer }) {
   const [formData, setFormData] = useState(customer || {
@@ -19,11 +21,25 @@ export default function CustomerDialog({ open, onClose, onSave, customer }) {
     state: "",
     zip_code: "",
     notes: "",
-    status: "active"
+    status: "active",
+    price_list_id: "",
+    price_list_name: ""
+  });
+
+  const { data: priceLists = [] } = useQuery({
+    queryKey: ['priceLists'],
+    queryFn: () => base44.entities.PriceList.list(),
+    initialData: [],
   });
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePriceListSelect = (priceListId) => {
+    const priceList = priceLists.find(pl => pl.id === priceListId);
+    handleChange('price_list_id', priceListId);
+    handleChange('price_list_name', priceList?.name || '');
   };
 
   const handleSubmit = (e) => {
@@ -137,6 +153,28 @@ export default function CustomerDialog({ open, onClose, onSave, customer }) {
                   <SelectItem value="vip">VIP</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="col-span-2">
+              <Label htmlFor="price_list">Price List</Label>
+              <Select value={formData.price_list_id || ''} onValueChange={handlePriceListSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select price list (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>No specific price list</SelectItem>
+                  {priceLists.filter(pl => pl.status === 'active').map(priceList => (
+                    <SelectItem key={priceList.id} value={priceList.id}>
+                      {priceList.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formData.price_list_name && (
+                <p className="text-xs text-slate-500 mt-1">
+                  Assigned: {formData.price_list_name}
+                </p>
+              )}
             </div>
 
             <div className="col-span-2">

@@ -54,7 +54,7 @@ export default function WeekView({ currentDate, jobs, technicians }) {
                     <Link
                       key={job.id}
                       to={createPageUrl("Jobs") + "?id=" + job.id}
-                      className={`block p-2 rounded text-xs border-l-4 hover:shadow-sm transition-shadow ${statusColors[job.status]}`}
+                      className={`block p-2 rounded text-xs border-l-4 hover:shadow-sm transition-shadow`}
                       style={{ 
                         borderLeftColor: tech?.color || '#64748b',
                         backgroundColor: `${tech?.color || '#64748b'}15`

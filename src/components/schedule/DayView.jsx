@@ -14,7 +14,6 @@ const statusColors = {
 };
 
 export default function DayView({ currentDate, jobs, technicians }) {
-  // Group jobs by technician
   const groupedJobs = technicians.map(tech => ({
     technician: tech,
     jobs: jobs
@@ -22,7 +21,6 @@ export default function DayView({ currentDate, jobs, technicians }) {
       .sort((a, b) => (a.scheduled_time || '').localeCompare(b.scheduled_time || ''))
   }));
 
-  // Unassigned jobs
   const unassignedJobs = jobs
     .filter(job => !job.technician_id)
     .sort((a, b) => (a.scheduled_time || '').localeCompare(b.scheduled_time || ''));
@@ -138,12 +136,6 @@ export default function DayView({ currentDate, jobs, technicians }) {
               </Link>
             ))}
           </div>
-        </Card>
-      )}
-
-      {groupedJobs.every(g => g.jobs.length === 0) && unassignedJobs.length === 0 && (
-        <Card className="p-12 text-center">
-          <p className="text-slate-400">No jobs scheduled for this day</p>
         </Card>
       )}
     </div>
