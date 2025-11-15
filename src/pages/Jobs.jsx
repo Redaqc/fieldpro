@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,15 +8,32 @@ import { Plus, Search, Filter } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import JobsList from "../components/jobs/JobsList";
-import JobDetailsModal from "../components/jobs/JobDetailsModal";
-import CreateJobModal from "../components/jobs/CreateJobModal";
+import JobDialog from "../components/jobs/JobDialog";
+import JobDetailsTrello from "../components/jobs/JobDetailsTrello"; // Changed from JobDetails
 
-export default function JobsPage() {
-  const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState("");
+export default function Jobs() {
+  const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showDialog, setShowDialog] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Check URL for action=new or id=xxx
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'new') {
+      setShowDialog(true);
+      setSelectedJob(null);
+    } else if (params.get('id')) {
+      const jobId = params.get('id');
+      // Fetch and show job details
+      base44.entities.Job.filter({ id: jobId }).then(jobs => {
+        if (jobs.length > 0) {
+          setSelectedJob(jobs[0]);
+        }
+      });
+    }
+  }, []);
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ['jobs'],
@@ -35,21 +53,20 @@ export default function JobsPage() {
     initialData: [],
   });
 
-  // Check URL params for actions
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const action = params.get('action');
-    const id = params.get('id');
-    
-    if (action === 'new') {
-      setShowCreateModal(true);
-    }
-    
-    if (id) {
-      const job = jobs.find(j => j.id === id);
-      if (job) setSelectedJob(job);
-    }
-  }, [jobs]);
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+    retry: false,
+  });
+
+  const createJobMutation = useMutation({
+    mutationFn: (jobData) => base44.entities.Job.create(jobData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      setShowDialog(false);
+      setSelectedJob(null);
+    },
+  });
 
   const updateJobMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Job.update(id, data),
@@ -67,35 +84,38 @@ export default function JobsPage() {
     },
   });
 
-  // Filter jobs
+  const handleSaveJob = (jobData) => {
+    if (selectedJob?.id) {
+      updateJobMutation.mutate({ id: selectedJob.id, data: jobData });
+    } else {
+      const jobNumber = `JOB-${Date.now().toString().slice(-6)}`;
+      createJobMutation.mutate({ ...jobData, job_number: jobNumber });
+    }
+  };
+
   const filteredJobs = jobs.filter(job => {
-    const matchesSearch = 
-      job.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.job_number?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = searchTerm === "" || 
+      job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.job_number?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === "all" || job.status === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
 
-  // Count by status
-  const statusCounts = {
-    all: jobs.length,
-    scheduled: jobs.filter(j => j.status === 'scheduled').length,
-    in_progress: jobs.filter(j => j.status === 'in_progress').length,
-    completed: jobs.filter(j => j.status === 'completed').length,
-  };
-
   return (
-    <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
+    <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Jobs</h1>
-          <p className="text-slate-500 mt-1">Manage all your service jobs</p>
+          <p className="text-slate-500 mt-1">Manage and track all your service jobs</p>
         </div>
         <Button 
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => {
+            setSelectedJob(null);
+            setShowDialog(true);
+          }}
           className="bg-blue-600 hover:bg-blue-700"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -104,54 +124,56 @@ export default function JobsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <Input
-              placeholder="Search jobs, customers, job numbers..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          
-          <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full md:w-auto">
-            <TabsList className="grid grid-cols-4 w-full md:w-auto">
-              <TabsTrigger value="all">All ({statusCounts.all})</TabsTrigger>
-              <TabsTrigger value="scheduled">Scheduled ({statusCounts.scheduled})</TabsTrigger>
-              <TabsTrigger value="in_progress">Active ({statusCounts.in_progress})</TabsTrigger>
-              <TabsTrigger value="completed">Done ({statusCounts.completed})</TabsTrigger>
-            </TabsList>
-          </Tabs>
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            placeholder="Search jobs by title, customer, or job number..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 border-slate-200"
+          />
         </div>
+        
+        <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+          <TabsList className="bg-white border border-slate-200">
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
+            <TabsTrigger value="in_progress">In Progress</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
-      {/* Jobs List */}
       <JobsList 
         jobs={filteredJobs}
         isLoading={isLoading}
-        onSelectJob={setSelectedJob}
+        onJobClick={setSelectedJob}
       />
 
-      {/* Job Details Modal */}
-      {selectedJob && (
-        <JobDetailsModal
-          job={selectedJob}
+      {showDialog && (
+        <JobDialog
+          open={showDialog}
+          onClose={() => {
+            setShowDialog(false);
+            setSelectedJob(null);
+          }}
+          onSave={handleSaveJob}
           customers={customers}
           technicians={technicians}
-          onClose={() => setSelectedJob(null)}
-          onUpdate={(data) => updateJobMutation.mutate({ id: selectedJob.id, data })}
-          onDelete={() => deleteJobMutation.mutate(selectedJob.id)}
         />
       )}
 
-      {/* Create Job Modal */}
-      {showCreateModal && (
-        <CreateJobModal
+      {selectedJob && !showDialog && (
+        <JobDetailsTrello
+          job={selectedJob}
+          onClose={() => setSelectedJob(null)}
+          // onEdit is not used by JobDetailsTrello, removed from props
+          onUpdate={updateJobMutation.mutate}
+          // onDelete is not used by JobDetailsTrello, removed from props
           customers={customers}
           technicians={technicians}
-          onClose={() => setShowCreateModal(false)}
+          currentUser={user} // Pass currentUser to JobDetailsTrello
         />
       )}
     </div>
