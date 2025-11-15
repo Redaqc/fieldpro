@@ -12,7 +12,10 @@ import {
   X,
   Settings,
   Bell,
-  Search
+  Search,
+  Package,
+  FileCheck,
+  DollarSign
 } from "lucide-react";
 import {
   Sidebar,
@@ -59,9 +62,24 @@ const navigationItems = [
     icon: UserCircle,
   },
   {
+    title: "Quotations",
+    url: createPageUrl("Quotations"),
+    icon: FileCheck,
+  },
+  {
     title: "Invoices",
     url: createPageUrl("Invoices"),
     icon: FileText,
+  },
+  {
+    title: "Assets",
+    url: createPageUrl("Assets"),
+    icon: Package,
+  },
+  {
+    title: "Price Lists",
+    url: createPageUrl("PriceLists"),
+    icon: DollarSign,
   },
 ];
 
