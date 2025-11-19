@@ -13,6 +13,8 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 export default function InvoiceDialog({ open, onClose, onSave, invoice, customers, jobs }) {
   const [formData, setFormData] = useState({
+    invoice_number: "",
+    po_number: "",
     customer_id: "",
     customer_name: "",
     project_name: "",
@@ -38,10 +40,22 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
   const [showVariables, setShowVariables] = useState(false);
   const [freezeItems, setFreezeItems] = useState(false);
   const [createFrom, setCreateFrom] = useState("scratch"); // scratch, quotation, job
+  const [showItemSelector, setShowItemSelector] = useState(false);
 
   useEffect(() => {
     if (invoice) {
       setFormData(invoice);
+    } else {
+      // Generate invoice number for new invoices
+      base44.entities.Invoice.list('-created_date', 1).then(invoices => {
+        if (invoices.length > 0) {
+          const lastNumber = parseInt(invoices[0].invoice_number?.split('-')[1] || '0');
+          const newNumber = `INV-${String(lastNumber + 1).padStart(6, '0')}`;
+          setFormData(prev => ({ ...prev, invoice_number: newNumber }));
+        } else {
+          setFormData(prev => ({ ...prev, invoice_number: 'INV-000001' }));
+        }
+      });
     }
   }, [invoice]);
 
@@ -189,15 +203,16 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
     const bundle = bundles.find(b => b.id === bundleId);
     if (!bundle) return;
 
-    const bundleItem = {
-      description: bundle.name,
-      quantity: 1,
-      unit_price: bundle.bundle_price,
-      total: bundle.bundle_price,
-      type: "bundle"
-    };
+    // Add each item from the bundle individually
+    const bundleItemsToAdd = bundle.items?.map(item => ({
+      description: item.service_name || item.description,
+      quantity: item.quantity || 1,
+      unit_price: item.unit_price || 0,
+      total: (item.quantity || 1) * (item.unit_price || 0),
+      type: "item"
+    })) || [];
 
-    const newItems = [...formData.line_items, bundleItem];
+    const newItems = [...formData.line_items, ...bundleItemsToAdd];
     setFormData(prev => ({ ...prev, line_items: newItems }));
     calculateTotals(newItems);
   };
@@ -229,14 +244,17 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
   };
 
   const createBundleFromSelected = async () => {
-    if (selectedItems.length === 0) return;
+    if (selectedItems.length === 0) {
+      alert("Sélectionnez au moins un item");
+      return;
+    }
 
     const bundleItems = selectedItems
       .map(i => formData.line_items[i])
       .filter(item => item.type === 'item');
 
     if (bundleItems.length === 0) {
-      alert("Sélectionnez au moins un item");
+      alert("Sélectionnez au moins un item (pas de titre/description)");
       return;
     }
 
@@ -258,20 +276,10 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
         status: "active"
       });
 
-      const remainingItems = formData.line_items.filter((_, i) => !selectedItems.includes(i));
-      const bundleItem = {
-        description: bundleName,
-        quantity: 1,
-        unit_price: bundlePrice,
-        total: bundlePrice,
-        type: "bundle"
-      };
-      
-      const newItems = [...remainingItems, bundleItem];
-      setFormData(prev => ({ ...prev, line_items: newItems }));
+      alert(`Bundle "${bundleName}" créé avec succès!`);
       setSelectedItems([]);
-      calculateTotals(newItems);
     } catch (error) {
+      console.error("Erreur création bundle:", error);
       alert("Erreur lors de la création du bundle");
     }
   };
@@ -361,7 +369,7 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
           )}
 
           {/* Header Row 1 */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div>
               <Label className="text-xs font-semibold">Customer *</Label>
               <Select value={formData.customer_id} onValueChange={handleCustomerSelect} required>
@@ -379,11 +387,22 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
             </div>
 
             <div>
-              <Label className="text-xs font-semibold">Nom du Projet</Label>
+              <Label className="text-xs font-semibold">Numéro de Facture</Label>
+              <Input
+                className="h-9 text-sm font-semibold"
+                value={formData.invoice_number}
+                onChange={(e) => handleChange('invoice_number', e.target.value)}
+                readOnly
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold">Numéro de PO</Label>
               <Input
                 className="h-9 text-sm"
-                value={formData.project_name}
-                onChange={(e) => handleChange('project_name', e.target.value)}
+                value={formData.po_number}
+                onChange={(e) => handleChange('po_number', e.target.value)}
+                placeholder="Numéro de PO"
               />
             </div>
 
@@ -399,7 +418,16 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
           </div>
 
           {/* Header Row 2 */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
+            <div>
+              <Label className="text-xs font-semibold">Nom du Projet</Label>
+              <Input
+                className="h-9 text-sm"
+                value={formData.project_name}
+                onChange={(e) => handleChange('project_name', e.target.value)}
+              />
+            </div>
+
             <div>
               <Label className="text-xs font-semibold">Issue Date *</Label>
               <Input
@@ -472,16 +500,21 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
                 <Plus className="w-3 h-3 mr-1" />
                 Add
               </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-8 font-semibold"
-                onClick={() => setShowPriceList(!showPriceList)}
-              >
-                <List className="w-3 h-3 mr-1" />
-                Items
-              </Button>
+              <Select onValueChange={(id) => {
+                const item = defaultPriceList?.items?.find(i => i.service_name === id);
+                if (item) addItemFromPriceList(item);
+              }}>
+                <SelectTrigger className="w-24 h-8 font-semibold">
+                  <SelectValue placeholder="Items" />
+                </SelectTrigger>
+                <SelectContent>
+                  {defaultPriceList?.items?.map((item, idx) => (
+                    <SelectItem key={idx} value={item.service_name}>
+                      {item.service_name} - ${item.unit_price}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 type="button"
                 size="sm"
@@ -542,24 +575,7 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
               </Select>
             </div>
 
-            {/* Price List Dropdown */}
-            {showPriceList && defaultPriceList && (
-              <div className="border rounded p-3 bg-slate-50">
-                <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
-                  {defaultPriceList.items?.map((item, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => addItemFromPriceList(item)}
-                      className="text-left p-2 border rounded hover:bg-white text-xs"
-                    >
-                      <div className="font-medium">{item.service_name}</div>
-                      <div className="text-slate-600">${item.unit_price}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+
 
             {/* Items Table */}
             <div className="border rounded-lg overflow-hidden">
