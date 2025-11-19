@@ -15,8 +15,7 @@ import {
   Search,
   Package,
   FileCheck,
-  DollarSign,
-  Calculator
+  DollarSign
 } from "lucide-react";
 import {
   Sidebar,
@@ -61,11 +60,6 @@ const navigationItems = [
     title: "Team",
     url: createPageUrl("Team"),
     icon: UserCircle,
-  },
-  {
-    title: "Calculator",
-    url: createPageUrl("Calculator"),
-    icon: Calculator,
   },
   {
     title: "Quotations",

@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 
-import TechniciansList from "../components/team/TechniciansList";
-import TechnicianModal from "../components/team/TechnicianModal";
+import TeamList from "../components/team/TeamList";
+import TechnicianDialog from "../components/team/TechnicianDialog";
 
-export default function TeamPage() {
+export default function Team() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDialog, setShowDialog] = useState(false);
+  const [selectedTechnician, setSelectedTechnician] = useState(null);
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTech, setSelectedTech] = useState(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const { data: technicians = [], isLoading } = useQuery({
     queryKey: ['technicians'],
@@ -26,40 +26,62 @@ export default function TeamPage() {
     initialData: [],
   });
 
-  const deleteTechMutation = useMutation({
-    mutationFn: (id) => base44.entities.Technician.delete(id),
+  const createTechnicianMutation = useMutation({
+    mutationFn: (data) => base44.entities.Technician.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
-      setSelectedTech(null);
+      setShowDialog(false);
+      setSelectedTechnician(null);
     },
   });
 
-  const filteredTechs = technicians.filter(tech => {
-    const searchLower = searchQuery.toLowerCase();
+  const updateTechnicianMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Technician.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      setShowDialog(false);
+      setSelectedTechnician(null);
+    },
+  });
+
+  const deleteTechnicianMutation = useMutation({
+    mutationFn: (id) => base44.entities.Technician.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+      setSelectedTechnician(null);
+    },
+  });
+
+  const handleSave = (data) => {
+    if (selectedTechnician?.id) {
+      updateTechnicianMutation.mutate({ id: selectedTechnician.id, data });
+    } else {
+      createTechnicianMutation.mutate(data);
+    }
+  };
+
+  const filteredTechnicians = technicians.filter(tech => {
+    const search = searchTerm.toLowerCase();
     return (
-      tech.first_name?.toLowerCase().includes(searchLower) ||
-      tech.last_name?.toLowerCase().includes(searchLower) ||
-      tech.email?.toLowerCase().includes(searchLower) ||
-      tech.phone?.includes(searchQuery)
+      tech.first_name?.toLowerCase().includes(search) ||
+      tech.last_name?.toLowerCase().includes(search) ||
+      tech.email?.toLowerCase().includes(search) ||
+      tech.phone?.includes(search)
     );
   });
 
-  const getTechJobCount = (techId) => {
-    return jobs.filter(job => 
-      job.technician_id === techId && 
-      (job.status === 'scheduled' || job.status === 'in_progress')
-    ).length;
-  };
-
   return (
-    <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
+    <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Team</h1>
-          <p className="text-slate-500 mt-1">Manage your technicians and field staff</p>
+          <p className="text-slate-500 mt-1">Manage your field technicians</p>
         </div>
         <Button 
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => {
+            setSelectedTechnician(null);
+            setShowDialog(true);
+          }}
           className="bg-blue-600 hover:bg-blue-700"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -67,34 +89,43 @@ export default function TeamPage() {
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <Input
-            placeholder="Search technicians..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+      <div className="relative">
+        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        <Input
+          placeholder="Search technicians..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-9 border-slate-200"
+        />
       </div>
 
-      <TechniciansList 
-        technicians={filteredTechs}
+      <TeamList
+        technicians={filteredTechnicians}
         isLoading={isLoading}
-        onSelectTech={setSelectedTech}
-        getJobCount={getTechJobCount}
+        onTechnicianClick={(tech) => {
+          setSelectedTechnician(tech);
+          setShowDialog(true);
+        }}
+        onUpdateStatus={(id, status) => {
+          updateTechnicianMutation.mutate({ id, data: { status } });
+        }}
+        onDelete={(id) => {
+          if (confirm('Are you sure you want to delete this technician?')) {
+            deleteTechnicianMutation.mutate(id);
+          }
+        }}
+        jobs={jobs}
       />
 
-      {(selectedTech || showCreateModal) && (
-        <TechnicianModal
-          technician={selectedTech}
-          jobs={jobs.filter(j => j.technician_id === selectedTech?.id)}
+      {showDialog && (
+        <TechnicianDialog
+          open={showDialog}
           onClose={() => {
-            setSelectedTech(null);
-            setShowCreateModal(false);
+            setShowDialog(false);
+            setSelectedTechnician(null);
           }}
-          onDelete={() => deleteTechMutation.mutate(selectedTech.id)}
+          onSave={handleSave}
+          technician={selectedTechnician}
         />
       )}
     </div>
