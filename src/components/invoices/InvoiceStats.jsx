@@ -1,92 +1,49 @@
 import React from "react";
-import { differenceInDays } from "date-fns";
+import { Card } from "@/components/ui/card";
+import { FileText, Send, CheckCircle, AlertTriangle } from "lucide-react";
 
 export default function InvoiceStats({ invoices, onFilterChange }) {
-  const unpaidInvoices = invoices.filter(inv => inv.status !== 'paid' && inv.status !== 'cancelled');
-  
-  const calculateRemaining = (inv) => (inv.total_amount || 0) - (inv.paid_amount || 0);
-  
-  const allDueTotal = unpaidInvoices.reduce((sum, inv) => sum + calculateRemaining(inv), 0);
-  const allDueCount = unpaidInvoices.length;
+  const draftCount = invoices.filter(inv => inv.status === 'draft').length;
+  const sentCount = invoices.filter(inv => inv.status === 'sent').length;
+  const paidCount = invoices.filter(inv => inv.status === 'paid').length;
+  const overdueCount = invoices.filter(inv => inv.status === 'overdue').length;
 
-  const under30 = unpaidInvoices.filter(inv => {
-    if (!inv.due_date) return false;
-    const days = differenceInDays(new Date(), new Date(inv.due_date));
-    return days < 0 || days <= 30;
-  });
-
-  const days30to60 = unpaidInvoices.filter(inv => {
-    if (!inv.due_date) return false;
-    const days = differenceInDays(new Date(), new Date(inv.due_date));
-    return days > 30 && days <= 60;
-  });
-
-  const days60to90 = unpaidInvoices.filter(inv => {
-    if (!inv.due_date) return false;
-    const days = differenceInDays(new Date(), new Date(inv.due_date));
-    return days > 60 && days <= 90;
-  });
-
-  const over90 = unpaidInvoices.filter(inv => {
-    if (!inv.due_date) return false;
-    const days = differenceInDays(new Date(), new Date(inv.due_date));
-    return days > 90;
-  });
+  const draftTotal = invoices.filter(inv => inv.status === 'draft').reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+  const sentTotal = invoices.filter(inv => inv.status === 'sent').reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+  const paidTotal = invoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+  const overdueTotal = invoices.filter(inv => inv.status === 'overdue').reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
 
   const stats = [
-    { 
-      title: 'invoices due', 
-      amount: allDueTotal, 
-      count: allDueCount,
-      borderColor: 'border-l-slate-400',
-      filter: 'unpaid'
-    },
-    { 
-      title: 'under 30 days', 
-      amount: under30.reduce((sum, inv) => sum + calculateRemaining(inv), 0), 
-      count: under30.length,
-      borderColor: 'border-l-yellow-400',
-      filter: 'under30'
-    },
-    { 
-      title: '30-60 days', 
-      amount: days30to60.reduce((sum, inv) => sum + calculateRemaining(inv), 0), 
-      count: days30to60.length,
-      borderColor: 'border-l-orange-400',
-      filter: '30-60'
-    },
-    { 
-      title: '60-90 days', 
-      amount: days60to90.reduce((sum, inv) => sum + calculateRemaining(inv), 0), 
-      count: days60to90.length,
-      borderColor: 'border-l-red-400',
-      filter: '60-90'
-    },
-    { 
-      title: 'over 90 days', 
-      amount: over90.reduce((sum, inv) => sum + calculateRemaining(inv), 0), 
-      count: over90.length,
-      borderColor: 'border-l-red-600',
-      filter: 'over90'
-    },
+    { title: 'Brouillon', count: draftCount, total: draftTotal, icon: FileText, color: 'text-gray-600', bgColor: 'bg-gray-50', status: 'draft' },
+    { title: 'Envoyées', count: sentCount, total: sentTotal, icon: Send, color: 'text-blue-600', bgColor: 'bg-blue-50', status: 'sent' },
+    { title: 'Payées', count: paidCount, total: paidTotal, icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', status: 'paid' },
+    { title: 'En Retard', count: overdueCount, total: overdueTotal, icon: AlertTriangle, color: 'text-red-600', bgColor: 'bg-red-50', status: 'overdue' },
   ];
 
   return (
-    <div className="grid grid-cols-5 gap-0 bg-white border border-slate-200 rounded-lg overflow-hidden">
-      {stats.map((stat, index) => (
-        <div
-          key={stat.filter}
-          className={`p-6 text-center cursor-pointer hover:bg-slate-50 transition-colors border-l-4 ${stat.borderColor} ${index < stats.length - 1 ? 'border-r border-slate-200' : ''}`}
-          onClick={() => onFilterChange(stat.filter)}
-        >
-          <div className="text-3xl font-bold text-slate-900 mb-1">
-            ${stat.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+    <Card className="p-4">
+      <div className="flex items-center justify-between gap-6">
+        {stats.map((stat, index) => (
+          <div
+            key={stat.status}
+            className={`flex items-center gap-4 flex-1 p-4 rounded-lg cursor-pointer hover:shadow-md transition-all ${stat.bgColor}`}
+            onClick={() => onFilterChange(stat.status)}
+          >
+            <div className={`p-3 rounded-full ${stat.bgColor}`}>
+              <stat.icon className={`w-6 h-6 ${stat.color}`} />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">{stat.title}</p>
+              <div className="flex items-baseline gap-3 mt-1">
+                <span className="text-2xl font-bold text-slate-900">{stat.count}</span>
+                <span className={`text-lg font-semibold ${stat.color}`}>
+                  ${stat.total.toFixed(0)}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="text-sm text-slate-500">
-            {stat.count} {stat.title}
-          </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </Card>
   );
 }

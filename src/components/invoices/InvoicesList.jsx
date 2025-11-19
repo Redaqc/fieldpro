@@ -52,64 +52,66 @@ export default function InvoicesList({ invoices, isLoading, onInvoiceClick, onDe
     <Card>
       <Table>
         <TableHeader>
-          <TableRow className="bg-slate-50">
-            <TableHead className="font-semibold text-slate-700">Invoice No.</TableHead>
-            <TableHead className="font-semibold text-slate-700">Invoice Name</TableHead>
-            <TableHead className="font-semibold text-slate-700">Client name</TableHead>
-            <TableHead className="font-semibold text-slate-700 text-right">Total</TableHead>
-            <TableHead className="font-semibold text-slate-700 text-right">Balance</TableHead>
-            <TableHead className="font-semibold text-slate-700">Due on</TableHead>
-            <TableHead className="font-semibold text-slate-700">Created</TableHead>
-            <TableHead className="font-semibold text-slate-700 text-right">Days Late</TableHead>
+          <TableRow>
+            <TableHead>Numéro</TableHead>
+            <TableHead>Client</TableHead>
+            <TableHead>Date Émission</TableHead>
+            <TableHead>Date Échéance</TableHead>
+            <TableHead>Âge</TableHead>
+            <TableHead>Retard</TableHead>
+            <TableHead className="text-right">Montant Total</TableHead>
+            <TableHead className="text-right">Reste à Payer</TableHead>
+            <TableHead>Jours Paiement</TableHead>
+            <TableHead>Statut</TableHead>
             <TableHead></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {invoices.map((invoice) => {
-            const daysLate = invoice.due_date && invoice.status !== 'paid' 
-              ? Math.max(0, differenceInDays(new Date(), new Date(invoice.due_date)))
-              : 0;
-            
-            return (
-              <TableRow
-                key={invoice.id}
-                className="cursor-pointer hover:bg-slate-50"
-                onClick={() => onInvoiceClick(invoice)}
-              >
-                <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                <TableCell className="text-slate-400">-</TableCell>
-                <TableCell>{invoice.customer_name || '-'}</TableCell>
-                <TableCell className="text-right font-semibold">
-                  ${(invoice.total_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </TableCell>
-                <TableCell className="text-right font-semibold">
-                  ${calculateRemaining(invoice.total_amount, invoice.paid_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </TableCell>
-                <TableCell>
-                  {invoice.due_date ? format(new Date(invoice.due_date), 'E MMM dd, yyyy') : '-'}
-                </TableCell>
-                <TableCell>
-                  {invoice.issue_date ? format(new Date(invoice.issue_date), 'E MMM dd, yyyy') : '-'}
-                </TableCell>
-                <TableCell className="text-right font-semibold">
-                  {daysLate > 0 ? daysLate : '-'}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm('Supprimer cette facture?')) onDelete(invoice.id);
-                    }}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            );
-          })}
+          {invoices.map((invoice) => (
+            <TableRow
+              key={invoice.id}
+              className="cursor-pointer hover:bg-slate-50"
+              onClick={() => onInvoiceClick(invoice)}
+            >
+              <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+              <TableCell>{invoice.customer_name || '-'}</TableCell>
+              <TableCell>
+                {invoice.issue_date ? format(new Date(invoice.issue_date), 'dd MMM yyyy') : '-'}
+              </TableCell>
+              <TableCell>
+                {invoice.due_date ? format(new Date(invoice.due_date), 'dd MMM yyyy') : '-'}
+              </TableCell>
+              <TableCell>{calculateAge(invoice.issue_date)}</TableCell>
+              <TableCell className={calculateOverdue(invoice.due_date, invoice.status) !== '-' ? 'text-red-600 font-semibold' : ''}>
+                {calculateOverdue(invoice.due_date, invoice.status)}
+              </TableCell>
+              <TableCell className="text-right font-semibold">
+                ${(invoice.total_amount || 0).toFixed(2)}
+              </TableCell>
+              <TableCell className="text-right font-semibold text-orange-600">
+                ${calculateRemaining(invoice.total_amount, invoice.paid_amount).toFixed(2)}
+              </TableCell>
+              <TableCell>{calculatePaymentDays(invoice.issue_date, invoice.paid_date, invoice.status)}</TableCell>
+              <TableCell>
+                <Badge className={statusColors[invoice.status]}>
+                  {invoice.status}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm('Supprimer cette facture?')) onDelete(invoice.id);
+                  }}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     </Card>
