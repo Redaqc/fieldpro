@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Save, X, Package, List, FileText, Heading, Copy, Minus, GripVertical, FileDown } from "lucide-react";
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { addDays, format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { base44 } from "@/api/base44Client";
@@ -122,15 +121,7 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
     setShowBundleSelector(false);
   };
 
-  const onDragEnd = (result) => {
-    if (!result.destination) return;
-    
-    const items = Array.from(formData.line_items);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    
-    setFormData(prev => ({ ...prev, line_items: items }));
-  };
+
 
   const generatePDF = async () => {
     const pdfContent = `
@@ -370,116 +361,126 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
               <div className="col-span-2 text-right">Total</div>
             </div>
 
-            {/* Items List with Drag and Drop */}
-            <DragDropContext onDragEnd={onDragEnd}>
-              <Droppable droppableId="line-items">
-                {(provided) => (
-                  <div 
-                    {...provided.droppableProps} 
-                    ref={provided.innerRef}
-                    className="space-y-1 mb-4 max-h-64 overflow-y-auto"
-                  >
-                    {formData.line_items.map((item, index) => (
-                      <Draggable key={`item-${index}`} draggableId={`item-${index}`} index={index} isDragDisabled={itemsFrozen}>
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                          >
-                            {(() => {
-                              if (item.type === "title") {
-                                return (
-                                  <div className="flex items-center gap-2 p-2 bg-blue-50 rounded">
-                                    <div {...provided.dragHandleProps}>
-                                      <GripVertical className="w-4 h-4 text-slate-400" />
-                                    </div>
-                                    <Input
-                                      placeholder="Title"
-                                      value={item.description}
-                                      onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                                      className="font-bold border-0 bg-transparent h-8"
-                                      disabled={itemsFrozen}
-                                    />
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
-                                      <Minus className="w-3 h-3" />
-                                    </Button>
-                                  </div>
-                                );
-                              }
-                              
-                              if (item.type === "description") {
-                                return (
-                                  <div className="flex items-center gap-2 p-2 bg-slate-50 rounded">
-                                    <div {...provided.dragHandleProps}>
-                                      <GripVertical className="w-4 h-4 text-slate-400" />
-                                    </div>
-                                    <Textarea
-                                      placeholder="Description"
-                                      value={item.description}
-                                      onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                                      className="text-xs border-0 bg-transparent min-h-[60px]"
-                                      disabled={itemsFrozen}
-                                    />
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
-                                      <Minus className="w-3 h-3" />
-                                    </Button>
-                                  </div>
-                                );
-                              }
+            {/* Items List */}
+            <div className="space-y-1 mb-4 max-h-64 overflow-y-auto">
+              {formData.line_items.map((item, index) => {
+                if (item.type === "title") {
+                  return (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-blue-50 rounded">
+                      <div className="cursor-move" onMouseDown={(e) => e.preventDefault()}>
+                        <GripVertical className="w-4 h-4 text-slate-400" />
+                      </div>
+                      <Input
+                        placeholder="Title"
+                        value={item.description}
+                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                        className="font-bold border-0 bg-transparent h-8"
+                        disabled={itemsFrozen}
+                      />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
+                        <Minus className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  );
+                }
+                
+                if (item.type === "description") {
+                  return (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 rounded">
+                      <div className="cursor-move" onMouseDown={(e) => e.preventDefault()}>
+                        <GripVertical className="w-4 h-4 text-slate-400" />
+                      </div>
+                      <Textarea
+                        placeholder="Description"
+                        value={item.description}
+                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                        className="text-xs border-0 bg-transparent min-h-[60px]"
+                        disabled={itemsFrozen}
+                      />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
+                        <Minus className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  );
+                }
 
-                              return (
-                                <div className="grid grid-cols-12 gap-2 p-2 hover:bg-slate-50 rounded items-center">
-                                  <div className="col-span-1 flex justify-center" {...provided.dragHandleProps}>
-                                    <GripVertical className="w-4 h-4 text-slate-400 cursor-grab" />
-                                  </div>
-                                  <div className="col-span-5">
-                                    <Input
-                                      placeholder="Item description"
-                                      value={item.description}
-                                      onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                                      className="h-8 text-sm"
-                                      disabled={itemsFrozen}
-                                    />
-                                  </div>
-                                  <div className="col-span-2">
-                                    <Input
-                                      type="number"
-                                      value={item.quantity}
-                                      onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)}
-                                      className="h-8 text-sm"
-                                      disabled={itemsFrozen}
-                                    />
-                                  </div>
-                                  <div className="col-span-2">
-                                    <Input
-                                      type="number"
-                                      value={item.unit_price}
-                                      onChange={(e) => updateLineItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
-                                      step="0.01"
-                                      className="h-8 text-sm"
-                                      disabled={itemsFrozen}
-                                    />
-                                  </div>
-                                  <div className="col-span-1 text-right">
-                                    <span className="font-semibold text-sm">${(item.total || 0).toFixed(3)}</span>
-                                  </div>
-                                  <div className="col-span-1 flex justify-center">
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
-                                      <Minus className="w-3 h-3 text-red-500" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
+                return (
+                  <div key={index} className="grid grid-cols-12 gap-2 p-2 hover:bg-slate-50 rounded items-center">
+                    <div className="col-span-1 flex justify-center">
+                      <div className="cursor-move flex items-center" onMouseDown={(e) => e.preventDefault()}>
+                        <GripVertical className="w-4 h-4 text-slate-400" />
+                      </div>
+                      <div className="flex gap-1">
+                        {index > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const items = [...formData.line_items];
+                              [items[index], items[index - 1]] = [items[index - 1], items[index]];
+                              setFormData(prev => ({ ...prev, line_items: items }));
+                            }}
+                            className="text-slate-400 hover:text-slate-600"
+                            disabled={itemsFrozen}
+                          >
+                            ↑
+                          </button>
                         )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
+                        {index < formData.line_items.length - 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const items = [...formData.line_items];
+                              [items[index], items[index + 1]] = [items[index + 1], items[index]];
+                              setFormData(prev => ({ ...prev, line_items: items }));
+                            }}
+                            className="text-slate-400 hover:text-slate-600"
+                            disabled={itemsFrozen}
+                          >
+                            ↓
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="col-span-5">
+                      <Input
+                        placeholder="Item description"
+                        value={item.description}
+                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                        className="h-8 text-sm"
+                        disabled={itemsFrozen}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                        className="h-8 text-sm"
+                        disabled={itemsFrozen}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Input
+                        type="number"
+                        value={item.unit_price}
+                        onChange={(e) => updateLineItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                        step="0.01"
+                        className="h-8 text-sm"
+                        disabled={itemsFrozen}
+                      />
+                    </div>
+                    <div className="col-span-1 text-right">
+                      <span className="font-semibold text-sm">${(item.total || 0).toFixed(3)}</span>
+                    </div>
+                    <div className="col-span-1 flex justify-center">
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
+                        <Minus className="w-3 h-3 text-red-500" />
+                      </Button>
+                    </div>
                   </div>
-                )}
-              </Droppable>
-            </DragDropContext>
+                );
+              })}
+            </div>
 
             {/* Totals */}
             <div className="border-t pt-3 space-y-2">
