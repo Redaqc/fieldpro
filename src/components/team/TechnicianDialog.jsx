@@ -49,7 +49,9 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
     is_default_supervisor: false,
     can_create_service_calls: false,
     can_adjust_punches: false,
-    language: "fr"
+    language: "fr",
+    can_view_prices: true,
+    visible_modules: ["dashboard", "jobs", "schedule", "time_tracking"]
   });
 
   const { data: assets = [] } = useQuery({
@@ -643,9 +645,78 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
               </div>
             </TabsContent>
 
-            <TabsContent value="permissions" className="space-y-4 mt-6">
-              <div className="text-center py-8 text-slate-500">
-                <p>Gestion des permissions à venir</p>
+            <TabsContent value="permissions" className="space-y-6 mt-6">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-red-600 mb-4">Visibilité des prix</h3>
+                  <div className="flex items-center justify-between py-2 border-b">
+                    <div>
+                      <p className="font-medium text-sm">Voir les prix</p>
+                      <p className="text-xs text-slate-500">Permet à l'employé de voir les prix dans les soumissions, factures et jobs.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={formData.can_view_prices ? "default" : "outline"}
+                        onClick={() => handleChange('can_view_prices', true)}
+                        className="w-16"
+                      >
+                        Oui
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={!formData.can_view_prices ? "default" : "outline"}
+                        onClick={() => handleChange('can_view_prices', false)}
+                        className="w-16"
+                      >
+                        Non
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold text-red-600 mb-4">Modules visibles</h3>
+                  <p className="text-sm text-slate-600 mb-3">Sélectionnez les modules auxquels cet employé a accès</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { id: 'dashboard', label: 'Dashboard' },
+                      { id: 'jobs', label: 'Jobs' },
+                      { id: 'schedule', label: 'Calendrier' },
+                      { id: 'customers', label: 'Clients' },
+                      { id: 'team', label: 'Équipe' },
+                      { id: 'time_tracking', label: 'Gestion du temps' },
+                      { id: 'quotations', label: 'Soumissions' },
+                      { id: 'invoices', label: 'Factures' },
+                      { id: 'assets', label: 'Équipements' },
+                      { id: 'price_lists', label: 'Listes de prix' },
+                      { id: 'materials', label: 'Matériaux' }
+                    ].map(module => (
+                      <div key={module.id} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50">
+                        <Checkbox
+                          id={module.id}
+                          checked={formData.visible_modules?.includes(module.id)}
+                          onCheckedChange={(checked) => {
+                            const current = formData.visible_modules || [];
+                            if (checked) {
+                              handleChange('visible_modules', [...current, module.id]);
+                            } else {
+                              handleChange('visible_modules', current.filter(m => m !== module.id));
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={module.id}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {module.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </TabsContent>
 

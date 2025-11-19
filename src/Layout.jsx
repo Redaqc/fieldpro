@@ -104,6 +104,22 @@ export default function Layout({ children, currentPageName }) {
     retry: false,
   });
 
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['technicians'],
+    queryFn: () => base44.entities.Technician.list(),
+    initialData: [],
+  });
+
+  // Find current user's technician profile to check permissions
+  const currentTech = technicians.find(t => t.email === user?.email);
+  const visibleModules = currentTech?.visible_modules || ['dashboard', 'jobs', 'schedule', 'customers', 'team', 'time_tracking', 'quotations', 'invoices', 'assets', 'price_lists', 'materials'];
+
+  // Filter navigation items based on user permissions
+  const filteredNavigation = navigationItems.filter(item => {
+    const moduleName = item.url.split('?')[0].split('/').pop().toLowerCase();
+    return visibleModules.includes(moduleName);
+  });
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-slate-50">
@@ -124,7 +140,7 @@ export default function Layout({ children, currentPageName }) {
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {navigationItems.map((item) => {
+                  {filteredNavigation.map((item) => {
                     const isActive = location.pathname === item.url;
                     return (
                       <SidebarMenuItem key={item.title}>
