@@ -8,6 +8,7 @@ import Quotations from './pages/Quotations';
 import Assets from './pages/Assets';
 import PriceLists from './pages/PriceLists';
 import Materials from './pages/Materials';
+import TimeTracking from './pages/TimeTracking';
 import __Layout from './Layout.jsx';
 
 
@@ -22,6 +23,7 @@ export const PAGES = {
     "Assets": Assets,
     "PriceLists": PriceLists,
     "Materials": Materials,
+    "TimeTracking": TimeTracking,
 }
 
 export const pagesConfig = {

@@ -62,6 +62,11 @@ const navigationItems = [
     icon: UserCircle,
   },
   {
+    title: "Time Tracking",
+    url: createPageUrl("TimeTracking"),
+    icon: Clock,
+  },
+  {
     title: "Quotations",
     url: createPageUrl("Quotations"),
     icon: FileCheck,

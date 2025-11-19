@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save } from "lucide-react";
+import { Save, Package, Truck } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 
 const specializations = [
   "plumbing", "electrical", "hvac", "carpentry", "general", 
@@ -30,9 +32,21 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
     specialization: [],
     hourly_rate: 0,
     status: "available",
+    role: "tech",
     color: colors[Math.floor(Math.random() * colors.length)],
-    notes: ""
+    notes: "",
+    employee_number: "",
+    address: ""
   });
+
+  const { data: assets = [] } = useQuery({
+    queryKey: ['assets', technician?.id],
+    queryFn: () => base44.entities.Asset.list(),
+    enabled: !!technician?.id,
+    initialData: [],
+  });
+
+  const assignedAssets = assets.filter(asset => asset.assigned_to === technician?.id);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -133,15 +147,16 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
                   <h3 className="text-lg font-semibold">Rôles et Permissions</h3>
                   
                   <div>
-                    <Label htmlFor="status" className="text-xs text-slate-600">Statut</Label>
-                    <Select value={formData.status} onValueChange={(val) => handleChange('status', val)}>
+                    <Label htmlFor="role" className="text-xs text-slate-600">Rôle</Label>
+                    <Select value={formData.role || "tech"} onValueChange={(val) => handleChange('role', val)}>
                       <SelectTrigger className="mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="available">Disponible</SelectItem>
-                        <SelectItem value="busy">Occupé</SelectItem>
-                        <SelectItem value="off_duty">Hors service</SelectItem>
+                        <SelectItem value="tech">Technicien</SelectItem>
+                        <SelectItem value="supervisor">Superviseur</SelectItem>
+                        <SelectItem value="manager">Gestionnaire</SelectItem>
+                        <SelectItem value="admin">Administrateur</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -202,9 +217,114 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
               </div>
             </TabsContent>
 
-            <TabsContent value="advanced" className="space-y-4 mt-6">
-              <div className="text-center py-8 text-slate-500">
-                <p>Fonctionnalités avancées à venir</p>
+            <TabsContent value="advanced" className="space-y-6 mt-6">
+              <div className="grid grid-cols-2 gap-8">
+                {/* Left Column */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-red-600">Fiche RH d'employé</h3>
+                  
+                  <div>
+                    <Label className="text-xs text-slate-600">Numéro d'employé</Label>
+                    <Input
+                      value={formData.employee_number}
+                      onChange={(e) => handleChange('employee_number', e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-slate-600">Adresse</Label>
+                    <Textarea
+                      value={formData.address}
+                      onChange={(e) => handleChange('address', e.target.value)}
+                      rows={3}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-red-600 mt-6">Gestion du temps</h3>
+                    <div className="mt-2">
+                      <Label className="text-xs text-slate-600">Couleur de l'employé</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {colors.slice(0, 12).map(color => (
+                          <button
+                            key={color}
+                            type="button"
+                            className={`w-8 h-8 rounded-full border-2 transition-all ${
+                              formData.color === color ? 'border-slate-900 ring-2 ring-offset-2 ring-slate-300' : 'border-slate-200'
+                            }`}
+                            style={{ backgroundColor: color }}
+                            onClick={() => handleChange('color', color)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Assigned Assets */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Package className="w-5 h-5" />
+                      Outils et Équipements Assignés
+                    </h3>
+                    <div className="mt-3 border rounded-lg p-3 bg-slate-50 max-h-64 overflow-y-auto">
+                      {assignedAssets.length === 0 ? (
+                        <p className="text-sm text-slate-500 text-center py-4">Aucun équipement assigné</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {assignedAssets.filter(a => a.type !== 'vehicle').map(asset => (
+                            <div key={asset.id} className="flex items-center gap-3 p-2 bg-white rounded border">
+                              {asset.photos && asset.photos[0] ? (
+                                <img src={asset.photos[0]} alt={asset.name} className="w-10 h-10 object-cover rounded" />
+                              ) : (
+                                <div className="w-10 h-10 bg-slate-200 rounded flex items-center justify-center">
+                                  <Package className="w-5 h-5 text-slate-400" />
+                                </div>
+                              )}
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{asset.name}</p>
+                                <p className="text-xs text-slate-500">{asset.brand} {asset.model}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Truck className="w-5 h-5" />
+                      Véhicules Assignés
+                    </h3>
+                    <div className="mt-3 border rounded-lg p-3 bg-slate-50 max-h-48 overflow-y-auto">
+                      {assignedAssets.filter(a => a.type === 'vehicle').length === 0 ? (
+                        <p className="text-sm text-slate-500 text-center py-4">Aucun véhicule assigné</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {assignedAssets.filter(a => a.type === 'vehicle').map(vehicle => (
+                            <div key={vehicle.id} className="flex items-center gap-3 p-2 bg-white rounded border">
+                              {vehicle.photos && vehicle.photos[0] ? (
+                                <img src={vehicle.photos[0]} alt={vehicle.name} className="w-10 h-10 object-cover rounded" />
+                              ) : (
+                                <div className="w-10 h-10 bg-slate-200 rounded flex items-center justify-center">
+                                  <Truck className="w-5 h-5 text-slate-400" />
+                                </div>
+                              )}
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{vehicle.name}</p>
+                                <p className="text-xs text-slate-500">{vehicle.brand} {vehicle.model}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </TabsContent>
 
