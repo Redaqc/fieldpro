@@ -107,7 +107,7 @@ export default function Quotations() {
         </Button>
       </div>
 
-      <QuotationStats quotations={quotations} />
+      <QuotationStats quotations={quotations} onFilterChange={setStatusFilter} />
 
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">

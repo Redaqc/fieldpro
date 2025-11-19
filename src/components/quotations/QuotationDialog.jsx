@@ -15,8 +15,12 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
   const [formData, setFormData] = useState(quotation || {
     customer_id: "",
     customer_name: "",
+    project_name: "",
     issue_date: format(new Date(), 'yyyy-MM-dd'),
     expiry_date: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
+    work_start_date: "",
+    sent_date: "",
+    accepted_date: "",
     status: "draft",
     line_items: [],
     submission_items: [],
@@ -181,24 +185,32 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
 
   const generatePDF = async () => {
     const pdfContent = `
-      QUOTATION: ${formData.quote_number || 'DRAFT'}
-      Customer: ${formData.customer_name}
-      Date: ${formData.issue_date}
-      
-      ITEMS:
-      ${formData.submission_items.map(item => 
-        `${item.description} - Qty: ${item.quantity} - $${item.unit_price} - Total: $${item.total.toFixed(2)}`
-      ).join('\n')}
-      
-      Subtotal: $${formData.submission_subtotal.toFixed(2)}
-      TPS (${formData.tax_rate}%): $${formData.tax_amount.toFixed(2)}
-      TVQ (${formData.tax_rate_2}%): $${formData.tax_amount_2.toFixed(2)}
-      TOTAL: $${formData.total_amount.toFixed(2)}
+QUOTATION: ${formData.quote_number || 'DRAFT'}
+${formData.project_name ? `Project: ${formData.project_name}` : ''}
+Customer: ${formData.customer_name}
+Date: ${formData.issue_date}
+${formData.work_start_date ? `Work Start Date: ${formData.work_start_date}` : ''}
+
+ITEMS:
+${formData.submission_items.map(item => 
+  `${item.description} - Qty: ${item.quantity} - $${item.unit_price} - Total: $${item.total.toFixed(2)}`
+).join('\n')}
+
+Subtotal: $${formData.submission_subtotal.toFixed(2)}
+TPS (${formData.tax_rate}%): $${formData.tax_amount.toFixed(2)}
+TVQ (${formData.tax_rate_2}%): $${formData.tax_amount_2.toFixed(2)}
+TOTAL: $${formData.total_amount.toFixed(2)}
     `;
     
     const blob = new Blob([pdfContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Quotation_${formData.quote_number || 'DRAFT'}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
     
     handleSubmit(new Event('submit'));
   };
@@ -349,6 +361,28 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
             </div>
 
             <div>
+              <Label className="text-xs">Nom du Projet</Label>
+              <Input
+                value={formData.project_name}
+                onChange={(e) => handleChange('project_name', e.target.value)}
+                placeholder="Nom du projet"
+                className="h-9"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs">Date de Début des Travaux</Label>
+              <Input
+                type="date"
+                value={formData.work_start_date}
+                onChange={(e) => handleChange('work_start_date', e.target.value)}
+                className="h-9"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
               <Label className="text-xs">Issue Date *</Label>
               <Input
                 type="date"
@@ -365,6 +399,16 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
                 type="date"
                 value={formData.expiry_date}
                 onChange={(e) => handleChange('expiry_date', e.target.value)}
+                className="h-9"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs">Sent Date</Label>
+              <Input
+                type="date"
+                value={formData.sent_date}
+                onChange={(e) => handleChange('sent_date', e.target.value)}
                 className="h-9"
               />
             </div>
@@ -409,6 +453,10 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
               <Button type="button" variant="outline" size="sm" onClick={() => setShowBundleCreator(true)} disabled={itemsFrozen}>
                 <Package className="w-3 h-3 mr-1" />
                 <span className="font-bold text-xs">Create Bundle</span>
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => window.open('/price-lists', '_blank')}>
+                <Package className="w-3 h-3 mr-1" />
+                <span className="font-bold text-xs">Modify Bundles</span>
               </Button>
             </div>
 
@@ -813,7 +861,12 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
               <Button 
                 type="button" 
                 variant={formData.status === 'sent' ? 'default' : 'outline'}
-                onClick={() => handleChange('status', 'sent')}
+                onClick={() => {
+                  handleChange('status', 'sent');
+                  if (!formData.sent_date) {
+                    handleChange('sent_date', format(new Date(), 'yyyy-MM-dd'));
+                  }
+                }}
                 className="flex-1"
               >
                 Envoyée
@@ -821,7 +874,12 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
               <Button 
                 type="button" 
                 variant={formData.status === 'accepted' ? 'default' : 'outline'}
-                onClick={() => handleChange('status', 'accepted')}
+                onClick={() => {
+                  handleChange('status', 'accepted');
+                  if (!formData.accepted_date) {
+                    handleChange('accepted_date', format(new Date(), 'yyyy-MM-dd'));
+                  }
+                }}
                 className="flex-1 bg-green-500 hover:bg-green-600 text-white"
               >
                 Gagner
