@@ -31,6 +31,7 @@ export default function AssetDialog({ open, onClose, onSave, asset }) {
   });
 
   const [uploading, setUploading] = useState(false);
+  const [scanningOCR, setScanningOCR] = useState(false);
 
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians'],
@@ -69,6 +70,43 @@ export default function AssetDialog({ open, onClose, onSave, asset }) {
   const removePhoto = (index) => {
     const newPhotos = formData.photos.filter((_, i) => i !== index);
     handleChange('photos', newPhotos);
+  };
+
+  const handleOCRScan = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setScanningOCR(true);
+    try {
+      // Upload file first
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      // Use LLM to extract serial number and model
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: "Extract the serial number and model number from this image. Return ONLY a JSON object with 'serial_number' and 'model' fields. If you cannot find them, return empty strings.",
+        file_urls: file_url,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            serial_number: { type: "string" },
+            model: { type: "string" }
+          }
+        }
+      });
+
+      if (result.serial_number) {
+        handleChange('serial_number', result.serial_number);
+      }
+      if (result.model) {
+        handleChange('model', result.model);
+      }
+
+      alert('Scan terminé! Les informations ont été extraites.');
+    } catch (error) {
+      alert('Erreur lors du scan OCR');
+    } finally {
+      setScanningOCR(false);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -177,19 +215,54 @@ export default function AssetDialog({ open, onClose, onSave, asset }) {
             </div>
 
             <div>
-              <Label>Model</Label>
+              <Label>Modèle</Label>
               <Input
                 value={formData.model}
                 onChange={(e) => handleChange('model', e.target.value)}
               />
             </div>
 
-            <div>
-              <Label>Serial Number</Label>
-              <Input
-                value={formData.serial_number}
-                onChange={(e) => handleChange('serial_number', e.target.value)}
-              />
+            <div className="col-span-2">
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <Label>Numéro de série</Label>
+                  <Input
+                    value={formData.serial_number}
+                    onChange={(e) => handleChange('serial_number', e.target.value)}
+                  />
+                </div>
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleOCRScan}
+                    className="hidden"
+                    disabled={scanningOCR}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9"
+                    disabled={scanningOCR}
+                    asChild
+                  >
+                    <span>
+                      {scanningOCR ? (
+                        <>
+                          <Upload className="w-4 h-4 mr-2 animate-spin" />
+                          Scan...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Scanner
+                        </>
+                      )}
+                    </span>
+                  </Button>
+                </label>
+              </div>
             </div>
 
             <div>
