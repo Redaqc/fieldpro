@@ -208,7 +208,7 @@ export default function InvoiceDetails({ invoice, onClose, onEdit, onUpdate, onD
 
   const cancelInvoice = () => {
     if (confirm("Êtes-vous sûr de vouloir annuler cette facture?")) {
-      onUpdate({ id: invoice.id, data: { status: "cancelled" }});
+      onDelete();
     }
   };
 
