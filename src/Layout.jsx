@@ -15,7 +15,8 @@ import {
   Search,
   Package,
   FileCheck,
-  DollarSign
+  DollarSign,
+  Clock
 } from "lucide-react";
 import {
   Sidebar,
