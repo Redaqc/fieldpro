@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Save, X, Package, List, FileText, Heading, Copy, Minus, GripVertical, FileDown } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { addDays, format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { base44 } from "@/api/base44Client";
@@ -35,6 +36,9 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
   const [selectedItemIndex, setSelectedItemIndex] = useState(null);
   const [showPriceListDialog, setShowPriceListDialog] = useState(false);
   const [showBundleSelector, setShowBundleSelector] = useState(false);
+  const [showBundleCreator, setShowBundleCreator] = useState(false);
+  const [newBundleName, setNewBundleName] = useState("");
+  const [newBundleDescription, setNewBundleDescription] = useState("");
   const [showAllVariables, setShowAllVariables] = useState(false);
   const [itemsFrozen, setItemsFrozen] = useState(false);
   const [showSubtotalsOnly, setShowSubtotalsOnly] = useState(false);
@@ -119,6 +123,58 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
     setFormData(prev => ({ ...prev, line_items: newItems }));
     calculateTotals(newItems, formData.bundles);
     setShowBundleSelector(false);
+  };
+
+  const createBundleFromItems = async () => {
+    if (!newBundleName.trim()) {
+      alert("Enter bundle name");
+      return;
+    }
+    
+    const itemsForBundle = formData.line_items.filter(item => item.type === "item" && item.total > 0);
+    if (itemsForBundle.length === 0) {
+      alert("No items to create bundle from");
+      return;
+    }
+
+    const bundleItems = itemsForBundle.map(item => ({
+      service_name: item.description,
+      description: "",
+      quantity: item.quantity,
+      unit_price: item.unit_price
+    }));
+
+    const originalPrice = itemsForBundle.reduce((sum, item) => sum + item.total, 0);
+    const bundlePrice = originalPrice * 0.9;
+
+    try {
+      await base44.entities.Bundle.create({
+        name: newBundleName,
+        description: newBundleDescription,
+        items: bundleItems,
+        bundle_price: bundlePrice,
+        original_price: originalPrice,
+        discount_percentage: 10,
+        status: "active"
+      });
+      
+      alert("Bundle created successfully!");
+      setShowBundleCreator(false);
+      setNewBundleName("");
+      setNewBundleDescription("");
+    } catch (error) {
+      alert("Failed to create bundle");
+    }
+  };
+
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    
+    const items = Array.from(formData.line_items);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    
+    setFormData(prev => ({ ...prev, line_items: items }));
   };
 
 
@@ -350,6 +406,10 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
                 <Package className="w-3 h-3 mr-1" />
                 <span className="font-bold text-xs">Choose from Bundle</span>
               </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowBundleCreator(true)} disabled={itemsFrozen}>
+                <Package className="w-3 h-3 mr-1" />
+                <span className="font-bold text-xs">Create Bundle</span>
+              </Button>
             </div>
 
             {/* Items Table Header */}
@@ -361,126 +421,117 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
               <div className="col-span-2 text-right">Total</div>
             </div>
 
-            {/* Items List */}
-            <div className="space-y-1 mb-4 max-h-64 overflow-y-auto">
-              {formData.line_items.map((item, index) => {
-                if (item.type === "title") {
-                  return (
-                    <div key={index} className="flex items-center gap-2 p-2 bg-blue-50 rounded">
-                      <div className="cursor-move" onMouseDown={(e) => e.preventDefault()}>
-                        <GripVertical className="w-4 h-4 text-slate-400" />
-                      </div>
-                      <Input
-                        placeholder="Title"
-                        value={item.description}
-                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                        className="font-bold border-0 bg-transparent h-8"
-                        disabled={itemsFrozen}
-                      />
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
-                        <Minus className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  );
-                }
-                
-                if (item.type === "description") {
-                  return (
-                    <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 rounded">
-                      <div className="cursor-move" onMouseDown={(e) => e.preventDefault()}>
-                        <GripVertical className="w-4 h-4 text-slate-400" />
-                      </div>
-                      <Textarea
-                        placeholder="Description"
-                        value={item.description}
-                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                        className="text-xs border-0 bg-transparent min-h-[60px]"
-                        disabled={itemsFrozen}
-                      />
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
-                        <Minus className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  );
-                }
+            {/* Items List with Drag & Drop */}
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="line-items">
+                {(provided) => (
+                  <div 
+                    {...provided.droppableProps} 
+                    ref={provided.innerRef}
+                    className="space-y-1 mb-4 max-h-64 overflow-y-auto"
+                  >
+                    {formData.line_items.map((item, index) => (
+                      <Draggable key={`item-${index}`} draggableId={`item-${index}`} index={index} isDragDisabled={itemsFrozen}>
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className={snapshot.isDragging ? 'opacity-50' : ''}
+                          >
+                            {(() => {
+                              if (item.type === "title") {
+                                return (
+                                  <div className="flex items-center gap-2 p-2 bg-blue-50 rounded">
+                                    <div {...provided.dragHandleProps}>
+                                      <GripVertical className="w-4 h-4 text-slate-400 cursor-grab" />
+                                    </div>
+                                    <Input
+                                      placeholder="Title"
+                                      value={item.description}
+                                      onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                                      className="font-bold border-0 bg-transparent h-8"
+                                      disabled={itemsFrozen}
+                                    />
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
+                                      <Minus className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                );
+                              }
+                              
+                              if (item.type === "description") {
+                                return (
+                                  <div className="flex items-center gap-2 p-2 bg-slate-50 rounded">
+                                    <div {...provided.dragHandleProps}>
+                                      <GripVertical className="w-4 h-4 text-slate-400 cursor-grab" />
+                                    </div>
+                                    <Textarea
+                                      placeholder="Description"
+                                      value={item.description}
+                                      onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                                      className="text-xs border-0 bg-transparent min-h-[60px]"
+                                      disabled={itemsFrozen}
+                                    />
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
+                                      <Minus className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                );
+                              }
 
-                return (
-                  <div key={index} className="grid grid-cols-12 gap-2 p-2 hover:bg-slate-50 rounded items-center">
-                    <div className="col-span-1 flex justify-center">
-                      <div className="cursor-move flex items-center" onMouseDown={(e) => e.preventDefault()}>
-                        <GripVertical className="w-4 h-4 text-slate-400" />
-                      </div>
-                      <div className="flex gap-1">
-                        {index > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const items = [...formData.line_items];
-                              [items[index], items[index - 1]] = [items[index - 1], items[index]];
-                              setFormData(prev => ({ ...prev, line_items: items }));
-                            }}
-                            className="text-slate-400 hover:text-slate-600"
-                            disabled={itemsFrozen}
-                          >
-                            ↑
-                          </button>
+                              return (
+                                <div className="grid grid-cols-12 gap-2 p-2 hover:bg-slate-50 rounded items-center">
+                                  <div className="col-span-1 flex justify-center" {...provided.dragHandleProps}>
+                                    <GripVertical className="w-4 h-4 text-slate-400 cursor-grab" />
+                                  </div>
+                                  <div className="col-span-5">
+                                    <Input
+                                      placeholder="Item description"
+                                      value={item.description}
+                                      onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                                      className="h-8 text-sm"
+                                      disabled={itemsFrozen}
+                                    />
+                                  </div>
+                                  <div className="col-span-2">
+                                    <Input
+                                      type="number"
+                                      value={item.quantity}
+                                      onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                                      className="h-8 text-sm"
+                                      disabled={itemsFrozen}
+                                    />
+                                  </div>
+                                  <div className="col-span-2">
+                                    <Input
+                                      type="number"
+                                      value={item.unit_price}
+                                      onChange={(e) => updateLineItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                                      step="0.01"
+                                      className="h-8 text-sm"
+                                      disabled={itemsFrozen}
+                                    />
+                                  </div>
+                                  <div className="col-span-1 text-right">
+                                    <span className="font-semibold text-sm">${(item.total || 0).toFixed(3)}</span>
+                                  </div>
+                                  <div className="col-span-1 flex justify-center">
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
+                                      <Minus className="w-3 h-3 text-red-500" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
                         )}
-                        {index < formData.line_items.length - 1 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const items = [...formData.line_items];
-                              [items[index], items[index + 1]] = [items[index + 1], items[index]];
-                              setFormData(prev => ({ ...prev, line_items: items }));
-                            }}
-                            className="text-slate-400 hover:text-slate-600"
-                            disabled={itemsFrozen}
-                          >
-                            ↓
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="col-span-5">
-                      <Input
-                        placeholder="Item description"
-                        value={item.description}
-                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                        className="h-8 text-sm"
-                        disabled={itemsFrozen}
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-sm"
-                        disabled={itemsFrozen}
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Input
-                        type="number"
-                        value={item.unit_price}
-                        onChange={(e) => updateLineItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
-                        step="0.01"
-                        className="h-8 text-sm"
-                        disabled={itemsFrozen}
-                      />
-                    </div>
-                    <div className="col-span-1 text-right">
-                      <span className="font-semibold text-sm">${(item.total || 0).toFixed(3)}</span>
-                    </div>
-                    <div className="col-span-1 flex justify-center">
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
-                        <Minus className="w-3 h-3 text-red-500" />
-                      </Button>
-                    </div>
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
                   </div>
-                );
-              })}
-            </div>
+                )}
+              </Droppable>
+            </DragDropContext>
 
             {/* Totals */}
             <div className="border-t pt-3 space-y-2">
@@ -724,24 +775,135 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex justify-between gap-3 pt-4 border-t">
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Schedule Later
+          {/* Bundle Creator Dialog */}
+          {showBundleCreator && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowBundleCreator(false)}>
+              <div className="bg-white rounded-lg p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+                <h3 className="text-lg font-semibold mb-4">Create Bundle from Items</h3>
+                <div className="space-y-3">
+                  <div>
+                    <Label>Bundle Name</Label>
+                    <Input
+                      value={newBundleName}
+                      onChange={(e) => setNewBundleName(e.target.value)}
+                      placeholder="Enter bundle name"
+                    />
+                  </div>
+                  <div>
+                    <Label>Description</Label>
+                    <Textarea
+                      value={newBundleDescription}
+                      onChange={(e) => setNewBundleDescription(e.target.value)}
+                      placeholder="Enter bundle description"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="button" className="flex-1" onClick={createBundleFromItems}>Create Bundle</Button>
+                    <Button type="button" variant="outline" onClick={() => setShowBundleCreator(false)}>Cancel</Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Status & Action Buttons */}
+          <div className="space-y-4 pt-4 border-t">
+            <div className="flex justify-center gap-3">
+              <Button 
+                type="button" 
+                variant={formData.status === 'sent' ? 'default' : 'outline'}
+                onClick={() => handleChange('status', 'sent')}
+                className="flex-1"
+              >
+                Envoyée
               </Button>
-              <Button type="button" variant="outline" onClick={() => alert('Add deposit account')}>
-                Add Deposit Account
+              <Button 
+                type="button" 
+                variant={formData.status === 'accepted' ? 'default' : 'outline'}
+                onClick={() => handleChange('status', 'accepted')}
+                className="flex-1 bg-green-500 hover:bg-green-600 text-white"
+              >
+                Gagner
+              </Button>
+              <Button 
+                type="button" 
+                variant={formData.status === 'declined' ? 'default' : 'outline'}
+                onClick={() => handleChange('status', 'declined')}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+              >
+                Perdu
               </Button>
             </div>
-            <div className="flex gap-2">
-              <Button type="button" className="bg-blue-500 hover:bg-blue-600" onClick={generatePDF}>
-                <FileDown className="w-4 h-4 mr-2" />
-                Create PDF and Save
-              </Button>
-              <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                Send
-              </Button>
+
+            {formData.status === 'accepted' && (
+              <div className="flex justify-center gap-3 p-4 bg-green-50 rounded-lg">
+                <Button 
+                  type="button" 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={async () => {
+                    const jobData = {
+                      title: `Job for ${formData.customer_name}`,
+                      customer_id: formData.customer_id,
+                      customer_name: formData.customer_name,
+                      description: `Created from quotation ${formData.quote_number}`,
+                      service_type: "general",
+                      status: "scheduled",
+                      estimated_cost: formData.total_amount
+                    };
+                    try {
+                      await base44.entities.Job.create(jobData);
+                      alert('Job created!');
+                    } catch (error) {
+                      alert('Failed to create job');
+                    }
+                  }}
+                >
+                  Créer un Job
+                </Button>
+                <Button 
+                  type="button" 
+                  className="bg-purple-600 hover:bg-purple-700"
+                  onClick={async () => {
+                    const invoiceData = {
+                      customer_id: formData.customer_id,
+                      customer_name: formData.customer_name,
+                      issue_date: new Date().toISOString().split('T')[0],
+                      status: "draft",
+                      line_items: formData.submission_items || [],
+                      subtotal: formData.submission_subtotal || 0,
+                      tax_rate: formData.tax_rate || 0,
+                      tax_amount: formData.tax_amount || 0,
+                      total_amount: formData.total_amount || 0
+                    };
+                    try {
+                      await base44.entities.Invoice.create(invoiceData);
+                      alert('Invoice created!');
+                    } catch (error) {
+                      alert('Failed to create invoice');
+                    }
+                  }}
+                >
+                  Créer une Facture
+                </Button>
+              </div>
+            )}
+
+            <div className="flex justify-between gap-3">
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={onClose}>
+                  Schedule Later
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" className="bg-blue-500 hover:bg-blue-600" onClick={generatePDF}>
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Create PDF and Save
+                </Button>
+                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                  Send
+                </Button>
+              </div>
             </div>
           </div>
         </form>
