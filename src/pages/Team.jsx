@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Users } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 import TeamList from "../components/team/TeamList";
 import TechnicianDialog from "../components/team/TechnicianDialog";
@@ -19,13 +20,13 @@ export default function Team() {
   const { data: technicians = [], isLoading } = useQuery({
     queryKey: ['technicians'],
     queryFn: () => base44.entities.Technician.list('-created_date'),
-    initialData: [],
+    staleTime: 30000, // Cache for 30 seconds
   });
 
   const { data: jobs = [] } = useQuery({
     queryKey: ['jobs'],
     queryFn: () => base44.entities.Job.list(),
-    initialData: [],
+    staleTime: 30000,
   });
 
   const createTechnicianMutation = useMutation({
@@ -54,30 +55,38 @@ export default function Team() {
     },
   });
 
-  const handleSave = (data) => {
+  const handleSave = useCallback((data) => {
     if (selectedTechnician?.id) {
       updateTechnicianMutation.mutate({ id: selectedTechnician.id, data });
     } else {
       createTechnicianMutation.mutate(data);
     }
-  };
+  }, [selectedTechnician, createTechnicianMutation, updateTechnicianMutation]);
 
-  const filteredTechnicians = technicians.filter(tech => {
+  const filteredTechnicians = useMemo(() => {
+    if (!searchTerm) return technicians;
     const search = searchTerm.toLowerCase();
-    return (
+    return technicians.filter(tech => 
       tech.first_name?.toLowerCase().includes(search) ||
       tech.last_name?.toLowerCase().includes(search) ||
       tech.email?.toLowerCase().includes(search) ||
       tech.phone?.includes(search)
     );
-  });
+  }, [technicians, searchTerm]);
+
+  const stats = useMemo(() => {
+    const available = technicians.filter(t => t.status === 'available').length;
+    const busy = technicians.filter(t => t.status === 'busy').length;
+    const offDuty = technicians.filter(t => t.status === 'off_duty').length;
+    return { available, busy, offDuty, total: technicians.length };
+  }, [technicians]);
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Équipe</h1>
-          <p className="text-slate-500 mt-1">Gérer les techniciens de terrain</p>
+          <p className="text-slate-500 mt-1">{stats.total} technicien{stats.total > 1 ? 's' : ''}</p>
         </div>
         <Button 
           onClick={() => {
@@ -89,6 +98,46 @@ export default function Team() {
           <Plus className="w-4 h-4 mr-2" />
           Ajouter Technicien
         </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-600">Total</p>
+              <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+            </div>
+            <Users className="w-8 h-8 text-slate-400" />
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-600">Disponibles</p>
+              <p className="text-2xl font-bold text-green-600">{stats.available}</p>
+            </div>
+            <div className="w-3 h-3 rounded-full bg-green-500" />
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-600">Occupés</p>
+              <p className="text-2xl font-bold text-yellow-600">{stats.busy}</p>
+            </div>
+            <div className="w-3 h-3 rounded-full bg-yellow-500" />
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-600">Hors service</p>
+              <p className="text-2xl font-bold text-slate-600">{stats.offDuty}</p>
+            </div>
+            <div className="w-3 h-3 rounded-full bg-slate-400" />
+          </div>
+        </Card>
       </div>
 
       <div className="relative">

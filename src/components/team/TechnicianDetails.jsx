@@ -15,17 +15,17 @@ const statusColors = {
 
 export default function TechnicianDetails({ open, onClose, technician, onEdit }) {
   const { data: jobs = [] } = useQuery({
-    queryKey: ['jobs', technician?.id],
+    queryKey: ['jobs'],
     queryFn: () => base44.entities.Job.list(),
     enabled: !!technician,
-    initialData: [],
+    staleTime: 30000,
   });
 
   const { data: assets = [] } = useQuery({
-    queryKey: ['assets', technician?.id],
+    queryKey: ['assets'],
     queryFn: () => base44.entities.Asset.list(),
     enabled: !!technician,
-    initialData: [],
+    staleTime: 30000,
   });
 
   if (!technician) return null;
@@ -41,12 +41,20 @@ export default function TechnicianDetails({ open, onClose, technician, onEdit })
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div 
-                className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl"
-                style={{ backgroundColor: technician.color || '#64748b' }}
-              >
-                {technician.first_name[0]}{technician.last_name[0]}
-              </div>
+              {technician.avatar_url ? (
+                <img 
+                  src={technician.avatar_url} 
+                  alt={`${technician.first_name} ${technician.last_name}`}
+                  className="w-16 h-16 rounded-full object-cover border-2 border-slate-200"
+                />
+              ) : (
+                <div 
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl"
+                  style={{ backgroundColor: technician.color || '#64748b' }}
+                >
+                  {technician.first_name[0]}{technician.last_name[0]}
+                </div>
+              )}
               <div>
                 <DialogTitle className="text-2xl">
                   {technician.first_name} {technician.last_name}
