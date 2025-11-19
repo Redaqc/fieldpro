@@ -12,6 +12,7 @@ import InvoiceDialog from "../components/invoices/InvoiceDialog";
 import InvoiceDetails from "../components/invoices/InvoiceDetails";
 import InvoiceStats from "../components/invoices/InvoiceStats";
 import InvoiceChart from "../components/invoices/InvoiceChart";
+import ExportDialog from "../components/invoices/ExportDialog";
 
 export default function Invoices() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -19,6 +20,7 @@ export default function Invoices() {
   const [showDialog, setShowDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showChart, setShowChart] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const queryClient = useQueryClient();
@@ -89,36 +91,6 @@ export default function Invoices() {
     return matchesSearch && matchesStatus && matchesDateRange;
   });
 
-  const exportToCSV = () => {
-    const headers = ['Invoice No.', 'Project Name', 'Client Name', 'Total', 'Balance', 'Due On', 'Created', 'Days Late', 'Status'];
-    const csvData = filteredInvoices.map(inv => {
-      const balance = (inv.total_amount || 0) - (inv.paid_amount || 0);
-      const daysLate = inv.due_date && inv.status !== 'paid' 
-        ? Math.max(0, Math.floor((new Date() - new Date(inv.due_date)) / (1000 * 60 * 60 * 24)))
-        : 0;
-      
-      return [
-        inv.invoice_number || '',
-        inv.project_name || '',
-        inv.customer_name || '',
-        (inv.total_amount || 0).toFixed(2),
-        balance.toFixed(2),
-        inv.due_date ? format(new Date(inv.due_date), 'yyyy-MM-dd') : '',
-        inv.issue_date ? format(new Date(inv.issue_date), 'yyyy-MM-dd') : '',
-        daysLate,
-        inv.status || ''
-      ].join(',');
-    });
-    
-    const csv = [headers.join(','), ...csvData].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `invoices_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
-  };
-
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -129,7 +101,7 @@ export default function Invoices() {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={exportToCSV}
+            onClick={() => setShowExport(true)}
             className="border-slate-200"
           >
             <Download className="w-4 h-4 mr-2" />
@@ -231,6 +203,14 @@ export default function Invoices() {
         <InvoiceChart
           open={showChart}
           onClose={() => setShowChart(false)}
+          invoices={invoices}
+        />
+      )}
+
+      {showExport && (
+        <ExportDialog
+          open={showExport}
+          onClose={() => setShowExport(false)}
           invoices={invoices}
         />
       )}
