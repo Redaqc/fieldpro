@@ -3,17 +3,20 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Upload } from "lucide-react";
 
-import PriceListCard from "../components/pricelists/PriceListCard";
+import PriceListTable from "../components/pricelists/PriceListTable";
+import BundleTable from "../components/pricelists/BundleTable";
 import PriceListDialog from "../components/pricelists/PriceListDialog";
 import BundleDialog from "../components/pricelists/BundleDialog";
+import ImportCSVDialog from "../components/pricelists/ImportCSVDialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function PriceLists() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showPriceListDialog, setShowPriceListDialog] = useState(false);
   const [showBundleDialog, setShowBundleDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [selectedPriceList, setSelectedPriceList] = useState(null);
   const [selectedBundle, setSelectedBundle] = useState(null);
   const queryClient = useQueryClient();
@@ -102,37 +105,43 @@ export default function PriceLists() {
             <div className="relative flex-1 max-w-md">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <Input
-                placeholder="Search price lists..."
+                placeholder="Rechercher liste de prix..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9 border-slate-200"
               />
             </div>
-            <Button
-              onClick={() => {
-                setSelectedPriceList(null);
-                setShowPriceListDialog(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Price List
-            </Button>
-          </div>
-
-          <div className="grid gap-4">
-            {priceLists.map((priceList) => (
-              <PriceListCard
-                key={priceList.id}
-                priceList={priceList}
-                onEdit={() => {
-                  setSelectedPriceList(priceList);
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowImportDialog(true)}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Importer CSV
+              </Button>
+              <Button
+                onClick={() => {
+                  setSelectedPriceList(null);
                   setShowPriceListDialog(true);
                 }}
-                onDelete={() => deletePriceListMutation.mutate(priceList.id)}
-              />
-            ))}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Créer Liste
+              </Button>
+            </div>
           </div>
+
+          <PriceListTable
+            priceLists={priceLists.filter(p => 
+              p.name?.toLowerCase().includes(searchTerm.toLowerCase())
+            )}
+            onEdit={(priceList) => {
+              setSelectedPriceList(priceList);
+              setShowPriceListDialog(true);
+            }}
+            onDelete={(id) => deletePriceListMutation.mutate(id)}
+          />
         </TabsContent>
 
         <TabsContent value="bundles" className="space-y-4 mt-6">
@@ -140,7 +149,7 @@ export default function PriceLists() {
             <div className="relative flex-1 max-w-md">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <Input
-                placeholder="Search bundles..."
+                placeholder="Rechercher bundles..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9 border-slate-200"
@@ -154,24 +163,20 @@ export default function PriceLists() {
               className="bg-blue-600 hover:bg-blue-700"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Create Bundle
+              Créer Bundle
             </Button>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            {bundles.map((bundle) => (
-              <PriceListCard
-                key={bundle.id}
-                priceList={bundle}
-                isBundle
-                onEdit={() => {
-                  setSelectedBundle(bundle);
-                  setShowBundleDialog(true);
-                }}
-                onDelete={() => deleteBundleMutation.mutate(bundle.id)}
-              />
-            ))}
-          </div>
+          <BundleTable
+            bundles={bundles.filter(b => 
+              b.name?.toLowerCase().includes(searchTerm.toLowerCase())
+            )}
+            onEdit={(bundle) => {
+              setSelectedBundle(bundle);
+              setShowBundleDialog(true);
+            }}
+            onDelete={(id) => deleteBundleMutation.mutate(id)}
+          />
         </TabsContent>
       </Tabs>
 
@@ -208,6 +213,17 @@ export default function PriceLists() {
             }
           }}
           bundle={selectedBundle}
+        />
+      )}
+
+      {showImportDialog && (
+        <ImportCSVDialog
+          open={showImportDialog}
+          onClose={() => setShowImportDialog(false)}
+          onImport={(items) => {
+            setSelectedPriceList({ items });
+            setShowPriceListDialog(true);
+          }}
         />
       )}
     </div>
