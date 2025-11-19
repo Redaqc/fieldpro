@@ -81,6 +81,11 @@ const navigationItems = [
     url: createPageUrl("PriceLists"),
     icon: DollarSign,
   },
+  {
+    title: "Materials",
+    url: createPageUrl("Materials"),
+    icon: Package,
+  },
 ];
 
 export default function Layout({ children, currentPageName }) {

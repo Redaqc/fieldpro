@@ -7,6 +7,7 @@ import Invoices from './pages/Invoices';
 import Quotations from './pages/Quotations';
 import Assets from './pages/Assets';
 import PriceLists from './pages/PriceLists';
+import Materials from './pages/Materials';
 import __Layout from './Layout.jsx';
 
 
@@ -20,6 +21,7 @@ export const PAGES = {
     "Quotations": Quotations,
     "Assets": Assets,
     "PriceLists": PriceLists,
+    "Materials": Materials,
 }
 
 export const pagesConfig = {

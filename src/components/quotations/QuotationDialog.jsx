@@ -10,6 +10,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { addDays, format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 
 export default function QuotationDialog({ open, onClose, onSave, quotation, customers, bundles, priceLists }) {
   const [formData, setFormData] = useState(quotation || {
@@ -48,6 +49,13 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
   const [showSubtotalsOnly, setShowSubtotalsOnly] = useState(false);
   const [showGrandTotalOnly, setShowGrandTotalOnly] = useState(false);
   const [additionalInfo, setAdditionalInfo] = useState("");
+  const [showMaterialSelector, setShowMaterialSelector] = useState(false);
+
+  const { data: materials = [] } = useQuery({
+    queryKey: ['materials'],
+    queryFn: () => base44.entities.Material.list(),
+    initialData: [],
+  });
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -184,33 +192,132 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
 
 
   const generatePDF = async () => {
-    const pdfContent = `
-QUOTATION: ${formData.quote_number || 'DRAFT'}
-${formData.project_name ? `Project: ${formData.project_name}` : ''}
-Customer: ${formData.customer_name}
-Date: ${formData.issue_date}
-${formData.work_start_date ? `Work Start Date: ${formData.work_start_date}` : ''}
+    const customer = customers.find(c => c.id === formData.customer_id);
+    
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Soumission ${formData.quote_number || 'DRAFT'}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
+    .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+    .company-info { text-align: right; }
+    .title { font-size: 32px; font-weight: bold; margin: 20px 0; }
+    .subtitle { font-size: 14px; color: #666; margin-bottom: 30px; }
+    .section { margin-bottom: 20px; }
+    .section-title { font-weight: bold; margin-bottom: 5px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th { background: #333; color: white; padding: 12px; text-align: left; }
+    td { padding: 12px; border-bottom: 1px solid #ddd; }
+    .section-header { background: #f5f5f5; font-weight: bold; padding: 8px; }
+    .totals { margin-top: 30px; text-align: right; }
+    .totals-row { display: flex; justify-content: flex-end; margin: 5px 0; }
+    .totals-label { width: 200px; text-align: right; margin-right: 20px; }
+    .totals-value { width: 150px; text-align: right; font-weight: bold; }
+    .total-final { font-size: 18px; margin-top: 10px; padding-top: 10px; border-top: 2px solid #333; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1 style="margin: 0; color: #4A90E2;">Novatel Inc.</h1>
+    </div>
+    <div class="company-info">
+      <p style="margin: 2px 0;">1755 Boucault</p>
+      <p style="margin: 2px 0;">Longueuil (Québec) J4M 1V1</p>
+      <p style="margin: 2px 0;">info@company.com</p>
+      <p style="margin: 2px 0;">(514) 974-0864</p>
+    </div>
+  </div>
 
-ITEMS:
-${formData.submission_items.map(item => 
-  `${item.description} - Qty: ${item.quantity} - $${item.unit_price} - Total: $${item.total.toFixed(2)}`
-).join('\n')}
+  <div class="title">SOUMISSION</div>
+  <div class="subtitle">Soumission #${formData.quote_number || 'DRAFT'}, ${format(new Date(formData.issue_date), 'dd MMMM yyyy')}</div>
 
-Subtotal: $${formData.submission_subtotal.toFixed(2)}
-TPS (${formData.tax_rate}%): $${formData.tax_amount.toFixed(2)}
-TVQ (${formData.tax_rate_2}%): $${formData.tax_amount_2.toFixed(2)}
-TOTAL: $${formData.total_amount.toFixed(2)}
+  <table style="border: none; margin-bottom: 30px;">
+    <tr>
+      <td style="border: none; width: 33%; vertical-align: top;">
+        <div class="section-title">Soumission pour:</div>
+        <div><strong>${customer?.company_name || formData.customer_name}</strong></div>
+        <div>${customer?.email || ''}</div>
+        <div>${customer?.phone || ''}</div>
+        <div>${customer?.address || ''}</div>
+        <div>${customer?.city || ''} ${customer?.state || ''}</div>
+        <div>${customer?.zip_code || ''}</div>
+      </td>
+      <td style="border: none; width: 33%; vertical-align: top;">
+        <div class="section-title">Projet:</div>
+        <div>${formData.project_name || '-'}</div>
+        ${formData.work_start_date ? `<div style="margin-top: 10px;">Date de début: ${format(new Date(formData.work_start_date), 'dd MMM yyyy')}</div>` : ''}
+      </td>
+      <td style="border: none; width: 33%; vertical-align: top;">
+        <div class="section-title">Statut:</div>
+        <div style="color: ${formData.status === 'accepted' ? 'green' : '#666'};">
+          ${formData.status === 'accepted' ? 'Soumission approuvée' : formData.status === 'sent' ? 'Envoyée' : 'Brouillon'}
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th style="text-align: center;">Quantité</th>
+        <th style="text-align: right;">Coût unitaire</th>
+        <th style="text-align: right;">Coût total</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${formData.submission_items.map(item => `
+        <tr>
+          <td>${item.description}</td>
+          <td style="text-align: center;">${item.quantity}</td>
+          <td style="text-align: right;">${item.unit_price.toFixed(2)}$</td>
+          <td style="text-align: right;">${item.total.toFixed(2)}$</td>
+        </tr>
+      `).join('')}
+      <tr>
+        <td colspan="3" style="text-align: right; font-weight: bold;">Sous-total</td>
+        <td style="text-align: right; font-weight: bold;">${formData.submission_subtotal.toFixed(2)}$</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div class="totals-row">
+      <div class="totals-label">Total avant taxes</div>
+      <div class="totals-value">${formData.submission_subtotal.toFixed(2)}$</div>
+    </div>
+    <div class="totals-row">
+      <div class="totals-label">TVQ (${formData.tax_rate_2}%)</div>
+      <div class="totals-value">${formData.tax_amount_2.toFixed(2)}$</div>
+    </div>
+    <div class="totals-row">
+      <div class="totals-label">TPS (${formData.tax_rate}%)</div>
+      <div class="totals-value">${formData.tax_amount.toFixed(2)}$</div>
+    </div>
+    <div class="totals-row total-final">
+      <div class="totals-label">Total</div>
+      <div class="totals-value">${formData.total_amount.toFixed(2)}$</div>
+    </div>
+  </div>
+
+  <div style="margin-top: 40px; font-size: 12px; color: #666;">
+    Soumission valide pour 30 jours
+  </div>
+</body>
+</html>
     `;
     
-    const blob = new Blob([pdfContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Quotation_${formData.quote_number || 'DRAFT'}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
     
     const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
     await handleSubmit(submitEvent);
@@ -505,6 +612,10 @@ Merci de votre confiance.
               <Button type="button" variant="outline" size="sm" onClick={() => setShowBundleCreator(true)} disabled={itemsFrozen}>
                 <Package className="w-3 h-3 mr-1" />
                 <span className="font-bold text-xs">Create Bundle</span>
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowMaterialSelector(true)} disabled={itemsFrozen}>
+                <Package className="w-3 h-3 mr-1" />
+                <span className="font-bold text-xs">Matériaux</span>
               </Button>
             </div>
 
@@ -899,6 +1010,47 @@ Merci de votre confiance.
                     <Button type="button" variant="outline" onClick={() => setShowBundleCreator(false)}>Cancel</Button>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Material Selector Dialog */}
+          {showMaterialSelector && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowMaterialSelector(false)}>
+              <div className="bg-white rounded-lg p-6 max-w-2xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <h3 className="text-lg font-semibold mb-4">Sélectionner Matériel</h3>
+                <div className="space-y-2">
+                  {materials.filter(m => m.status === 'active').map((material) => (
+                    <div
+                      key={material.id}
+                      className="flex justify-between items-center p-3 bg-slate-50 rounded hover:bg-slate-100 cursor-pointer"
+                      onClick={() => {
+                        const newItem = {
+                          description: material.name,
+                          quantity: 1,
+                          unit_price: material.unit_price,
+                          total: material.unit_price,
+                          type: "item"
+                        };
+                        const newItems = [...formData.line_items, newItem];
+                        setFormData(prev => ({ ...prev, line_items: newItems }));
+                        calculateTotals(newItems, formData.bundles);
+                        setShowMaterialSelector(false);
+                      }}
+                    >
+                      <div>
+                        <p className="font-medium">{material.name}</p>
+                        <p className="text-sm text-slate-500">{material.code} - {material.description}</p>
+                        <p className="text-xs text-slate-400">Stock: {material.quantity_in_stock || 0} {material.unit}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">${material.unit_price}</p>
+                        <p className="text-xs text-slate-500">per {material.unit}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Button type="button" className="mt-4 w-full" onClick={() => setShowMaterialSelector(false)}>Fermer</Button>
               </div>
             </div>
           )}
