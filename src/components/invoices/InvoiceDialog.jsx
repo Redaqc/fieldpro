@@ -320,93 +320,195 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
     onSave(formData);
   };
 
-  const downloadPDF = async () => {
-    const itemsText = formData.line_items
-      .filter(item => item.type === 'item' || item.type === 'bundle')
-      .map(item => `${item.description} - Qté: ${item.quantity} x $${item.unit_price} = $${item.total}`)
-      .join('\n');
-
-    const prompt = `Génère un PDF de facture professionnel avec:
-    
-Facture: ${formData.invoice_number}
-Client: ${formData.customer_name}
-Projet: ${formData.project_name || 'N/A'}
-Date: ${formData.issue_date}
-Date échéance: ${formData.due_date}
-PO: ${formData.po_number || 'N/A'}
-
-Items:
-${itemsText}
-
-Sous-total: $${formData.subtotal.toFixed(2)}
-TPS (5%): $${formData.tax_amount.toFixed(2)}
-TVQ (9.975%): $${formData.tax_amount_2.toFixed(2)}
-Total: $${formData.total_amount.toFixed(2)}
-
-Notes: ${formData.notes || 'Aucune'}`;
-
-    try {
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: prompt,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            html: { type: "string" }
+  const downloadPDF = () => {
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          @media print {
+            body { margin: 0; }
           }
-        }
-      });
+          body { 
+            font-family: Arial, sans-serif; 
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+          }
+          .header {
+            border-bottom: 3px solid #1e40af;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          h1 { 
+            color: #1e40af; 
+            margin: 0;
+            font-size: 32px;
+          }
+          .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+          }
+          .info-item {
+            margin-bottom: 10px;
+          }
+          .info-label {
+            font-weight: bold;
+            color: #333;
+          }
+          table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 30px 0;
+          }
+          th { 
+            background: #f3f4f6;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #1e40af;
+            font-weight: bold;
+          }
+          td { 
+            padding: 10px 12px;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          .text-right { text-align: right; }
+          .totals {
+            margin-left: auto;
+            width: 300px;
+            margin-top: 20px;
+          }
+          .totals-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+          }
+          .total-final {
+            font-weight: bold;
+            font-size: 20px;
+            border-top: 2px solid #1e40af;
+            padding-top: 10px;
+            margin-top: 10px;
+          }
+          .notes {
+            margin-top: 40px;
+            padding: 15px;
+            background: #f9fafb;
+            border-left: 4px solid #1e40af;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>FACTURE</h1>
+          <p style="margin: 5px 0; color: #666;">Numéro: ${formData.invoice_number}</p>
+        </div>
 
-      const htmlContent = result.html || `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial; padding: 40px; }
-            h1 { color: #1e40af; }
-            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-            .total { font-weight: bold; font-size: 18px; }
-          </style>
-        </head>
-        <body>
-          <h1>Facture ${formData.invoice_number}</h1>
-          <p><strong>Client:</strong> ${formData.customer_name}</p>
-          <p><strong>Projet:</strong> ${formData.project_name || 'N/A'}</p>
-          <p><strong>Date:</strong> ${formData.issue_date}</p>
-          <p><strong>PO:</strong> ${formData.po_number || 'N/A'}</p>
-          
-          <table>
-            <tr><th>Description</th><th>Qté</th><th>Prix Unit.</th><th>Total</th></tr>
-            ${formData.line_items.filter(item => item.type === 'item' || item.type === 'bundle').map(item => `
-              <tr>
-                <td>${item.description}</td>
-                <td>${item.quantity}</td>
-                <td>$${item.unit_price.toFixed(2)}</td>
-                <td>$${item.total.toFixed(2)}</td>
-              </tr>
-            `).join('')}
-          </table>
-          
-          <div style="text-align: right;">
-            <p>Sous-total: $${formData.subtotal.toFixed(2)}</p>
-            <p>TPS (5%): $${formData.tax_amount.toFixed(2)}</p>
-            <p>TVQ (9.975%): $${formData.tax_amount_2.toFixed(2)}</p>
-            <p class="total">Total: $${formData.total_amount.toFixed(2)}</p>
+        <div class="info-grid">
+          <div>
+            <div class="info-item">
+              <div class="info-label">Client</div>
+              <div>${formData.customer_name}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Projet</div>
+              <div>${formData.project_name || 'N/A'}</div>
+            </div>
+            ${formData.po_number ? `
+            <div class="info-item">
+              <div class="info-label">Numéro PO</div>
+              <div>${formData.po_number}</div>
+            </div>
+            ` : ''}
           </div>
-        </body>
-        </html>
-      `;
+          <div>
+            <div class="info-item">
+              <div class="info-label">Date d'émission</div>
+              <div>${format(new Date(formData.issue_date), 'dd/MM/yyyy')}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Date d'échéance</div>
+              <div>${format(new Date(formData.due_date), 'dd/MM/yyyy')}</div>
+            </div>
+            ${formData.work_start_date ? `
+            <div class="info-item">
+              <div class="info-label">Début des travaux</div>
+              <div>${format(new Date(formData.work_start_date), 'dd/MM/yyyy')}</div>
+            </div>
+            ` : ''}
+          </div>
+        </div>
 
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${formData.invoice_number}.html`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      alert("Erreur lors de la génération du PDF");
-    }
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th style="text-align: center;">Quantité</th>
+              <th style="text-align: right;">Prix Unitaire</th>
+              <th style="text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${formData.line_items.map(item => {
+              if (item.type === 'title') {
+                return `<tr><td colspan="4" style="font-weight: bold; font-size: 16px; padding-top: 20px;">${item.description}</td></tr>`;
+              }
+              if (item.type === 'description') {
+                return `<tr><td colspan="4" style="color: #666; font-style: italic;">${item.description}</td></tr>`;
+              }
+              return `
+                <tr>
+                  <td>${item.description}</td>
+                  <td style="text-align: center;">${item.quantity}</td>
+                  <td style="text-align: right;">$${(item.unit_price || 0).toFixed(2)}</td>
+                  <td style="text-align: right; font-weight: 600;">$${(item.total || 0).toFixed(2)}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <div class="totals-row">
+            <span>Sous-total:</span>
+            <span>$${formData.subtotal.toFixed(2)}</span>
+          </div>
+          <div class="totals-row">
+            <span>TPS (5%):</span>
+            <span>$${formData.tax_amount.toFixed(2)}</span>
+          </div>
+          <div class="totals-row">
+            <span>TVQ (9.975%):</span>
+            <span>$${formData.tax_amount_2.toFixed(2)}</span>
+          </div>
+          <div class="totals-row total-final">
+            <span>TOTAL:</span>
+            <span>$${formData.total_amount.toFixed(2)}</span>
+          </div>
+        </div>
+
+        ${formData.notes ? `
+        <div class="notes">
+          <div class="info-label">Notes</div>
+          <div>${formData.notes}</div>
+        </div>
+        ` : ''}
+      </body>
+      </html>
+    `;
+
+    // Open in new window and print
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Wait for content to load then print
+    printWindow.onload = () => {
+      printWindow.print();
+    };
   };
 
   const defaultPriceList = priceLists.find(p => p.is_default) || priceLists[0];
