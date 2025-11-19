@@ -5,9 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Save, X, Package } from "lucide-react";
+import { Save, X, Minus, Copy } from "lucide-react";
 import { addDays, format } from "date-fns";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 
@@ -21,17 +20,23 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
     due_date: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
     status: "draft",
     line_items: [],
-    bundles: [],
+    submission_items: [],
     subtotal: 0,
-    tax_rate: 0,
+    tax_rate: 5,
+    tax_rate_2: 9.975,
     tax_amount: 0,
+    tax_amount_2: 0,
     total_amount: 0,
     notes: ""
   });
 
-  const { data: bundles = [] } = useQuery({
-    queryKey: ['bundles'],
-    queryFn: () => base44.entities.Bundle.list(),
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [showPriceList, setShowPriceList] = useState(false);
+  const [showBundleCreate, setShowBundleCreate] = useState(false);
+
+  const { data: priceLists = [] } = useQuery({
+    queryKey: ['priceLists'],
+    queryFn: () => base44.entities.PriceList.list(),
     initialData: [],
   });
 
@@ -47,24 +52,46 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
     }
   };
 
-  const handleJobSelect = (jobId) => {
-    const job = jobs.find(j => j.id === jobId);
-    if (job && (job.actual_cost || job.estimated_cost)) {
-      addLineItem({
-        description: job.title,
-        quantity: 1,
-        unit_price: job.actual_cost || job.estimated_cost,
-        total: job.actual_cost || job.estimated_cost
-      });
-      handleChange('job_id', jobId);
-    }
-  };
-
-  const addLineItem = (item = null) => {
-    const newItem = item || { description: "", quantity: 1, unit_price: 0, total: 0 };
+  const addItem = (item = null) => {
+    const newItem = item || { 
+      description: "", 
+      quantity: 1, 
+      unit_price: 0, 
+      total: 0,
+      type: "item"
+    };
     const newItems = [...formData.line_items, newItem];
     setFormData(prev => ({ ...prev, line_items: newItems }));
-    calculateTotals(newItems, formData.bundles || []);
+    calculateTotals(newItems, formData.submission_items || []);
+  };
+
+  const addTitle = () => {
+    const newItem = { 
+      description: "TITRE", 
+      type: "title"
+    };
+    const newItems = [...formData.line_items, newItem];
+    setFormData(prev => ({ ...prev, line_items: newItems }));
+  };
+
+  const addDescription = () => {
+    const newItem = { 
+      description: "Description", 
+      type: "description"
+    };
+    const newItems = [...formData.line_items, newItem];
+    setFormData(prev => ({ ...prev, line_items: newItems }));
+  };
+
+  const addItemFromPriceList = (priceItem) => {
+    addItem({
+      description: priceItem.service_name,
+      quantity: 1,
+      unit_price: priceItem.unit_price,
+      total: priceItem.unit_price,
+      type: "item"
+    });
+    setShowPriceList(false);
   };
 
   const updateLineItem = (index, field, value) => {
@@ -76,58 +103,87 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
     }
     
     setFormData(prev => ({ ...prev, line_items: newItems }));
-    calculateTotals(newItems, formData.bundles || []);
+    calculateTotals(newItems, formData.submission_items || []);
   };
 
   const removeLineItem = (index) => {
     const newItems = formData.line_items.filter((_, i) => i !== index);
     setFormData(prev => ({ ...prev, line_items: newItems }));
-    calculateTotals(newItems, formData.bundles || []);
+    calculateTotals(newItems, formData.submission_items || []);
   };
 
-  const addBundle = (bundleId) => {
-    const bundle = bundles.find(b => b.id === bundleId);
-    if (!bundle) return;
-    
-    const newBundle = {
-      bundle_id: bundle.id,
-      bundle_name: bundle.name,
+  const toggleItemSelection = (index) => {
+    if (selectedItems.includes(index)) {
+      setSelectedItems(selectedItems.filter(i => i !== index));
+    } else {
+      setSelectedItems([...selectedItems, index]);
+    }
+  };
+
+  const createBundleFromSelected = async () => {
+    if (selectedItems.length === 0) return;
+
+    const bundleItems = selectedItems
+      .map(i => formData.line_items[i])
+      .filter(item => item.type === 'item');
+
+    const bundleName = prompt("Nom du Bundle:");
+    if (!bundleName) return;
+
+    const bundlePrice = bundleItems.reduce((sum, item) => sum + item.total, 0);
+
+    const bundleData = {
+      name: bundleName,
+      items: bundleItems.map(item => ({
+        service_name: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price
+      })),
+      bundle_price: bundlePrice,
+      original_price: bundlePrice,
+      status: "active"
+    };
+
+    await base44.entities.Bundle.create(bundleData);
+
+    // Remove selected items and add bundle
+    const remainingItems = formData.line_items.filter((_, i) => !selectedItems.includes(i));
+    const bundleItem = {
+      description: bundleName,
       quantity: 1,
-      total: bundle.bundle_price
+      unit_price: bundlePrice,
+      total: bundlePrice,
+      type: "bundle",
+      bundle_items: bundleItems
     };
     
-    const newBundles = [...(formData.bundles || []), newBundle];
-    setFormData(prev => ({ ...prev, bundles: newBundles }));
-    calculateTotals(formData.line_items, newBundles);
+    const newItems = [...remainingItems, bundleItem];
+    setFormData(prev => ({ ...prev, line_items: newItems }));
+    setSelectedItems([]);
+    calculateTotals(newItems, formData.submission_items || []);
   };
 
-  const updateBundleQty = (index, quantity) => {
-    const newBundles = [...formData.bundles];
-    const bundle = bundles.find(b => b.id === newBundles[index].bundle_id);
-    newBundles[index].quantity = quantity;
-    newBundles[index].total = quantity * bundle.bundle_price;
+  const copyToSubmission = () => {
+    setFormData(prev => ({
+      ...prev,
+      submission_items: [...prev.line_items]
+    }));
+  };
+
+  const calculateTotals = (billingItems, submissionItems) => {
+    const billingTotal = billingItems
+      .filter(item => item.type === 'item' || item.type === 'bundle')
+      .reduce((sum, item) => sum + (item.total || 0), 0);
     
-    setFormData(prev => ({ ...prev, bundles: newBundles }));
-    calculateTotals(formData.line_items, newBundles);
-  };
-
-  const removeBundle = (index) => {
-    const newBundles = formData.bundles.filter((_, i) => i !== index);
-    setFormData(prev => ({ ...prev, bundles: newBundles }));
-    calculateTotals(formData.line_items, newBundles);
-  };
-
-  const calculateTotals = (items, bundleItems) => {
-    const itemsTotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
-    const bundlesTotal = bundleItems.reduce((sum, bundle) => sum + (bundle.total || 0), 0);
-    const subtotal = itemsTotal + bundlesTotal;
-    const taxAmount = subtotal * (formData.tax_rate / 100);
-    const total = subtotal + taxAmount;
+    const tps = billingTotal * (formData.tax_rate / 100);
+    const tvq = billingTotal * (formData.tax_rate_2 / 100);
+    const total = billingTotal + tps + tvq;
     
     setFormData(prev => ({
       ...prev,
-      subtotal,
-      tax_amount: taxAmount,
+      subtotal: billingTotal,
+      tax_amount: tps,
+      tax_amount_2: tvq,
       total_amount: total
     }));
   };
@@ -137,20 +193,25 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
     onSave(formData);
   };
 
+  const defaultPriceList = priceLists.find(p => p.is_default) || priceLists[0];
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{invoice ? 'Edit Invoice' : 'Create New Invoice'}</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            {invoice ? 'Modifier Facture' : 'Créer Nouvelle Facture'}
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Header Info */}
+          <div className="grid grid-cols-3 gap-4">
             <div>
-              <Label>Customer *</Label>
+              <Label className="text-sm font-semibold">Client *</Label>
               <Select value={formData.customer_id} onValueChange={handleCustomerSelect} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select customer" />
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Sélectionner" />
                 </SelectTrigger>
                 <SelectContent>
                   {customers.map(customer => (
@@ -163,187 +224,225 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
             </div>
 
             <div>
-              <Label>Project Name</Label>
+              <Label className="text-sm font-semibold">Nom du Projet</Label>
               <Input
+                className="h-9"
                 value={formData.project_name}
                 onChange={(e) => handleChange('project_name', e.target.value)}
-                placeholder="Project name"
+                placeholder="Nom du projet"
               />
             </div>
 
             <div>
-              <Label>Related Job</Label>
-              <Select value={formData.job_id || ''} onValueChange={handleJobSelect}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select job (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {jobs.filter(j => j.customer_id === formData.customer_id).map(job => (
-                    <SelectItem key={job.id} value={job.id}>
-                      {job.job_number} - {job.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Issue Date *</Label>
+              <Label className="text-sm font-semibold">Date d'Échéance</Label>
               <Input
-                type="date"
-                value={formData.issue_date}
-                onChange={(e) => handleChange('issue_date', e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <Label>Due Date</Label>
-              <Input
+                className="h-9"
                 type="date"
                 value={formData.due_date}
                 onChange={(e) => handleChange('due_date', e.target.value)}
               />
             </div>
-
-            <div>
-              <Label>Status</Label>
-              <Select value={formData.status} onValueChange={(val) => handleChange('status', val)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="sent">Sent</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Tax Rate (%)</Label>
-              <Input
-                type="number"
-                value={formData.tax_rate}
-                onChange={(e) => {
-                  const rate = parseFloat(e.target.value) || 0;
-                  handleChange('tax_rate', rate);
-                  calculateTotals(formData.line_items, formData.bundles || []);
-                }}
-                min="0"
-                step="0.1"
-              />
-            </div>
           </div>
 
-          <Tabs defaultValue="items">
-            <TabsList>
-              <TabsTrigger value="items">Line Items</TabsTrigger>
-              <TabsTrigger value="bundles">Bundles</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="items" className="space-y-3">
-              <div className="flex justify-between items-center">
-                <Label>Line Items</Label>
-                <Button type="button" variant="outline" size="sm" onClick={() => addLineItem()}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Item
+          {/* Billing Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold">Facturation</h3>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="font-bold h-8"
+                  onClick={() => setShowPriceList(!showPriceList)}
+                >
+                  Item
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="font-bold h-8"
+                  onClick={addTitle}
+                >
+                  Title
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="font-bold h-8"
+                  onClick={addDescription}
+                >
+                  Description
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="font-bold h-8"
+                  onClick={createBundleFromSelected}
+                  disabled={selectedItems.length === 0}
+                >
+                  Bundle
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="font-bold h-8"
+                  onClick={copyToSubmission}
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Copy to Submission
                 </Button>
               </div>
+            </div>
 
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {formData.line_items.map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-2 p-3 bg-slate-50 rounded-lg">
-                    <div className="col-span-5">
+            {/* Price List Selector */}
+            {showPriceList && defaultPriceList && (
+              <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                <h4 className="font-semibold text-sm">Liste de Prix</h4>
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                  {defaultPriceList.items?.map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => addItemFromPriceList(item)}
+                      className="text-left p-2 border rounded hover:bg-white transition-colors text-sm"
+                    >
+                      <div className="font-medium">{item.service_name}</div>
+                      <div className="text-xs text-slate-600">${item.unit_price}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Line Items */}
+            <div className="space-y-2">
+              {formData.line_items.map((item, index) => {
+                if (item.type === 'title') {
+                  return (
+                    <div key={index} className="flex items-center gap-2 py-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.includes(index)}
+                        onChange={() => toggleItemSelection(index)}
+                        className="w-4 h-4"
+                      />
                       <Input
-                        placeholder="Description"
                         value={item.description}
                         onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                        className="flex-1 font-bold text-lg border-0 bg-transparent focus-visible:ring-0"
+                        placeholder="TITRE"
                       />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => removeLineItem(index)}
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <div className="col-span-2">
+                  );
+                }
+
+                if (item.type === 'description') {
+                  return (
+                    <div key={index} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.includes(index)}
+                        onChange={() => toggleItemSelection(index)}
+                        className="w-4 h-4"
+                      />
+                      <Textarea
+                        value={item.description}
+                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                        className="flex-1 text-sm resize-none"
+                        rows={2}
+                        placeholder="Description"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => removeLineItem(index)}
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={index} className="flex items-center gap-2 p-2 bg-white border rounded-lg">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.includes(index)}
+                      onChange={() => toggleItemSelection(index)}
+                      className="w-4 h-4"
+                    />
+                    <div className="flex-1 grid grid-cols-12 gap-2 items-center">
+                      <Input
+                        value={item.description}
+                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                        className="col-span-5 h-8 text-sm"
+                        placeholder="Description"
+                      />
                       <Input
                         type="number"
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value))}
+                        value={item.quantity || ''}
+                        onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                        className="col-span-2 h-8 text-sm"
+                        placeholder="Qté"
                         min="0"
                       />
-                    </div>
-                    <div className="col-span-2">
                       <Input
                         type="number"
-                        placeholder="Price"
-                        value={item.unit_price}
-                        onChange={(e) => updateLineItem(index, 'unit_price', parseFloat(e.target.value))}
+                        value={item.unit_price || ''}
+                        onChange={(e) => updateLineItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                        className="col-span-2 h-8 text-sm"
+                        placeholder="Prix"
                         min="0"
                         step="0.01"
                       />
+                      <div className="col-span-3 text-right font-semibold text-sm">
+                        ${(item.total || 0).toFixed(2)}
+                      </div>
                     </div>
-                    <div className="col-span-2 flex items-center">
-                      <span className="font-semibold">${(item.total || 0).toFixed(2)}</span>
-                    </div>
-                    <div className="col-span-1">
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)}>
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="bundles" className="space-y-3">
-              <div className="flex justify-between items-center">
-                <Label>Service Bundles</Label>
-                <Select onValueChange={addBundle}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Add bundle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bundles.filter(b => b.status === 'active').map(bundle => (
-                      <SelectItem key={bundle.id} value={bundle.id}>
-                        {bundle.name} (${bundle.bundle_price})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                {(formData.bundles || []).map((bundle, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                    <Package className="w-5 h-5 text-blue-600" />
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-900">{bundle.bundle_name}</p>
-                    </div>
-                    <Input
-                      type="number"
-                      value={bundle.quantity}
-                      onChange={(e) => updateBundleQty(index, parseFloat(e.target.value))}
-                      className="w-20"
-                      min="1"
-                    />
-                    <span className="font-semibold w-24 text-right">${bundle.total.toFixed(2)}</span>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeBundle(index)}>
-                      <Trash2 className="w-4 h-4 text-red-500" />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => removeLineItem(index)}
+                    >
+                      <Minus className="w-4 h-4" />
                     </Button>
                   </div>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
+                );
+              })}
+            </div>
+          </div>
 
+          {/* Totals */}
           <div className="bg-slate-50 rounded-lg p-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span>Subtotal:</span>
+              <span>Sous-total:</span>
               <span className="font-semibold">${formData.subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>Tax ({formData.tax_rate}%):</span>
+              <span>TPS (5%):</span>
               <span className="font-semibold">${formData.tax_amount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>TVQ (9.975%):</span>
+              <span className="font-semibold">${formData.tax_amount_2.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-lg font-bold border-t pt-2">
               <span>Total:</span>
@@ -351,24 +450,52 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
             </div>
           </div>
 
+          {/* Submission Section */}
+          <div className="space-y-3 border-t pt-4">
+            <h3 className="text-lg font-bold">Soumission</h3>
+            {formData.submission_items?.length > 0 ? (
+              <div className="space-y-2 p-3 bg-blue-50 rounded-lg">
+                {formData.submission_items.map((item, idx) => (
+                  <div key={idx} className="text-sm">
+                    {item.type === 'title' && (
+                      <div className="font-bold text-lg">{item.description}</div>
+                    )}
+                    {item.type === 'description' && (
+                      <div className="text-slate-600">{item.description}</div>
+                    )}
+                    {item.type === 'item' && (
+                      <div className="flex justify-between">
+                        <span>{item.description} (x{item.quantity})</span>
+                        <span className="font-semibold">${item.total.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">Aucun item dans la soumission</p>
+            )}
+          </div>
+
           <div>
-            <Label>Notes</Label>
+            <Label className="text-sm font-semibold">Notes</Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => handleChange('notes', e.target.value)}
-              rows={3}
-              placeholder="Additional notes or payment terms..."
+              rows={2}
+              placeholder="Notes additionnelles..."
+              className="text-sm"
             />
           </div>
 
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" onClick={onClose}>
               <X className="w-4 h-4 mr-2" />
-              Cancel
+              Annuler
             </Button>
             <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
               <Save className="w-4 h-4 mr-2" />
-              Save Invoice
+              Enregistrer
             </Button>
           </DialogFooter>
         </form>
