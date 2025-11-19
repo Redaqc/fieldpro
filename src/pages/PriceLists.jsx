@@ -112,6 +112,42 @@ export default function PriceLists() {
     link.click();
   };
 
+  const exportAllPriceLists = () => {
+    if (priceLists.length === 0) {
+      alert('Aucune liste de prix à exporter');
+      return;
+    }
+
+    const headers = ['price_list_name', 'service_name', 'description', 'unit_price', 'unit', 'category'];
+    const rows = [];
+    
+    priceLists.forEach(priceList => {
+      if (priceList.items && priceList.items.length > 0) {
+        priceList.items.forEach(item => {
+          rows.push([
+            priceList.name || '',
+            item.service_name || '',
+            item.description || '',
+            item.unit_price || 0,
+            item.unit || 'each',
+            item.category || ''
+          ]);
+        });
+      }
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `toutes_les_listes_de_prix.csv`;
+    link.click();
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -139,6 +175,13 @@ export default function PriceLists() {
               />
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={exportAllPriceLists}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Exporter Tout
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowImportDialog(true)}
