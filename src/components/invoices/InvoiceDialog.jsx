@@ -98,24 +98,36 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
   };
 
   const loadFromQuotation = (quotationId) => {
+    if (!quotationId) return;
     const quotation = quotations.find(q => q.id === quotationId);
     if (!quotation) return;
+
+    // Copier tous les line_items individuellement
+    const items = quotation.line_items?.map(item => ({
+      description: item.description,
+      quantity: item.quantity || 1,
+      unit_price: item.unit_price || 0,
+      total: (item.quantity || 1) * (item.unit_price || 0),
+      type: item.type || "item"
+    })) || [];
 
     setFormData(prev => ({
       ...prev,
       customer_id: quotation.customer_id,
       customer_name: quotation.customer_name,
       project_name: quotation.project_name,
-      line_items: quotation.line_items || [],
+      line_items: items,
       work_start_date: quotation.work_start_date || format(new Date(), 'yyyy-MM-dd'),
     }));
-    calculateTotals(quotation.line_items || []);
+    calculateTotals(items);
   };
 
   const loadFromJob = (jobId) => {
+    if (!jobId) return;
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
 
+    // Copier tous les invoice_items individuellement
     const jobItems = [];
     if (job.invoice_items && job.invoice_items.length > 0) {
       job.invoice_items.forEach(item => {
@@ -539,6 +551,7 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
                   <SelectValue placeholder="Depuis Soumission" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={null}>-- Sélectionner --</SelectItem>
                   {quotations.map(q => (
                     <SelectItem key={q.id} value={q.id}>
                       {q.quote_number} - {q.customer_name}
@@ -551,6 +564,7 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
                   <SelectValue placeholder="Depuis Job" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={null}>-- Sélectionner --</SelectItem>
                   {jobs.map(j => (
                     <SelectItem key={j.id} value={j.id}>
                       {j.job_number} - {j.title}
