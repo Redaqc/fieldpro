@@ -2,7 +2,7 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { FileText, Send, TrendingUp, TrendingDown } from "lucide-react";
 
-export default function QuotationStats({ quotations }) {
+export default function QuotationStats({ quotations, onFilterChange }) {
   const stats = {
     preparation: quotations.filter(q => q.status === 'draft').length,
     sent: quotations.filter(q => q.status === 'sent').length,
@@ -19,7 +19,7 @@ export default function QuotationStats({ quotations }) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <Card className="p-4 bg-white border-l-4 border-l-blue-500">
+      <Card className="p-4 bg-white border-l-4 border-l-blue-500 cursor-pointer hover:shadow-lg transition-all" onClick={() => onFilterChange('draft')}>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-semibold text-slate-600">Préparation</h3>
           <FileText className="w-5 h-5 text-blue-500" />
@@ -29,7 +29,7 @@ export default function QuotationStats({ quotations }) {
         <p className="text-xs text-slate-400">{stats.preparation} soumissions</p>
       </Card>
 
-      <Card className="p-4 bg-white border-l-4 border-l-orange-500">
+      <Card className="p-4 bg-white border-l-4 border-l-orange-500 cursor-pointer hover:shadow-lg transition-all" onClick={() => onFilterChange('sent')}>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-semibold text-slate-600">Envoyées</h3>
           <Send className="w-5 h-5 text-orange-500" />
@@ -39,7 +39,7 @@ export default function QuotationStats({ quotations }) {
         <p className="text-xs text-slate-400">{stats.sent} soumissions</p>
       </Card>
 
-      <Card className="p-4 bg-white border-l-4 border-l-green-500">
+      <Card className="p-4 bg-white border-l-4 border-l-green-500 cursor-pointer hover:shadow-lg transition-all" onClick={() => onFilterChange('accepted')}>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-semibold text-slate-600">Gagnées</h3>
           <TrendingUp className="w-5 h-5 text-green-500" />
@@ -49,7 +49,7 @@ export default function QuotationStats({ quotations }) {
         <p className="text-xs text-slate-400">{stats.won} soumissions</p>
       </Card>
 
-      <Card className="p-4 bg-white border-l-4 border-l-red-500">
+      <Card className="p-4 bg-white border-l-4 border-l-red-500 cursor-pointer hover:shadow-lg transition-all" onClick={() => onFilterChange('declined')}>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-semibold text-slate-600">Perdues</h3>
           <TrendingDown className="w-5 h-5 text-red-500" />
