@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { Save, Package, Truck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -36,7 +37,19 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
     color: colors[Math.floor(Math.random() * colors.length)],
     notes: "",
     employee_number: "",
-    address: ""
+    address: "",
+    show_employee_number: false,
+    show_address: false,
+    auto_color: true,
+    gps_punch_outside_zone: false,
+    gps_punch_workstation: false,
+    track_presence: false,
+    is_salesperson: false,
+    can_manage_projects: false,
+    is_default_supervisor: false,
+    can_create_service_calls: false,
+    can_adjust_punches: false,
+    language: "fr"
   });
 
   const { data: assets = [] } = useQuery({
@@ -220,34 +233,109 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
             <TabsContent value="advanced" className="space-y-6 mt-6">
               <div className="grid grid-cols-2 gap-8">
                 {/* Left Column */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-red-600">Fiche RH d'employé</h3>
-                  
+                <div className="space-y-6">
                   <div>
-                    <Label className="text-xs text-slate-600">Numéro d'employé</Label>
-                    <Input
-                      value={formData.employee_number}
-                      onChange={(e) => handleChange('employee_number', e.target.value)}
-                      className="mt-1"
-                    />
+                    <h3 className="text-lg font-semibold text-red-600 mb-4">Fiche RH d'employé</h3>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div>
+                          <p className="font-medium text-sm">Numéro d'employé</p>
+                          <p className="text-xs text-slate-500">Vous permet d'inscrire un numéro d'employé.</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={formData.show_employee_number ? "default" : "outline"}
+                            onClick={() => handleChange('show_employee_number', true)}
+                            className="w-16"
+                          >
+                            Oui
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={!formData.show_employee_number ? "default" : "outline"}
+                            onClick={() => handleChange('show_employee_number', false)}
+                            className="w-16"
+                          >
+                            Non
+                          </Button>
+                        </div>
+                      </div>
+
+                      {formData.show_employee_number && (
+                        <Input
+                          value={formData.employee_number}
+                          onChange={(e) => handleChange('employee_number', e.target.value)}
+                          placeholder="Numéro d'employé"
+                          className="mb-2"
+                        />
+                      )}
+
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div>
+                          <p className="font-medium text-sm">Adresse</p>
+                          <p className="text-xs text-slate-500">Vous permet d'entrer l'adresse postale de l'employé.</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={formData.show_address ? "default" : "outline"}
+                            onClick={() => handleChange('show_address', true)}
+                            className="w-16"
+                          >
+                            Oui
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={!formData.show_address ? "default" : "outline"}
+                            onClick={() => handleChange('show_address', false)}
+                            className="w-16"
+                          >
+                            Non
+                          </Button>
+                        </div>
+                      </div>
+
+                      {formData.show_address && (
+                        <Textarea
+                          value={formData.address}
+                          onChange={(e) => handleChange('address', e.target.value)}
+                          rows={2}
+                          placeholder="Adresse complète"
+                          className="mb-2"
+                        />
+                      )}
+                    </div>
                   </div>
 
                   <div>
-                    <Label className="text-xs text-slate-600">Adresse</Label>
-                    <Textarea
-                      value={formData.address}
-                      onChange={(e) => handleChange('address', e.target.value)}
-                      rows={3}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-semibold text-red-600 mt-6">Gestion du temps</h3>
-                    <div className="mt-2">
-                      <Label className="text-xs text-slate-600">Couleur de l'employé</Label>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {colors.slice(0, 12).map(color => (
+                    <h3 className="text-lg font-semibold text-red-600 mb-4">Gestion du temps</h3>
+                    <div className="flex items-center justify-between py-2 border-b">
+                      <div>
+                        <p className="font-medium text-sm">Couleur de l'employé</p>
+                        <p className="text-xs text-slate-500">Vous permet de choisir la couleur dans le calendrier pour cet employé.</p>
+                      </div>
+                      <Select 
+                        value={formData.auto_color ? "auto" : "manual"} 
+                        onValueChange={(val) => handleChange('auto_color', val === "auto")}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">Automatique</SelectItem>
+                          <SelectItem value="manual">Manuel</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {!formData.auto_color && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {colors.slice(0, 15).map(color => (
                           <button
                             key={color}
                             type="button"
@@ -259,11 +347,63 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
                           />
                         ))}
                       </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-red-600 mb-4">Outils et Équipements</h3>
+                    <div className="border rounded-lg p-3 bg-slate-50 max-h-48 overflow-y-auto">
+                      {assignedAssets.filter(a => a.type !== 'vehicle').length === 0 ? (
+                        <p className="text-sm text-slate-500 text-center py-4">Aucun équipement assigné</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {assignedAssets.filter(a => a.type !== 'vehicle').map(asset => (
+                            <div key={asset.id} className="flex items-center gap-3 p-2 bg-white rounded border">
+                              {asset.photos && asset.photos[0] ? (
+                                <img src={asset.photos[0]} alt={asset.name} className="w-10 h-10 object-cover rounded" />
+                              ) : (
+                                <div className="w-10 h-10 bg-slate-200 rounded flex items-center justify-center">
+                                  <Package className="w-5 h-5 text-slate-400" />
+                                </div>
+                              )}
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{asset.name}</p>
+                                <p className="text-xs text-slate-500">{asset.brand} {asset.model}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <h3 className="text-lg font-semibold text-red-600 mb-4 mt-4">Véhicules Assignés</h3>
+                    <div className="border rounded-lg p-3 bg-slate-50 max-h-32 overflow-y-auto">
+                      {assignedAssets.filter(a => a.type === 'vehicle').length === 0 ? (
+                        <p className="text-sm text-slate-500 text-center py-4">Aucun véhicule assigné</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {assignedAssets.filter(a => a.type === 'vehicle').map(vehicle => (
+                            <div key={vehicle.id} className="flex items-center gap-3 p-2 bg-white rounded border">
+                              {vehicle.photos && vehicle.photos[0] ? (
+                                <img src={vehicle.photos[0]} alt={vehicle.name} className="w-10 h-10 object-cover rounded" />
+                              ) : (
+                                <div className="w-10 h-10 bg-slate-200 rounded flex items-center justify-center">
+                                  <Truck className="w-5 h-5 text-slate-400" />
+                                </div>
+                              )}
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{vehicle.name}</p>
+                                <p className="text-xs text-slate-500">{vehicle.brand} {vehicle.model}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Right Column - Assigned Assets */}
+                {/* Right Column - Permissions */}
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-lg font-semibold flex items-center gap-2">
