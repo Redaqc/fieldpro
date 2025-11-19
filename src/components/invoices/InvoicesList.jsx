@@ -75,10 +75,10 @@ export default function InvoicesList({ invoices, isLoading, onInvoiceClick, onDe
               <TableCell>{invoice.project_name || '-'}</TableCell>
               <TableCell>{invoice.customer_name || '-'}</TableCell>
               <TableCell className="text-right font-semibold">
-                ${(invoice.total_amount || 0).toFixed(2)}
+                ${(invoice.total_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </TableCell>
               <TableCell className="text-right font-semibold text-orange-600">
-                ${calculateRemaining(invoice.total_amount, invoice.paid_amount).toFixed(2)}
+                ${calculateRemaining(invoice.total_amount, invoice.paid_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </TableCell>
               <TableCell>
                 {invoice.due_date ? format(new Date(invoice.due_date), 'dd MMM yyyy') : '-'}

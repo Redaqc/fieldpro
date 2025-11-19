@@ -887,7 +887,7 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
                                     disabled={freezeItems}
                                   />
                                   <div className="col-span-1 text-right font-semibold text-sm">
-                                    ${(item.total || 0).toLocaleString()}
+                                    ${(item.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </div>
                                   <div className="col-span-1 flex justify-end">
                                     <Button
@@ -919,19 +919,19 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
           <div className="bg-slate-50 rounded-lg p-4 space-y-1 max-w-xs ml-auto">
             <div className="flex justify-between text-sm">
               <span>Sous-total:</span>
-              <span className="font-semibold">${formData.subtotal.toFixed(2)}</span>
+              <span className="font-semibold">${formData.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span>TPS (5%):</span>
-              <span className="font-semibold">${formData.tax_amount.toFixed(2)}</span>
+              <span className="font-semibold">${formData.tax_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span>TVQ (9.975%):</span>
-              <span className="font-semibold">${formData.tax_amount_2.toFixed(2)}</span>
+              <span className="font-semibold">${formData.tax_amount_2.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className="flex justify-between text-base font-bold border-t pt-1 mt-1">
               <span>Total:</span>
-              <span>${formData.total_amount.toFixed(2)}</span>
+              <span>${formData.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
 
