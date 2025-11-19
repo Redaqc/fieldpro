@@ -33,6 +33,11 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
   const [showBundleCreator, setShowBundleCreator] = useState(false);
   const [newBundleName, setNewBundleName] = useState("");
   const [newBundleDescription, setNewBundleDescription] = useState("");
+  const [showAllVariables, setShowAllVariables] = useState(false);
+  const [itemsFrozen, setItemsFrozen] = useState(false);
+  const [showSubtotalsOnly, setShowSubtotalsOnly] = useState(false);
+  const [showGrandTotalOnly, setShowGrandTotalOnly] = useState(false);
+  const [additionalInfo, setAdditionalInfo] = useState("");
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -154,11 +159,23 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
       });
     }
 
-    submissionText += `\n\n**Subtotal:** $${formData.subtotal.toFixed(2)}`;
-    submissionText += `\n**Tax:** $${formData.tax_amount.toFixed(2)}`;
+    if (!showSubtotalsOnly && !showGrandTotalOnly) {
+      submissionText += `\n\n**Subtotal:** $${formData.subtotal.toFixed(2)}`;
+      submissionText += `\n**Tax:** $${formData.tax_amount.toFixed(2)}`;
+    }
+    
+    if (showSubtotalsOnly) {
+      submissionText += `\n\n**Subtotal:** $${formData.subtotal.toFixed(2)}`;
+    }
+    
     submissionText += `\n**Total:** $${formData.total_amount.toFixed(2)}`;
 
     setFormData(prev => ({ ...prev, submission_body: prev.submission_body + submissionText }));
+  };
+
+  const duplicatePreviousCalculation = () => {
+    // Logic to duplicate from previous quotations
+    alert("Feature to duplicate previous calculation - select from history");
   };
 
   const updateLineItem = (index, field, value) => {
@@ -298,28 +315,39 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
             </TabsList>
 
             <TabsContent value="items" className="space-y-3">
-              <div className="flex justify-between items-center mb-3">
-                <Label>Cost Calculator</Label>
+              <div className="space-y-3 mb-4">
+                <div className="flex justify-between items-center">
+                  <Label className="text-lg font-semibold">Cost Calculator</Label>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setShowAllVariables(!showAllVariables)}>
+                      <span className="font-bold">{showAllVariables ? 'Hide' : 'Show'} All Variables</span>
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setItemsFrozen(!itemsFrozen)}>
+                      <span className="font-bold">{itemsFrozen ? 'Unfreeze' : 'Freeze'} Items</span>
+                    </Button>
+                  </div>
+                </div>
+                
                 <div className="flex gap-2 flex-wrap">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowPriceListDialog(true)}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setShowPriceListDialog(true)} disabled={itemsFrozen}>
                     <List className="w-4 h-4 mr-1" />
                     <span className="font-bold">Items</span>
                   </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={addTitle}>
+                  <Button type="button" variant="outline" size="sm" onClick={addTitle} disabled={itemsFrozen}>
                     <Heading className="w-4 h-4 mr-1" />
                     <span className="font-bold">Title</span>
                   </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={addDescription}>
+                  <Button type="button" variant="outline" size="sm" onClick={addDescription} disabled={itemsFrozen}>
                     <FileText className="w-4 h-4 mr-1" />
                     <span className="font-bold">Description</span>
                   </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowBundleCreator(true)}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setShowBundleCreator(true)} disabled={itemsFrozen}>
                     <Package className="w-4 h-4 mr-1" />
                     <span className="font-bold">Bundle</span>
                   </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={copyToSubmission}>
+                  <Button type="button" variant="outline" size="sm" onClick={duplicatePreviousCalculation}>
                     <Copy className="w-4 h-4 mr-1" />
-                    <span className="font-bold">Copy to Submission</span>
+                    <span className="font-bold">Duplicate Calculation</span>
                   </Button>
                 </div>
               </div>
@@ -392,7 +420,7 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
                         <span className="font-semibold text-sm">${(item.total || 0).toFixed(2)}</span>
                       </div>
                       <div className="col-span-1 flex justify-center">
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-8 w-8">
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-8 w-8" disabled={itemsFrozen}>
                           <Minus className="w-4 h-4 text-red-500" />
                         </Button>
                       </div>
@@ -443,32 +471,64 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
             </TabsContent>
           </Tabs>
 
-          <div className="bg-slate-50 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between">
-              <span>Subtotal:</span>
-              <span className="font-semibold">${formData.subtotal.toFixed(2)}</span>
+          <div className="bg-slate-50 rounded-lg p-4 space-y-3">
+            <h3 className="font-semibold text-slate-900 mb-2">Submission Content</h3>
+            
+            <div className="flex gap-2 mb-3">
+              <Button type="button" variant="outline" size="sm" onClick={copyToSubmission}>
+                <Copy className="w-4 h-4 mr-1" />
+                <span className="font-bold">Copy to Submission</span>
+              </Button>
             </div>
-            <div className="flex justify-between items-center">
-              <span>Tax Rate (%):</span>
-              <Input
-                type="number"
-                value={formData.tax_rate}
-                onChange={(e) => {
-                  const rate = parseFloat(e.target.value) || 0;
-                  handleChange('tax_rate', rate);
-                  calculateTotals(formData.line_items, formData.bundles);
-                }}
-                className="w-24 text-right"
-                step="0.1"
-              />
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={showSubtotalsOnly}
+                  onChange={(e) => setShowSubtotalsOnly(e.target.checked)}
+                  className="rounded"
+                />
+                <Label className="text-sm">Subtotals Only</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={showGrandTotalOnly}
+                  onChange={(e) => setShowGrandTotalOnly(e.target.checked)}
+                  className="rounded"
+                />
+                <Label className="text-sm">Grand Total Only</Label>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span>Tax:</span>
-              <span className="font-semibold">${formData.tax_amount.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-lg font-bold border-t pt-2">
-              <span>Total:</span>
-              <span>${formData.total_amount.toFixed(2)}</span>
+
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex justify-between">
+                <span>Subtotal:</span>
+                <span className="font-semibold">${formData.subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Tax Rate (%):</span>
+                <Input
+                  type="number"
+                  value={formData.tax_rate}
+                  onChange={(e) => {
+                    const rate = parseFloat(e.target.value) || 0;
+                    handleChange('tax_rate', rate);
+                    calculateTotals(formData.line_items, formData.bundles);
+                  }}
+                  className="w-24 text-right h-8"
+                  step="0.1"
+                />
+              </div>
+              <div className="flex justify-between">
+                <span>Tax:</span>
+                <span className="font-semibold">${formData.tax_amount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-lg font-bold border-t pt-2">
+                <span>Total:</span>
+                <span>${formData.total_amount.toFixed(2)}</span>
+              </div>
             </div>
           </div>
 
@@ -479,6 +539,16 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
               onChange={(e) => handleChange('submission_body', e.target.value)}
               rows={6}
               placeholder="Content copied from cost calculator will appear here..."
+            />
+          </div>
+
+          <div>
+            <Label>Additional Information</Label>
+            <Textarea
+              value={additionalInfo}
+              onChange={(e) => setAdditionalInfo(e.target.value)}
+              rows={2}
+              placeholder="Project details, attachments, special notes..."
             />
           </div>
 
@@ -549,14 +619,19 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
             </div>
           )}
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 flex-wrap">
             <Button type="button" variant="outline" onClick={onClose}>
-              <X className="w-4 h-4 mr-2" />
-              Cancel
+              Schedule Later
+            </Button>
+            <Button type="button" variant="outline" onClick={() => alert('Add change order feature')}>
+              Add Change Order
+            </Button>
+            <Button type="button" variant="outline" onClick={() => alert('Generate PDF')}>
+              Create PDF
             </Button>
             <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
               <Save className="w-4 h-4 mr-2" />
-              Save Quotation
+              Send
             </Button>
           </DialogFooter>
         </form>
