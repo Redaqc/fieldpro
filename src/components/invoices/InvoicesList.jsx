@@ -54,15 +54,13 @@ export default function InvoicesList({ invoices, isLoading, onInvoiceClick, onDe
         <TableHeader>
           <TableRow>
             <TableHead>Numéro</TableHead>
+            <TableHead>Projet</TableHead>
             <TableHead>Client</TableHead>
-            <TableHead>Date Émission</TableHead>
-            <TableHead>Date Échéance</TableHead>
-            <TableHead>Âge</TableHead>
-            <TableHead>Retard</TableHead>
-            <TableHead className="text-right">Montant Total</TableHead>
-            <TableHead className="text-right">Reste à Payer</TableHead>
-            <TableHead>Jours Paiement</TableHead>
-            <TableHead>Statut</TableHead>
+            <TableHead className="text-right">Total</TableHead>
+            <TableHead className="text-right">Balance</TableHead>
+            <TableHead>Échéance</TableHead>
+            <TableHead>Créé</TableHead>
+            <TableHead>Jours Retard</TableHead>
             <TableHead></TableHead>
           </TableRow>
         </TableHeader>
@@ -74,28 +72,22 @@ export default function InvoicesList({ invoices, isLoading, onInvoiceClick, onDe
               onClick={() => onInvoiceClick(invoice)}
             >
               <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+              <TableCell>{invoice.project_name || '-'}</TableCell>
               <TableCell>{invoice.customer_name || '-'}</TableCell>
-              <TableCell>
-                {invoice.issue_date ? format(new Date(invoice.issue_date), 'dd MMM yyyy') : '-'}
-              </TableCell>
-              <TableCell>
-                {invoice.due_date ? format(new Date(invoice.due_date), 'dd MMM yyyy') : '-'}
-              </TableCell>
-              <TableCell>{calculateAge(invoice.issue_date)}</TableCell>
-              <TableCell className={calculateOverdue(invoice.due_date, invoice.status) !== '-' ? 'text-red-600 font-semibold' : ''}>
-                {calculateOverdue(invoice.due_date, invoice.status)}
-              </TableCell>
               <TableCell className="text-right font-semibold">
                 ${(invoice.total_amount || 0).toFixed(2)}
               </TableCell>
               <TableCell className="text-right font-semibold text-orange-600">
                 ${calculateRemaining(invoice.total_amount, invoice.paid_amount).toFixed(2)}
               </TableCell>
-              <TableCell>{calculatePaymentDays(invoice.issue_date, invoice.paid_date, invoice.status)}</TableCell>
               <TableCell>
-                <Badge className={statusColors[invoice.status]}>
-                  {invoice.status}
-                </Badge>
+                {invoice.due_date ? format(new Date(invoice.due_date), 'dd MMM yyyy') : '-'}
+              </TableCell>
+              <TableCell>
+                {invoice.issue_date ? format(new Date(invoice.issue_date), 'dd MMM yyyy') : '-'}
+              </TableCell>
+              <TableCell className={calculateOverdue(invoice.due_date, invoice.status) !== '-' ? 'text-red-600 font-semibold' : ''}>
+                {calculateOverdue(invoice.due_date, invoice.status)}
               </TableCell>
               <TableCell>
                 <Button

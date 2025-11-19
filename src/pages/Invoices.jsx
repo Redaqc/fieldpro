@@ -3,8 +3,9 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, BarChart3 } from "lucide-react";
+import { Plus, Search, BarChart3, Download } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from "date-fns";
 
 import InvoicesList from "../components/invoices/InvoicesList";
 import InvoiceDialog from "../components/invoices/InvoiceDialog";
@@ -88,6 +89,36 @@ export default function Invoices() {
     return matchesSearch && matchesStatus && matchesDateRange;
   });
 
+  const exportToCSV = () => {
+    const headers = ['Invoice No.', 'Project Name', 'Client Name', 'Total', 'Balance', 'Due On', 'Created', 'Days Late', 'Status'];
+    const csvData = filteredInvoices.map(inv => {
+      const balance = (inv.total_amount || 0) - (inv.paid_amount || 0);
+      const daysLate = inv.due_date && inv.status !== 'paid' 
+        ? Math.max(0, Math.floor((new Date() - new Date(inv.due_date)) / (1000 * 60 * 60 * 24)))
+        : 0;
+      
+      return [
+        inv.invoice_number || '',
+        inv.project_name || '',
+        inv.customer_name || '',
+        (inv.total_amount || 0).toFixed(2),
+        balance.toFixed(2),
+        inv.due_date ? format(new Date(inv.due_date), 'yyyy-MM-dd') : '',
+        inv.issue_date ? format(new Date(inv.issue_date), 'yyyy-MM-dd') : '',
+        daysLate,
+        inv.status || ''
+      ].join(',');
+    });
+    
+    const csv = [headers.join(','), ...csvData].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoices_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -96,6 +127,14 @@ export default function Invoices() {
           <p className="text-slate-500 mt-1">Gérer la facturation et les paiements</p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={exportToCSV}
+            className="border-slate-200"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
           <Button
             variant="outline"
             onClick={() => setShowChart(true)}
