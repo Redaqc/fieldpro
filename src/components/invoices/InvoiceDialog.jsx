@@ -1,23 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, X, Minus, Copy } from "lucide-react";
+import { Save, X, Minus, GripVertical, Plus, List, Type, FileText, Package, CircleDot, Eye, Lock } from "lucide-react";
 import { addDays, format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 export default function InvoiceDialog({ open, onClose, onSave, invoice, customers, jobs }) {
-  const [formData, setFormData] = useState(invoice || {
+  const [formData, setFormData] = useState({
     customer_id: "",
     customer_name: "",
     project_name: "",
     job_id: "",
     issue_date: format(new Date(), 'yyyy-MM-dd'),
     due_date: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
+    work_start_date: format(new Date(), 'yyyy-MM-dd'),
+    sent_date: "",
     status: "draft",
     line_items: [],
     submission_items: [],
@@ -32,11 +35,37 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
 
   const [selectedItems, setSelectedItems] = useState([]);
   const [showPriceList, setShowPriceList] = useState(false);
-  const [showBundleCreate, setShowBundleCreate] = useState(false);
+  const [showVariables, setShowVariables] = useState(false);
+  const [freezeItems, setFreezeItems] = useState(false);
+  const [createFrom, setCreateFrom] = useState("scratch"); // scratch, quotation, job
+
+  useEffect(() => {
+    if (invoice) {
+      setFormData(invoice);
+    }
+  }, [invoice]);
 
   const { data: priceLists = [] } = useQuery({
     queryKey: ['priceLists'],
     queryFn: () => base44.entities.PriceList.list(),
+    initialData: [],
+  });
+
+  const { data: quotations = [] } = useQuery({
+    queryKey: ['quotations'],
+    queryFn: () => base44.entities.Quotation.list(),
+    initialData: [],
+  });
+
+  const { data: materials = [] } = useQuery({
+    queryKey: ['materials'],
+    queryFn: () => base44.entities.Material.list(),
+    initialData: [],
+  });
+
+  const { data: bundles = [] } = useQuery({
+    queryKey: ['bundles'],
+    queryFn: () => base44.entities.Bundle.list(),
     initialData: [],
   });
 
@@ -50,6 +79,58 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
       handleChange('customer_id', customerId);
       handleChange('customer_name', `${customer.first_name} ${customer.last_name}`);
     }
+  };
+
+  const loadFromQuotation = (quotationId) => {
+    const quotation = quotations.find(q => q.id === quotationId);
+    if (!quotation) return;
+
+    setFormData(prev => ({
+      ...prev,
+      customer_id: quotation.customer_id,
+      customer_name: quotation.customer_name,
+      project_name: quotation.project_name,
+      line_items: quotation.line_items || [],
+      work_start_date: quotation.work_start_date || format(new Date(), 'yyyy-MM-dd'),
+    }));
+    calculateTotals(quotation.line_items || []);
+  };
+
+  const loadFromJob = (jobId) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+
+    const jobItems = [];
+    if (job.invoice_items && job.invoice_items.length > 0) {
+      job.invoice_items.forEach(item => {
+        jobItems.push({
+          description: item.description,
+          quantity: item.quantity || 1,
+          unit_price: item.unit_price || 0,
+          total: (item.quantity || 1) * (item.unit_price || 0),
+          type: "item"
+        });
+      });
+    } else if (job.actual_cost || job.estimated_cost) {
+      jobItems.push({
+        description: job.title,
+        quantity: 1,
+        unit_price: job.actual_cost || job.estimated_cost,
+        total: job.actual_cost || job.estimated_cost,
+        type: "item"
+      });
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      customer_id: job.customer_id,
+      customer_name: job.customer_name,
+      project_name: job.title,
+      job_id: jobId,
+      line_items: jobItems,
+      work_start_date: job.scheduled_date || format(new Date(), 'yyyy-MM-dd'),
+    }));
+    calculateTotals(jobItems);
   };
 
   const addItem = (item = null) => {
@@ -94,6 +175,33 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
     setShowPriceList(false);
   };
 
+  const addMaterial = (material) => {
+    addItem({
+      description: material.name,
+      quantity: 1,
+      unit_price: material.unit_price,
+      total: material.unit_price,
+      type: "item"
+    });
+  };
+
+  const addBundleItems = (bundleId) => {
+    const bundle = bundles.find(b => b.id === bundleId);
+    if (!bundle) return;
+
+    const bundleItem = {
+      description: bundle.name,
+      quantity: 1,
+      unit_price: bundle.bundle_price,
+      total: bundle.bundle_price,
+      type: "bundle"
+    };
+
+    const newItems = [...formData.line_items, bundleItem];
+    setFormData(prev => ({ ...prev, line_items: newItems }));
+    calculateTotals(newItems);
+  };
+
   const updateLineItem = (index, field, value) => {
     const newItems = [...formData.line_items];
     newItems[index] = { ...newItems[index], [field]: value };
@@ -109,7 +217,7 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
   const removeLineItem = (index) => {
     const newItems = formData.line_items.filter((_, i) => i !== index);
     setFormData(prev => ({ ...prev, line_items: newItems }));
-    calculateTotals(newItems, formData.submission_items || []);
+    calculateTotals(newItems);
   };
 
   const toggleItemSelection = (index) => {
@@ -128,7 +236,7 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
       .filter(item => item.type === 'item');
 
     if (bundleItems.length === 0) {
-      alert("Sélectionnez au moins un item (pas de titre/description)");
+      alert("Sélectionnez au moins un item");
       return;
     }
 
@@ -138,7 +246,7 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
     const bundlePrice = bundleItems.reduce((sum, item) => sum + (item.total || 0), 0);
 
     try {
-      const bundleData = {
+      await base44.entities.Bundle.create({
         name: bundleName,
         items: bundleItems.map(item => ({
           service_name: item.description,
@@ -148,11 +256,8 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
         bundle_price: bundlePrice,
         original_price: bundlePrice,
         status: "active"
-      };
+      });
 
-      await base44.entities.Bundle.create(bundleData);
-
-      // Remove selected items and add bundle
       const remainingItems = formData.line_items.filter((_, i) => !selectedItems.includes(i));
       const bundleItem = {
         description: bundleName,
@@ -165,18 +270,21 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
       const newItems = [...remainingItems, bundleItem];
       setFormData(prev => ({ ...prev, line_items: newItems }));
       setSelectedItems([]);
-      calculateTotals(newItems, formData.submission_items || []);
+      calculateTotals(newItems);
     } catch (error) {
-      console.error("Erreur création bundle:", error);
       alert("Erreur lors de la création du bundle");
     }
   };
 
-  const copyToSubmission = () => {
-    setFormData(prev => ({
-      ...prev,
-      submission_items: [...prev.line_items]
-    }));
+  const onDragEnd = (result) => {
+    if (!result.destination || freezeItems) return;
+
+    const items = Array.from(formData.line_items);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setFormData(prev => ({ ...prev, line_items: items }));
+    calculateTotals(items);
   };
 
   const calculateTotals = (billingItems) => {
@@ -184,11 +292,8 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
       .filter(item => item.type === 'item' || item.type === 'bundle')
       .reduce((sum, item) => sum + (item.total || 0), 0);
     
-    const taxRate = formData.tax_rate || 5;
-    const taxRate2 = formData.tax_rate_2 || 9.975;
-    
-    const tps = billingTotal * (taxRate / 100);
-    const tvq = billingTotal * (taxRate2 / 100);
+    const tps = billingTotal * 0.05;
+    const tvq = billingTotal * 0.09975;
     const total = billingTotal + tps + tvq;
     
     setFormData(prev => ({
@@ -209,20 +314,58 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">
             {invoice ? 'Modifier Facture' : 'Créer Nouvelle Facture'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Header Info */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Create From Options */}
+          {!invoice && (
+            <div className="flex gap-2 pb-3 border-b">
+              <Button
+                type="button"
+                size="sm"
+                variant={createFrom === 'scratch' ? 'default' : 'outline'}
+                onClick={() => setCreateFrom('scratch')}
+              >
+                Nouveau
+              </Button>
+              <Select onValueChange={loadFromQuotation}>
+                <SelectTrigger className="w-48 h-9">
+                  <SelectValue placeholder="Depuis Soumission" />
+                </SelectTrigger>
+                <SelectContent>
+                  {quotations.map(q => (
+                    <SelectItem key={q.id} value={q.id}>
+                      {q.quote_number} - {q.customer_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select onValueChange={loadFromJob}>
+                <SelectTrigger className="w-48 h-9">
+                  <SelectValue placeholder="Depuis Job" />
+                </SelectTrigger>
+                <SelectContent>
+                  {jobs.map(j => (
+                    <SelectItem key={j.id} value={j.id}>
+                      {j.job_number} - {j.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Header Row 1 */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <Label className="text-sm font-semibold">Client *</Label>
+              <Label className="text-xs font-semibold">Customer *</Label>
               <Select value={formData.customer_id} onValueChange={handleCustomerSelect} required>
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-9 text-sm">
                   <SelectValue placeholder="Sélectionner" />
                 </SelectTrigger>
                 <SelectContent>
@@ -236,214 +379,321 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
             </div>
 
             <div>
-              <Label className="text-sm font-semibold">Nom du Projet</Label>
+              <Label className="text-xs font-semibold">Nom du Projet</Label>
               <Input
-                className="h-9"
+                className="h-9 text-sm"
                 value={formData.project_name}
                 onChange={(e) => handleChange('project_name', e.target.value)}
-                placeholder="Nom du projet"
               />
             </div>
 
             <div>
-              <Label className="text-sm font-semibold">Date d'Échéance</Label>
+              <Label className="text-xs font-semibold">Date de Début des Travaux</Label>
               <Input
-                className="h-9"
+                className="h-9 text-sm"
+                type="date"
+                value={formData.work_start_date}
+                onChange={(e) => handleChange('work_start_date', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Header Row 2 */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label className="text-xs font-semibold">Issue Date *</Label>
+              <Input
+                className="h-9 text-sm"
+                type="date"
+                value={formData.issue_date}
+                onChange={(e) => handleChange('issue_date', e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold">Expiry Date</Label>
+              <Input
+                className="h-9 text-sm"
                 type="date"
                 value={formData.due_date}
                 onChange={(e) => handleChange('due_date', e.target.value)}
               />
             </div>
+
+            <div>
+              <Label className="text-xs font-semibold">Sent Date</Label>
+              <Input
+                className="h-9 text-sm"
+                type="date"
+                value={formData.sent_date}
+                onChange={(e) => handleChange('sent_date', e.target.value)}
+              />
+            </div>
           </div>
 
-          {/* Billing Section */}
-          <div className="space-y-3">
+          {/* Cost Calculator Section */}
+          <div className="border rounded-lg p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold">Facturation</h3>
+              <h3 className="text-base font-bold">My Cost Calculator</h3>
               <div className="flex gap-2">
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="font-bold h-8"
-                  onClick={() => setShowPriceList(!showPriceList)}
+                  className="h-8 text-xs"
+                  onClick={() => setShowVariables(!showVariables)}
                 >
-                  Item
+                  <Eye className="w-3 h-3 mr-1" />
+                  Show Variables
                 </Button>
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline"
-                  className="font-bold h-8"
-                  onClick={addTitle}
+                  variant={freezeItems ? 'default' : 'outline'}
+                  className="h-8 text-xs"
+                  onClick={() => setFreezeItems(!freezeItems)}
                 >
-                  Title
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="font-bold h-8"
-                  onClick={addDescription}
-                >
-                  Description
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="font-bold h-8"
-                  onClick={createBundleFromSelected}
-                  disabled={selectedItems.length === 0}
-                >
-                  Bundle
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="font-bold h-8"
-                  onClick={copyToSubmission}
-                >
-                  <Copy className="w-3 h-3 mr-1" />
-                  Copy to Submission
+                  <Lock className="w-3 h-3 mr-1" />
+                  Freeze Items
                 </Button>
               </div>
             </div>
 
-            {/* Price List Selector */}
+            {/* Action Buttons */}
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 font-semibold"
+                onClick={() => addItem()}
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Add
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 font-semibold"
+                onClick={() => setShowPriceList(!showPriceList)}
+              >
+                <List className="w-3 h-3 mr-1" />
+                Items
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 font-semibold"
+                onClick={addTitle}
+              >
+                <Type className="w-3 h-3 mr-1" />
+                Title
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 font-semibold"
+                onClick={addDescription}
+              >
+                <FileText className="w-3 h-3 mr-1" />
+                Description
+              </Button>
+              <Select onValueChange={addBundleItems}>
+                <SelectTrigger className="w-40 h-8 font-semibold">
+                  <SelectValue placeholder="Choose from Bundle" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bundles.filter(b => b.status === 'active').map(bundle => (
+                    <SelectItem key={bundle.id} value={bundle.id}>
+                      {bundle.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 font-semibold"
+                onClick={createBundleFromSelected}
+                disabled={selectedItems.length === 0}
+              >
+                <CircleDot className="w-3 h-3 mr-1" />
+                Create Bundle
+              </Button>
+              <Select onValueChange={(id) => {
+                const material = materials.find(m => m.id === id);
+                if (material) addMaterial(material);
+              }}>
+                <SelectTrigger className="w-32 h-8 font-semibold">
+                  <SelectValue placeholder="Matériaux" />
+                </SelectTrigger>
+                <SelectContent>
+                  {materials.filter(m => m.status === 'active').map(material => (
+                    <SelectItem key={material.id} value={material.id}>
+                      {material.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Price List Dropdown */}
             {showPriceList && defaultPriceList && (
-              <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
-                <h4 className="font-semibold text-sm">Liste de Prix</h4>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+              <div className="border rounded p-3 bg-slate-50">
+                <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
                   {defaultPriceList.items?.map((item, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => addItemFromPriceList(item)}
-                      className="text-left p-2 border rounded hover:bg-white transition-colors text-sm"
+                      className="text-left p-2 border rounded hover:bg-white text-xs"
                     >
                       <div className="font-medium">{item.service_name}</div>
-                      <div className="text-xs text-slate-600">${item.unit_price}</div>
+                      <div className="text-slate-600">${item.unit_price}</div>
                     </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Line Items */}
-            <div className="space-y-2">
-              {formData.line_items.map((item, index) => {
-                if (item.type === 'title') {
-                  return (
-                    <div key={index} className="flex items-center gap-2 py-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.includes(index)}
-                        onChange={() => toggleItemSelection(index)}
-                        className="w-4 h-4"
-                      />
-                      <Input
-                        value={item.description}
-                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                        className="flex-1 font-bold text-lg border-0 bg-transparent focus-visible:ring-0"
-                        placeholder="TITRE"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => removeLineItem(index)}
-                      >
-                        <Minus className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  );
-                }
+            {/* Items Table */}
+            <div className="border rounded-lg overflow-hidden">
+              <div className="grid grid-cols-12 gap-2 bg-slate-100 p-2 text-xs font-semibold border-b">
+                <div className="col-span-1"></div>
+                <div className="col-span-5">Item</div>
+                <div className="col-span-2 text-center">Qty</div>
+                <div className="col-span-2 text-center">Unit Price</div>
+                <div className="col-span-2 text-right">Total</div>
+              </div>
 
-                if (item.type === 'description') {
-                  return (
-                    <div key={index} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.includes(index)}
-                        onChange={() => toggleItemSelection(index)}
-                        className="w-4 h-4"
-                      />
-                      <Textarea
-                        value={item.description}
-                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                        className="flex-1 text-sm resize-none"
-                        rows={2}
-                        placeholder="Description"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => removeLineItem(index)}
-                      >
-                        <Minus className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  );
-                }
+              <DragDropContext onDragEnd={onDragEnd}>
+                <Droppable droppableId="items">
+                  {(provided) => (
+                    <div {...provided.droppableProps} ref={provided.innerRef} className="divide-y">
+                      {formData.line_items.map((item, index) => (
+                        <Draggable 
+                          key={index} 
+                          draggableId={`item-${index}`} 
+                          index={index}
+                          isDragDisabled={freezeItems}
+                        >
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className="grid grid-cols-12 gap-2 p-2 items-center hover:bg-slate-50"
+                            >
+                              <div className="col-span-1 flex items-center gap-1">
+                                <div {...provided.dragHandleProps}>
+                                  <GripVertical className="w-4 h-4 text-slate-400" />
+                                </div>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedItems.includes(index)}
+                                  onChange={() => toggleItemSelection(index)}
+                                  className="w-3 h-3"
+                                />
+                              </div>
 
-                return (
-                  <div key={index} className="flex items-center gap-2 p-2 bg-white border rounded-lg">
-                    <input
-                      type="checkbox"
-                      checked={selectedItems.includes(index)}
-                      onChange={() => toggleItemSelection(index)}
-                      className="w-4 h-4"
-                    />
-                    <div className="flex-1 grid grid-cols-12 gap-2 items-center">
-                      <Input
-                        value={item.description}
-                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                        className="col-span-5 h-8 text-sm"
-                        placeholder="Description"
-                      />
-                      <Input
-                        type="number"
-                        value={item.quantity || ''}
-                        onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)}
-                        className="col-span-2 h-8 text-sm"
-                        placeholder="Qté"
-                        min="0"
-                      />
-                      <Input
-                        type="number"
-                        value={item.unit_price || ''}
-                        onChange={(e) => updateLineItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
-                        className="col-span-2 h-8 text-sm"
-                        placeholder="Prix"
-                        min="0"
-                        step="0.01"
-                      />
-                      <div className="col-span-3 text-right font-semibold text-sm">
-                        ${(item.total || 0).toFixed(2)}
-                      </div>
+                              {item.type === 'title' ? (
+                                <>
+                                  <Input
+                                    value={item.description}
+                                    onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                                    className="col-span-9 h-8 font-bold text-sm border-0 bg-transparent"
+                                    placeholder="TITRE"
+                                  />
+                                  <div className="col-span-2 flex justify-end">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => removeLineItem(index)}
+                                    >
+                                      <Minus className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </>
+                              ) : item.type === 'description' ? (
+                                <>
+                                  <Textarea
+                                    value={item.description}
+                                    onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                                    className="col-span-9 text-xs resize-none"
+                                    rows={2}
+                                  />
+                                  <div className="col-span-2 flex justify-end">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => removeLineItem(index)}
+                                    >
+                                      <Minus className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <Input
+                                    value={item.description}
+                                    onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                                    className="col-span-5 h-8 text-sm"
+                                    disabled={freezeItems}
+                                  />
+                                  <Input
+                                    type="number"
+                                    value={item.quantity || ''}
+                                    onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                                    className="col-span-2 h-8 text-sm text-center"
+                                    disabled={freezeItems}
+                                  />
+                                  <Input
+                                    type="number"
+                                    value={item.unit_price || ''}
+                                    onChange={(e) => updateLineItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                                    className="col-span-2 h-8 text-sm text-center"
+                                    step="0.01"
+                                    disabled={freezeItems}
+                                  />
+                                  <div className="col-span-1 text-right font-semibold text-sm">
+                                    ${(item.total || 0).toLocaleString()}
+                                  </div>
+                                  <div className="col-span-1 flex justify-end">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => removeLineItem(index)}
+                                      disabled={freezeItems}
+                                    >
+                                      <Minus className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => removeLineItem(index)}
-                    >
-                      <Minus className="w-4 h-4" />
-                    </Button>
-                  </div>
-                );
-              })}
+                  )}
+                </Droppable>
+              </DragDropContext>
             </div>
           </div>
 
           {/* Totals */}
-          <div className="bg-slate-50 rounded-lg p-4 space-y-2">
+          <div className="bg-slate-50 rounded-lg p-4 space-y-1 max-w-xs ml-auto">
             <div className="flex justify-between text-sm">
               <span>Sous-total:</span>
               <span className="font-semibold">${formData.subtotal.toFixed(2)}</span>
@@ -456,48 +706,10 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
               <span>TVQ (9.975%):</span>
               <span className="font-semibold">${formData.tax_amount_2.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-lg font-bold border-t pt-2">
+            <div className="flex justify-between text-base font-bold border-t pt-1 mt-1">
               <span>Total:</span>
               <span>${formData.total_amount.toFixed(2)}</span>
             </div>
-          </div>
-
-          {/* Submission Section */}
-          <div className="space-y-3 border-t pt-4">
-            <h3 className="text-lg font-bold">Soumission</h3>
-            {formData.submission_items?.length > 0 ? (
-              <div className="space-y-2 p-3 bg-blue-50 rounded-lg">
-                {formData.submission_items.map((item, idx) => (
-                  <div key={idx} className="text-sm">
-                    {item.type === 'title' && (
-                      <div className="font-bold text-lg">{item.description}</div>
-                    )}
-                    {item.type === 'description' && (
-                      <div className="text-slate-600">{item.description}</div>
-                    )}
-                    {item.type === 'item' && (
-                      <div className="flex justify-between">
-                        <span>{item.description} (x{item.quantity})</span>
-                        <span className="font-semibold">${item.total.toFixed(2)}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-500">Aucun item dans la soumission</p>
-            )}
-          </div>
-
-          <div>
-            <Label className="text-sm font-semibold">Notes</Label>
-            <Textarea
-              value={formData.notes}
-              onChange={(e) => handleChange('notes', e.target.value)}
-              rows={2}
-              placeholder="Notes additionnelles..."
-              className="text-sm"
-            />
           </div>
 
           <DialogFooter className="gap-2">
