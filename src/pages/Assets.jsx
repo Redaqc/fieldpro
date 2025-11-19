@@ -20,11 +20,7 @@ export default function Assets() {
     initialData: [],
   });
 
-  const { data: customers = [] } = useQuery({
-    queryKey: ['customers'],
-    queryFn: () => base44.entities.Customer.list(),
-    initialData: [],
-  });
+
 
   const createAssetMutation = useMutation({
     mutationFn: (data) => {
@@ -68,8 +64,10 @@ export default function Assets() {
     return (
       asset.name?.toLowerCase().includes(search) ||
       asset.asset_number?.toLowerCase().includes(search) ||
-      asset.customer_name?.toLowerCase().includes(search) ||
-      asset.serial_number?.toLowerCase().includes(search)
+      asset.brand?.toLowerCase().includes(search) ||
+      asset.model?.toLowerCase().includes(search) ||
+      asset.serial_number?.toLowerCase().includes(search) ||
+      asset.assigned_to_name?.toLowerCase().includes(search)
     );
   });
 
@@ -77,8 +75,8 @@ export default function Assets() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Assets</h1>
-          <p className="text-slate-500 mt-1">Track customer equipment and assets</p>
+          <h1 className="text-3xl font-bold text-slate-900">Équipements</h1>
+          <p className="text-slate-500 mt-1">Gérer les outils et équipements de la compagnie</p>
         </div>
         <Button
           onClick={() => {
@@ -88,14 +86,14 @@ export default function Assets() {
           className="bg-blue-600 hover:bg-blue-700"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Add Asset
+          Ajouter Équipement
         </Button>
       </div>
 
       <div className="relative">
         <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
         <Input
-          placeholder="Search assets by name, number, customer, or serial..."
+          placeholder="Rechercher par nom, marque, modèle, numéro de série..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-9 border-slate-200"
@@ -121,7 +119,6 @@ export default function Assets() {
           }}
           onSave={handleSave}
           asset={selectedAsset}
-          customers={customers}
         />
       )}
     </div>
