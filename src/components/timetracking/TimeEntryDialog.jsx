@@ -19,6 +19,10 @@ export default function TimeEntryDialog({ open, onClose, onSave, entry, technici
     status: "completed"
   });
 
+  // Check if current technician can adjust punches
+  const currentTech = technicians.find(t => t.id === formData.technician_id);
+  const canAdjust = currentTech?.can_adjust_punches || false;
+
   const handleChange = (field, value) => {
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
@@ -83,7 +87,11 @@ export default function TimeEntryDialog({ open, onClose, onSave, entry, technici
                 value={formData.clock_in}
                 onChange={(e) => handleChange('clock_in', e.target.value)}
                 required
+                disabled={!canAdjust && !!entry}
               />
+              {!canAdjust && !!entry && (
+                <p className="text-xs text-slate-500 mt-1">Permission requise pour modifier les poinçons</p>
+              )}
             </div>
 
             <div>
@@ -92,6 +100,7 @@ export default function TimeEntryDialog({ open, onClose, onSave, entry, technici
                 type="datetime-local"
                 value={formData.clock_out}
                 onChange={(e) => handleChange('clock_out', e.target.value)}
+                disabled={!canAdjust && !!entry}
               />
             </div>
 

@@ -40,6 +40,13 @@ export default function TimeTracking() {
   const clockInMutation = useMutation({
     mutationFn: async (technicianId) => {
       const tech = technicians.find(t => t.id === technicianId);
+      
+      // Check if technician can punch outside GPS zone
+      if (!tech.gps_punch_outside_zone) {
+        // In a real app, you would check GPS location here
+        // For now, we'll allow it but could add validation
+      }
+      
       return base44.entities.TimeEntry.create({
         technician_id: technicianId,
         technician_name: `${tech.first_name} ${tech.last_name}`,
