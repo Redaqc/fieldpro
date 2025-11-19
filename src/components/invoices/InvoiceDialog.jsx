@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, X, Minus, GripVertical, Plus, List, Type, FileText, Package, CircleDot, Eye, Lock } from "lucide-react";
+import { Save, X, Minus, GripVertical, Plus, List, Type, FileText, Package, CircleDot, Eye, Lock, Download } from "lucide-react";
 import { addDays, format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -47,14 +47,16 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
       setFormData(invoice);
     } else {
       // Generate invoice number for new invoices
-      base44.entities.Invoice.list('-created_date', 1).then(invoices => {
-        if (invoices.length > 0) {
-          const lastNumber = parseInt(invoices[0].invoice_number?.split('-')[1] || '0');
-          const newNumber = `INV-${String(lastNumber + 1).padStart(6, '0')}`;
-          setFormData(prev => ({ ...prev, invoice_number: newNumber }));
-        } else {
-          setFormData(prev => ({ ...prev, invoice_number: 'INV-000001' }));
-        }
+      base44.entities.Invoice.list('-invoice_number', 1000).then(invoices => {
+        const invoiceNumbers = invoices
+          .map(inv => parseInt(inv.invoice_number?.split('-')[1] || '0'))
+          .filter(num => !isNaN(num));
+        
+        const maxNumber = invoiceNumbers.length > 0 ? Math.max(...invoiceNumbers) : 0;
+        const newNumber = `INV-${String(maxNumber + 1).padStart(6, '0')}`;
+        setFormData(prev => ({ ...prev, invoice_number: newNumber }));
+      }).catch(() => {
+        setFormData(prev => ({ ...prev, invoice_number: 'INV-000001' }));
       });
     }
   }, [invoice]);
@@ -316,6 +318,95 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave(formData);
+  };
+
+  const downloadPDF = async () => {
+    const itemsText = formData.line_items
+      .filter(item => item.type === 'item' || item.type === 'bundle')
+      .map(item => `${item.description} - Qté: ${item.quantity} x $${item.unit_price} = $${item.total}`)
+      .join('\n');
+
+    const prompt = `Génère un PDF de facture professionnel avec:
+    
+Facture: ${formData.invoice_number}
+Client: ${formData.customer_name}
+Projet: ${formData.project_name || 'N/A'}
+Date: ${formData.issue_date}
+Date échéance: ${formData.due_date}
+PO: ${formData.po_number || 'N/A'}
+
+Items:
+${itemsText}
+
+Sous-total: $${formData.subtotal.toFixed(2)}
+TPS (5%): $${formData.tax_amount.toFixed(2)}
+TVQ (9.975%): $${formData.tax_amount_2.toFixed(2)}
+Total: $${formData.total_amount.toFixed(2)}
+
+Notes: ${formData.notes || 'Aucune'}`;
+
+    try {
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: prompt,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            html: { type: "string" }
+          }
+        }
+      });
+
+      const htmlContent = result.html || `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial; padding: 40px; }
+            h1 { color: #1e40af; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+            .total { font-weight: bold; font-size: 18px; }
+          </style>
+        </head>
+        <body>
+          <h1>Facture ${formData.invoice_number}</h1>
+          <p><strong>Client:</strong> ${formData.customer_name}</p>
+          <p><strong>Projet:</strong> ${formData.project_name || 'N/A'}</p>
+          <p><strong>Date:</strong> ${formData.issue_date}</p>
+          <p><strong>PO:</strong> ${formData.po_number || 'N/A'}</p>
+          
+          <table>
+            <tr><th>Description</th><th>Qté</th><th>Prix Unit.</th><th>Total</th></tr>
+            ${formData.line_items.filter(item => item.type === 'item' || item.type === 'bundle').map(item => `
+              <tr>
+                <td>${item.description}</td>
+                <td>${item.quantity}</td>
+                <td>$${item.unit_price.toFixed(2)}</td>
+                <td>$${item.total.toFixed(2)}</td>
+              </tr>
+            `).join('')}
+          </table>
+          
+          <div style="text-align: right;">
+            <p>Sous-total: $${formData.subtotal.toFixed(2)}</p>
+            <p>TPS (5%): $${formData.tax_amount.toFixed(2)}</p>
+            <p>TVQ (9.975%): $${formData.tax_amount_2.toFixed(2)}</p>
+            <p class="total">Total: $${formData.total_amount.toFixed(2)}</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${formData.invoice_number}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert("Erreur lors de la génération du PDF");
+    }
   };
 
   const defaultPriceList = priceLists.find(p => p.is_default) || priceLists[0];
@@ -733,6 +824,12 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
               <X className="w-4 h-4 mr-2" />
               Annuler
             </Button>
+            {invoice && (
+              <Button type="button" variant="outline" onClick={downloadPDF}>
+                <FileText className="w-4 h-4 mr-2" />
+                Télécharger PDF
+              </Button>
+            )}
             <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
               <Save className="w-4 h-4 mr-2" />
               Enregistrer
