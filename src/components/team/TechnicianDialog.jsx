@@ -51,13 +51,13 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{technician ? 'Edit Technician' : 'Add New Technician'}</DialogTitle>
+          <DialogTitle>{technician ? 'Modifier Technicien' : 'Ajouter Nouveau Technicien'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="first_name">First Name *</Label>
+              <Label htmlFor="first_name">Prénom *</Label>
               <Input
                 id="first_name"
                 value={formData.first_name}
@@ -67,7 +67,7 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
             </div>
 
             <div>
-              <Label htmlFor="last_name">Last Name *</Label>
+              <Label htmlFor="last_name">Nom *</Label>
               <Input
                 id="last_name"
                 value={formData.last_name}
@@ -87,7 +87,7 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
             </div>
 
             <div>
-              <Label htmlFor="phone">Phone *</Label>
+              <Label htmlFor="phone">Téléphone *</Label>
               <Input
                 id="phone"
                 value={formData.phone}
@@ -97,7 +97,7 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
             </div>
 
             <div>
-              <Label htmlFor="hourly_rate">Hourly Rate ($)</Label>
+              <Label htmlFor="hourly_rate">Taux Horaire ($)</Label>
               <Input
                 id="hourly_rate"
                 type="number"
@@ -109,21 +109,21 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
             </div>
 
             <div>
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">Statut</Label>
               <Select value={formData.status} onValueChange={(val) => handleChange('status', val)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="available">Available</SelectItem>
-                  <SelectItem value="busy">Busy</SelectItem>
-                  <SelectItem value="off_duty">Off Duty</SelectItem>
+                  <SelectItem value="available">Disponible</SelectItem>
+                  <SelectItem value="busy">Occupé</SelectItem>
+                  <SelectItem value="off_duty">Hors service</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="col-span-2">
-              <Label>Specializations</Label>
+              <Label>Spécialisations</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
                 {specializations.map(spec => (
                   <div key={spec} className="flex items-center space-x-2">
@@ -144,7 +144,7 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
             </div>
 
             <div className="col-span-2">
-              <Label>Calendar Color</Label>
+              <Label>Couleur Calendrier</Label>
               <div className="flex gap-2 mt-2">
                 {colors.map(color => (
                   <button
@@ -164,11 +164,11 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" onClick={onClose}>
               <X className="w-4 h-4 mr-2" />
-              Cancel
+              Annuler
             </Button>
             <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
               <Save className="w-4 h-4 mr-2" />
-              Save Technician
+              Enregistrer
             </Button>
           </DialogFooter>
         </form>

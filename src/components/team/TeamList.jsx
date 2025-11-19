@@ -35,8 +35,8 @@ export default function TeamList({ technicians, isLoading, onTechnicianClick, on
     return (
       <Card className="p-12 text-center">
         <UserCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-slate-900 mb-2">No technicians found</h3>
-        <p className="text-slate-500">Add your first technician to get started</p>
+        <h3 className="text-lg font-semibold text-slate-900 mb-2">Aucun technicien trouvé</h3>
+        <p className="text-slate-500">Ajoutez votre premier technicien pour commencer</p>
       </Card>
     );
   }
@@ -83,7 +83,7 @@ export default function TeamList({ technicians, isLoading, onTechnicianClick, on
               )}
               <div className="flex items-center gap-2 justify-center">
                 <Briefcase className="w-4 h-4" />
-                <span>{jobCount} active job{jobCount !== 1 ? 's' : ''}</span>
+                <span>{jobCount} job{jobCount !== 1 ? 's' : ''} actif{jobCount !== 1 ? 's' : ''}</span>
               </div>
             </div>
 
@@ -96,9 +96,9 @@ export default function TeamList({ technicians, isLoading, onTechnicianClick, on
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="available">Available</SelectItem>
-                  <SelectItem value="busy">Busy</SelectItem>
-                  <SelectItem value="off_duty">Off Duty</SelectItem>
+                  <SelectItem value="available">Disponible</SelectItem>
+                  <SelectItem value="busy">Occupé</SelectItem>
+                  <SelectItem value="off_duty">Hors service</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -108,7 +108,7 @@ export default function TeamList({ technicians, isLoading, onTechnicianClick, on
                   className="flex-1"
                   onClick={() => onTechnicianClick(tech)}
                 >
-                  Edit
+                  Voir Détails
                 </Button>
                 <Button 
                   variant="outline" 
