@@ -250,17 +250,18 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{quotation ? 'Edit Quotation' : 'Create New Quotation'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          {/* Customer & Basic Info */}
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label>Customer *</Label>
+              <Label className="text-xs">Customer *</Label>
               <Select value={formData.customer_id} onValueChange={handleCustomerSelect} required>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="Select customer" />
                 </SelectTrigger>
                 <SelectContent>
@@ -274,241 +275,228 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
             </div>
 
             <div>
-              <Label>Status</Label>
-              <Select value={formData.status} onValueChange={(val) => handleChange('status', val)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="sent">Sent</SelectItem>
-                  <SelectItem value="accepted">Accepted</SelectItem>
-                  <SelectItem value="declined">Declined</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Issue Date *</Label>
+              <Label className="text-xs">Issue Date *</Label>
               <Input
                 type="date"
                 value={formData.issue_date}
                 onChange={(e) => handleChange('issue_date', e.target.value)}
                 required
+                className="h-9"
               />
             </div>
 
             <div>
-              <Label>Expiry Date</Label>
+              <Label className="text-xs">Expiry Date</Label>
               <Input
                 type="date"
                 value={formData.expiry_date}
                 onChange={(e) => handleChange('expiry_date', e.target.value)}
+                className="h-9"
               />
             </div>
           </div>
 
-          <Tabs defaultValue="items">
-            <TabsList>
-              <TabsTrigger value="items">Line Items</TabsTrigger>
-              <TabsTrigger value="bundles">Bundles</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="items" className="space-y-3">
-              <div className="space-y-3 mb-4">
-                <div className="flex justify-between items-center">
-                  <Label className="text-lg font-semibold">Cost Calculator</Label>
-                  <div className="flex gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => setShowAllVariables(!showAllVariables)}>
-                      <span className="font-bold">{showAllVariables ? 'Hide' : 'Show'} All Variables</span>
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setItemsFrozen(!itemsFrozen)}>
-                      <span className="font-bold">{itemsFrozen ? 'Unfreeze' : 'Freeze'} Items</span>
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2 flex-wrap">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowPriceListDialog(true)} disabled={itemsFrozen}>
-                    <List className="w-4 h-4 mr-1" />
-                    <span className="font-bold">Items</span>
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={addTitle} disabled={itemsFrozen}>
-                    <Heading className="w-4 h-4 mr-1" />
-                    <span className="font-bold">Title</span>
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={addDescription} disabled={itemsFrozen}>
-                    <FileText className="w-4 h-4 mr-1" />
-                    <span className="font-bold">Description</span>
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowBundleCreator(true)} disabled={itemsFrozen}>
-                    <Package className="w-4 h-4 mr-1" />
-                    <span className="font-bold">Bundle</span>
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={duplicatePreviousCalculation}>
-                    <Copy className="w-4 h-4 mr-1" />
-                    <span className="font-bold">Duplicate Calculation</span>
-                  </Button>
-                </div>
+          {/* Cost Calculator Section */}
+          <div className="border border-slate-200 rounded-lg p-4 bg-white">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-bold text-slate-900">My Cost Calculator</h3>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowAllVariables(!showAllVariables)}>
+                  <span className="text-xs font-bold">{showAllVariables ? 'Hide' : 'Show'} Variables</span>
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setItemsFrozen(!itemsFrozen)}>
+                  <span className="text-xs font-bold">{itemsFrozen ? 'Unfreeze' : 'Freeze'} Items</span>
+                </Button>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                {formData.line_items.map((item, index) => {
-                  if (item.type === "title") {
-                    return (
-                      <div key={index} className="flex items-center gap-2 p-2 bg-blue-50 rounded" onClick={() => setSelectedItemIndex(index)}>
-                        <Input
-                          placeholder="Title"
-                          value={item.description}
-                          onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                          className="font-bold text-lg border-0 bg-transparent"
-                        />
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)}>
-                          <Minus className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
-                    );
-                  }
-                  
-                  if (item.type === "description") {
-                    return (
-                      <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 rounded" onClick={() => setSelectedItemIndex(index)}>
-                        <Textarea
-                          placeholder="Description"
-                          value={item.description}
-                          onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                          className="text-sm border-0 bg-transparent"
-                          rows={2}
-                        />
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)}>
-                          <Minus className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div key={index} className="grid grid-cols-12 gap-2 p-2 bg-slate-50 rounded-lg items-center" onClick={() => setSelectedItemIndex(index)}>
-                      <div className="col-span-5">
-                        <Input
-                          placeholder="Description"
-                          value={item.description}
-                          onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                          className="h-9"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Input
-                          type="number"
-                          placeholder="Qty"
-                          value={item.quantity}
-                          onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value))}
-                          className="h-9"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Input
-                          type="number"
-                          placeholder="Price"
-                          value={item.unit_price}
-                          onChange={(e) => updateLineItem(index, 'unit_price', parseFloat(e.target.value))}
-                          step="0.01"
-                          className="h-9"
-                        />
-                      </div>
-                      <div className="col-span-2 flex items-center justify-end">
-                        <span className="font-semibold text-sm">${(item.total || 0).toFixed(2)}</span>
-                      </div>
-                      <div className="col-span-1 flex justify-center">
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-8 w-8" disabled={itemsFrozen}>
-                          <Minus className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="bundles" className="space-y-3">
-              <div className="flex justify-between items-center">
-                <Label>Service Bundles</Label>
-                <Select onValueChange={addBundle}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Add bundle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bundles.filter(b => b.status === 'active').map(bundle => (
-                      <SelectItem key={bundle.id} value={bundle.id}>
-                        {bundle.name} (${bundle.bundle_price})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                {formData.bundles.map((bundle, index) => (
-                  <div key={index} className="flex items-center gap-3 p-2 bg-blue-50 rounded-lg">
-                    <Package className="w-5 h-5 text-blue-600" />
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-900">{bundle.bundle_name}</p>
-                    </div>
-                    <Input
-                      type="number"
-                      value={bundle.quantity}
-                      onChange={(e) => updateBundleQty(index, parseFloat(e.target.value))}
-                      className="w-20 h-9"
-                      min="1"
-                    />
-                    <span className="font-semibold w-24 text-right">${bundle.total.toFixed(2)}</span>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeBundle(index)} className="h-8 w-8">
-                      <Minus className="w-4 h-4 text-red-500" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          <div className="bg-slate-50 rounded-lg p-4 space-y-3">
-            <h3 className="font-semibold text-slate-900 mb-2">Submission Content</h3>
-            
-            <div className="flex gap-2 mb-3">
-              <Button type="button" variant="outline" size="sm" onClick={copyToSubmission}>
-                <Copy className="w-4 h-4 mr-1" />
-                <span className="font-bold">Copy to Submission</span>
+            {/* Action Buttons Row */}
+            <div className="flex gap-2 mb-4 flex-wrap">
+              <Button type="button" variant="outline" size="sm" onClick={addLineItem} disabled={itemsFrozen}>
+                <Plus className="w-3 h-3 mr-1" />
+                <span className="font-bold text-xs">Add</span>
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowPriceListDialog(true)} disabled={itemsFrozen}>
+                <List className="w-3 h-3 mr-1" />
+                <span className="font-bold text-xs">Items</span>
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={addTitle} disabled={itemsFrozen}>
+                <Heading className="w-3 h-3 mr-1" />
+                <span className="font-bold text-xs">Title</span>
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={addDescription} disabled={itemsFrozen}>
+                <FileText className="w-3 h-3 mr-1" />
+                <span className="font-bold text-xs">Description</span>
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowBundleCreator(true)} disabled={itemsFrozen}>
+                <Package className="w-3 h-3 mr-1" />
+                <span className="font-bold text-xs">Bundle</span>
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={duplicatePreviousCalculation}>
+                <Copy className="w-3 h-3 mr-1" />
+                <span className="font-bold text-xs">Duplicate</span>
               </Button>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={showSubtotalsOnly}
-                  onChange={(e) => setShowSubtotalsOnly(e.target.checked)}
-                  className="rounded"
-                />
-                <Label className="text-sm">Subtotals Only</Label>
+            {/* Items Table Header */}
+            <div className="grid grid-cols-12 gap-2 mb-2 px-2 text-xs font-semibold text-slate-600">
+              <div className="col-span-6">Item</div>
+              <div className="col-span-2">Qty</div>
+              <div className="col-span-2">Unit Price</div>
+              <div className="col-span-2 text-right">Total</div>
+            </div>
+
+            {/* Items List */}
+            <div className="space-y-1 mb-4 max-h-64 overflow-y-auto">
+              {formData.line_items.map((item, index) => {
+                if (item.type === "title") {
+                  return (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-blue-50 rounded">
+                      <Input
+                        placeholder="Title"
+                        value={item.description}
+                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                        className="font-bold border-0 bg-transparent h-8"
+                        disabled={itemsFrozen}
+                      />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
+                        <Minus className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  );
+                }
+                
+                if (item.type === "description") {
+                  return (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 rounded">
+                      <Textarea
+                        placeholder="Description"
+                        value={item.description}
+                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                        className="text-xs border-0 bg-transparent min-h-[60px]"
+                        disabled={itemsFrozen}
+                      />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
+                        <Minus className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={index} className="grid grid-cols-12 gap-2 p-2 hover:bg-slate-50 rounded items-center">
+                    <div className="col-span-6">
+                      <Input
+                        placeholder="Item description"
+                        value={item.description}
+                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                        className="h-8 text-sm"
+                        disabled={itemsFrozen}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                        className="h-8 text-sm"
+                        disabled={itemsFrozen}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Input
+                        type="number"
+                        value={item.unit_price}
+                        onChange={(e) => updateLineItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                        step="0.01"
+                        className="h-8 text-sm"
+                        disabled={itemsFrozen}
+                      />
+                    </div>
+                    <div className="col-span-1 text-right">
+                      <span className="font-semibold text-sm">${(item.total || 0).toFixed(3)}</span>
+                    </div>
+                    <div className="col-span-1 flex justify-center">
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
+                        <Minus className="w-3 h-3 text-red-500" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Totals */}
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="font-semibold">Total Cost:</span>
+                <span className="font-bold">${formData.subtotal.toFixed(3)}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={showGrandTotalOnly}
-                  onChange={(e) => setShowGrandTotalOnly(e.target.checked)}
-                  className="rounded"
-                />
-                <Label className="text-sm">Grand Total Only</Label>
+              <div className="flex justify-between text-sm">
+                <span className="font-semibold">Total Sale:</span>
+                <span className="font-bold">${formData.subtotal.toFixed(3)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Submission Content Section */}
+          <div className="border border-slate-200 rounded-lg p-4 bg-white">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-bold text-slate-900">Submission Content</h3>
+              <Button type="button" size="sm" onClick={copyToSubmission} className="bg-blue-500 hover:bg-blue-600">
+                <Copy className="w-3 h-3 mr-1" />
+                <span className="text-xs font-bold">Copy to Submission</span>
+              </Button>
+            </div>
+
+            {/* Items Table Header */}
+            <div className="grid grid-cols-12 gap-2 mb-2 px-2 text-xs font-semibold text-slate-600">
+              <div className="col-span-6">Item</div>
+              <div className="col-span-2">Unit Price</div>
+              <div className="col-span-2">Quantity</div>
+              <div className="col-span-2 text-right">Total</div>
+            </div>
+
+            {/* Preview Items */}
+            <div className="space-y-1 mb-4 min-h-[100px] max-h-48 overflow-y-auto bg-slate-50 rounded p-2">
+              {formData.line_items.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-4">No items added yet</p>
+              ) : (
+                formData.line_items.filter(i => i.type === 'item').map((item, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-2 text-sm py-1">
+                    <div className="col-span-6">{item.description}</div>
+                    <div className="col-span-2">${item.unit_price.toFixed(2)}</div>
+                    <div className="col-span-2">{item.quantity}</div>
+                    <div className="col-span-2 text-right font-semibold">${item.total.toFixed(3)}</div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Provincial Tax Inputs */}
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Provincial Tax Title:</Label>
+                <Input className="w-48 h-8 text-sm" placeholder="TPS (5%)" />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Federal Tax Title:</Label>
+                <Input className="w-48 h-8 text-sm" placeholder="TVQ (9.975%)" />
               </div>
             </div>
 
-            <div className="border-t pt-3 space-y-2">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span className="font-semibold">${formData.subtotal.toFixed(2)}</span>
+            {/* Summary Totals */}
+            <div className="space-y-2 border-t pt-3">
+              <div className="flex justify-between text-sm">
+                <span>Total before tax:</span>
+                <span className="font-semibold">${formData.subtotal.toFixed(3)}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span>Tax Rate (%):</span>
+              <div className="flex justify-between text-sm">
+                <span>Total sale:</span>
+                <span className="font-semibold">${formData.subtotal.toFixed(3)}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span>TPS (5%):</span>
                 <Input
                   type="number"
                   value={formData.tax_rate}
@@ -517,47 +505,48 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
                     handleChange('tax_rate', rate);
                     calculateTotals(formData.line_items, formData.bundles);
                   }}
-                  className="w-24 text-right h-8"
-                  step="0.1"
+                  className="w-24 h-7 text-right text-sm"
+                  step="0.01"
                 />
               </div>
-              <div className="flex justify-between">
-                <span>Tax:</span>
-                <span className="font-semibold">${formData.tax_amount.toFixed(2)}</span>
+              <div className="flex justify-between text-sm">
+                <span>TVQ (9.975%):</span>
+                <span className="font-semibold">${formData.tax_amount.toFixed(3)}</span>
               </div>
-              <div className="flex justify-between text-lg font-bold border-t pt-2">
+              <div className="flex justify-between text-base font-bold border-t pt-2">
                 <span>Total:</span>
-                <span>${formData.total_amount.toFixed(2)}</span>
+                <span>${formData.total_amount.toFixed(3)}</span>
+              </div>
+            </div>
+
+            {/* Display Options */}
+            <div className="flex gap-4 mt-4">
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowSubtotalsOnly(!showSubtotalsOnly)} className={showSubtotalsOnly ? 'bg-blue-100' : ''}>
+                <span className="text-xs font-bold">Subtotals and Grand Total</span>
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowGrandTotalOnly(!showGrandTotalOnly)} className={showGrandTotalOnly ? 'bg-blue-100' : ''}>
+                <span className="text-xs font-bold">Grand Total Only</span>
+              </Button>
+            </div>
+
+            {/* Profit Section */}
+            <div className="mt-4 pt-4 border-t">
+              <div className="flex justify-between text-sm">
+                <span className="font-semibold">Profit on this cost:</span>
+                <span className="font-bold text-green-600">${(formData.total_amount - formData.subtotal).toFixed(3)}</span>
               </div>
             </div>
           </div>
 
+          {/* Additional Info */}
           <div>
-            <Label>Submission Body</Label>
-            <Textarea
-              value={formData.submission_body}
-              onChange={(e) => handleChange('submission_body', e.target.value)}
-              rows={6}
-              placeholder="Content copied from cost calculator will appear here..."
-            />
-          </div>
-
-          <div>
-            <Label>Additional Information</Label>
+            <Label className="text-sm mb-1">Additional Information</Label>
             <Textarea
               value={additionalInfo}
               onChange={(e) => setAdditionalInfo(e.target.value)}
               rows={2}
-              placeholder="Project details, attachments, special notes..."
-            />
-          </div>
-
-          <div>
-            <Label>Notes</Label>
-            <Textarea
-              value={formData.notes}
-              onChange={(e) => handleChange('notes', e.target.value)}
-              rows={2}
+              placeholder="Add project details, notes, or attachments..."
+              className="text-sm"
             />
           </div>
 
@@ -619,21 +608,25 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
             </div>
           )}
 
-          <DialogFooter className="gap-2 flex-wrap">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Schedule Later
-            </Button>
-            <Button type="button" variant="outline" onClick={() => alert('Add change order feature')}>
-              Add Change Order
-            </Button>
-            <Button type="button" variant="outline" onClick={() => alert('Generate PDF')}>
-              Create PDF
-            </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-              <Save className="w-4 h-4 mr-2" />
-              Send
-            </Button>
-          </DialogFooter>
+          {/* Action Buttons */}
+          <div className="flex justify-between gap-3 pt-4 border-t">
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Schedule Later
+              </Button>
+              <Button type="button" variant="outline" onClick={() => alert('Add deposit account')}>
+                Add Deposit Account
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" className="bg-blue-500 hover:bg-blue-600" onClick={() => alert('Create PDF')}>
+                Create PDF and Save
+              </Button>
+              <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                Send
+              </Button>
+            </div>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
