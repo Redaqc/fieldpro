@@ -6,7 +6,8 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 
 const statusColors = {
-  active: "bg-green-100 text-green-800",
+  available: "bg-green-100 text-green-800",
+  in_use: "bg-blue-100 text-blue-800",
   maintenance: "bg-yellow-100 text-yellow-800",
   repair_needed: "bg-red-100 text-red-800",
   retired: "bg-gray-100 text-gray-800"
@@ -51,22 +52,34 @@ export default function AssetsList({ assets, isLoading, onAssetClick, onDelete }
             </div>
 
             <div className="space-y-2 text-sm text-slate-600">
-              <p><span className="font-medium">Customer:</span> {asset.customer_name}</p>
-              {asset.brand && <p><span className="font-medium">Brand:</span> {asset.brand}</p>}
-              {asset.model && <p><span className="font-medium">Model:</span> {asset.model}</p>}
+              {asset.photos && asset.photos.length > 0 && (
+                <div className="mb-2">
+                  <img 
+                    src={asset.photos[0]} 
+                    alt={asset.name} 
+                    className="w-full h-32 object-cover rounded"
+                  />
+                </div>
+              )}
+              {asset.assigned_to_name && (
+                <p><span className="font-medium">Assigné à:</span> {asset.assigned_to_name}</p>
+              )}
+              {asset.location && <p><span className="font-medium">Emplacement:</span> {asset.location}</p>}
+              {asset.brand && <p><span className="font-medium">Marque:</span> {asset.brand}</p>}
+              {asset.model && <p><span className="font-medium">Modèle:</span> {asset.model}</p>}
               {asset.serial_number && (
                 <p className="truncate"><span className="font-medium">S/N:</span> {asset.serial_number}</p>
               )}
-              {asset.installation_date && (
+              {asset.purchase_date && (
                 <div className="flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5" />
-                  <span>Installed: {format(new Date(asset.installation_date), 'MMM yyyy')}</span>
+                  <span>Acheté: {format(new Date(asset.purchase_date), 'MMM yyyy')}</span>
                 </div>
               )}
-              {asset.next_service_date && (
+              {asset.due_service_date && (
                 <div className="flex items-center gap-1 text-orange-600">
                   <AlertCircle className="w-3.5 h-3.5" />
-                  <span>Next service: {format(new Date(asset.next_service_date), 'MMM d, yyyy')}</span>
+                  <span>Entretien: {format(new Date(asset.due_service_date), 'MMM d, yyyy')}</span>
                 </div>
               )}
             </div>
