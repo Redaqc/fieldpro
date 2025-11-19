@@ -404,64 +404,239 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
                 </div>
 
                 {/* Right Column - Permissions */}
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <Package className="w-5 h-5" />
-                      Outils et Équipements Assignés
-                    </h3>
-                    <div className="mt-3 border rounded-lg p-3 bg-slate-50 max-h-64 overflow-y-auto">
-                      {assignedAssets.length === 0 ? (
-                        <p className="text-sm text-slate-500 text-center py-4">Aucun équipement assigné</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {assignedAssets.filter(a => a.type !== 'vehicle').map(asset => (
-                            <div key={asset.id} className="flex items-center gap-3 p-2 bg-white rounded border">
-                              {asset.photos && asset.photos[0] ? (
-                                <img src={asset.photos[0]} alt={asset.name} className="w-10 h-10 object-cover rounded" />
-                              ) : (
-                                <div className="w-10 h-10 bg-slate-200 rounded flex items-center justify-center">
-                                  <Package className="w-5 h-5 text-slate-400" />
-                                </div>
-                              )}
-                              <div className="flex-1">
-                                <p className="font-medium text-sm">{asset.name}</p>
-                                <p className="text-xs text-slate-500">{asset.brand} {asset.model}</p>
-                              </div>
-                            </div>
-                          ))}
+                    <h3 className="text-lg font-semibold text-red-600 mb-4">Droits supplémentaires</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div>
+                          <p className="font-medium text-sm">Poinçon hors zone GPS</p>
+                          <p className="text-xs text-slate-500">Option pour permettre à l'employé de poinçonner en dehors des zones GPS de projet.</p>
                         </div>
-                      )}
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={formData.gps_punch_outside_zone ? "default" : "outline"}
+                            onClick={() => handleChange('gps_punch_outside_zone', true)}
+                            className="w-16"
+                          >
+                            Oui
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={!formData.gps_punch_outside_zone ? "default" : "outline"}
+                            onClick={() => handleChange('gps_punch_outside_zone', false)}
+                            className="w-16"
+                          >
+                            Non
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="py-2 border-b">
+                        <p className="font-medium text-sm">Poinçon sans GPS (poste de travail)</p>
+                        <p className="text-xs text-slate-500">Vous permet de spécifier le projet par défaut de l'employé lorsqu'il est sur un poste de travail sans GPS.</p>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div>
+                          <p className="font-medium text-sm">Présences</p>
+                          <p className="text-xs text-slate-500">Vous permet de contrôler si l'employé peut voir les présences.</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={formData.track_presence ? "default" : "outline"}
+                            onClick={() => handleChange('track_presence', true)}
+                            className="w-16"
+                          >
+                            Oui
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={!formData.track_presence ? "default" : "outline"}
+                            onClick={() => handleChange('track_presence', false)}
+                            className="w-16"
+                          >
+                            Non
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div>
+                          <p className="font-medium text-sm">Est un vendeur</p>
+                          <p className="text-xs text-slate-500">Lui donne le droit de créer des soumissions mais de ne voir que les siennes. Cet employé sera facturé dès qu'il se connecte dans le mois et ce, même sans poinçon.</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={formData.is_salesperson ? "default" : "outline"}
+                            onClick={() => handleChange('is_salesperson', true)}
+                            className="w-16"
+                          >
+                            Oui
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={!formData.is_salesperson ? "default" : "outline"}
+                            onClick={() => handleChange('is_salesperson', false)}
+                            className="w-16"
+                          >
+                            Non
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div>
+                          <p className="font-medium text-sm">Créer et gérer les projets</p>
+                          <p className="text-xs text-slate-500">L'employé va pouvoir créer des projets et les gérer sans voir les informations financières des projets.</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={formData.can_manage_projects ? "default" : "outline"}
+                            onClick={() => handleChange('can_manage_projects', true)}
+                            className="w-16"
+                          >
+                            Oui
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={!formData.can_manage_projects ? "default" : "outline"}
+                            onClick={() => handleChange('can_manage_projects', false)}
+                            className="w-16"
+                          >
+                            Non
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div>
+                          <p className="font-medium text-sm">Superviseur par défaut</p>
+                          <p className="text-xs text-slate-500">L'employé va être assigné par défaut en tant que superviseur.</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={formData.is_default_supervisor ? "default" : "outline"}
+                            onClick={() => handleChange('is_default_supervisor', true)}
+                            className="w-16"
+                          >
+                            Oui
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={!formData.is_default_supervisor ? "default" : "outline"}
+                            onClick={() => handleChange('is_default_supervisor', false)}
+                            className="w-16"
+                          >
+                            Non
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div>
+                          <p className="font-medium text-sm">Appel de service</p>
+                          <p className="text-xs text-slate-500">Permet à l'employé de créer des appels de services.</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={formData.can_create_service_calls ? "default" : "outline"}
+                            onClick={() => handleChange('can_create_service_calls', true)}
+                            className="w-16"
+                          >
+                            Oui
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={!formData.can_create_service_calls ? "default" : "outline"}
+                            onClick={() => handleChange('can_create_service_calls', false)}
+                            className="w-16"
+                          >
+                            Non
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div>
+                          <p className="font-medium text-sm">Ajustement des poinçons</p>
+                          <p className="text-xs text-slate-500">Cet employé peut entrer ses heures manuellement et aussi modifier ses heures de poinçons avant la validation.</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={formData.can_adjust_punches ? "default" : "outline"}
+                            onClick={() => handleChange('can_adjust_punches', true)}
+                            className="w-16"
+                          >
+                            Oui
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={!formData.can_adjust_punches ? "default" : "outline"}
+                            onClick={() => handleChange('can_adjust_punches', false)}
+                            className="w-16"
+                          >
+                            Non
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <Truck className="w-5 h-5" />
-                      Véhicules Assignés
-                    </h3>
-                    <div className="mt-3 border rounded-lg p-3 bg-slate-50 max-h-48 overflow-y-auto">
-                      {assignedAssets.filter(a => a.type === 'vehicle').length === 0 ? (
-                        <p className="text-sm text-slate-500 text-center py-4">Aucun véhicule assigné</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {assignedAssets.filter(a => a.type === 'vehicle').map(vehicle => (
-                            <div key={vehicle.id} className="flex items-center gap-3 p-2 bg-white rounded border">
-                              {vehicle.photos && vehicle.photos[0] ? (
-                                <img src={vehicle.photos[0]} alt={vehicle.name} className="w-10 h-10 object-cover rounded" />
-                              ) : (
-                                <div className="w-10 h-10 bg-slate-200 rounded flex items-center justify-center">
-                                  <Truck className="w-5 h-5 text-slate-400" />
-                                </div>
-                              )}
-                              <div className="flex-1">
-                                <p className="font-medium text-sm">{vehicle.name}</p>
-                                <p className="text-xs text-slate-500">{vehicle.brand} {vehicle.model}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                    <h3 className="text-lg font-semibold text-red-600 mb-4">Options d'interface</h3>
+                    <div className="flex items-center justify-between py-2">
+                      <div>
+                        <p className="font-medium text-sm">Choix de langue</p>
+                        <p className="text-xs text-slate-500">Permet de changer la langue de l'employé.</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={formData.language === "en" ? "default" : "outline"}
+                          onClick={() => handleChange('language', 'en')}
+                        >
+                          English
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={formData.language === "fr" ? "default" : "outline"}
+                          onClick={() => handleChange('language', 'fr')}
+                        >
+                          Français
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={formData.language === "es" ? "outline" : "outline"}
+                          onClick={() => handleChange('language', 'es')}
+                        >
+                          Español
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
