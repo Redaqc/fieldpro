@@ -92,6 +92,11 @@ const navigationItems = [
     url: createPageUrl("Materials"),
     icon: Package,
   },
+  {
+    title: "Settings",
+    url: createPageUrl("Settings"),
+    icon: Settings,
+  },
 ];
 
 export default function Layout({ children, currentPageName }) {

@@ -8,14 +8,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Save, Package, Truck } from "lucide-react";
+import { Save, Package, Truck, Upload, X as XIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-
-const specializations = [
-  "plumbing", "electrical", "hvac", "carpentry", "general", 
-  "appliance_repair", "landscaping", "cleaning", "painting"
-];
 
 const colors = [
   "#7FDBFF", "#0074D9", "#4D9DE0", "#2E8B9E", "#5F8A8B", "#001F3F", "#39B54A", "#7DA269", "#9ACD32", "#AACC00", "#C5CC00", "#E0BF00",
@@ -61,7 +56,14 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
     initialData: [],
   });
 
+  const { data: workTypes = [] } = useQuery({
+    queryKey: ['workTypes'],
+    queryFn: () => base44.entities.WorkType.list(),
+    initialData: [],
+  });
+
   const assignedAssets = assets.filter(asset => asset.assigned_to === technician?.id);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -79,6 +81,22 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave(formData);
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      handleChange('avatar_url', file_url);
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      alert('Erreur lors du téléchargement de la photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   return (
@@ -102,6 +120,55 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Détails Technicien</h3>
                   
+                  {/* Photo Upload */}
+                  <div>
+                    <Label className="text-xs text-slate-600">Photo de profil</Label>
+                    <div className="flex items-center gap-4 mt-2">
+                      {formData.avatar_url ? (
+                        <div className="relative">
+                          <img 
+                            src={formData.avatar_url} 
+                            alt="Avatar" 
+                            className="w-24 h-24 rounded-full object-cover border-2 border-slate-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleChange('avatar_url', '')}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                          >
+                            <XIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center border-2 border-dashed border-slate-300">
+                          <Upload className="w-8 h-8 text-slate-400" />
+                        </div>
+                      )}
+                      <div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoUpload}
+                          className="hidden"
+                          id="photo-upload"
+                          disabled={uploadingPhoto}
+                        />
+                        <label htmlFor="photo-upload">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={uploadingPhoto}
+                            onClick={() => document.getElementById('photo-upload').click()}
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            {uploadingPhoto ? 'Téléchargement...' : 'Télécharger'}
+                          </Button>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
                   <div>
                     <Label htmlFor="first_name" className="text-xs text-slate-600">Prénom *</Label>
                     <Input
@@ -193,23 +260,31 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
 
                   <div>
                     <Label className="text-xs text-slate-600">Types de travaux</Label>
-                    <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto border rounded-lg p-3 bg-slate-50">
-                      {specializations.map(spec => (
-                        <div key={spec} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={spec}
-                            checked={formData.specialization.includes(spec)}
-                            onCheckedChange={() => toggleSpecialization(spec)}
-                          />
-                          <label
-                            htmlFor={spec}
-                            className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                          >
-                            {spec.replace('_', ' ')}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
+                    {workTypes.length === 0 ? (
+                      <p className="text-xs text-slate-500 mt-2">Aucun type de travail configuré. Allez dans Settings pour en ajouter.</p>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto border rounded-lg p-3 bg-slate-50">
+                        {workTypes.filter(wt => wt.active).map(workType => (
+                          <div key={workType.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={workType.name}
+                              checked={formData.specialization.includes(workType.name)}
+                              onCheckedChange={() => toggleSpecialization(workType.name)}
+                            />
+                            <label
+                              htmlFor={workType.name}
+                              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
+                            >
+                              <div 
+                                className="w-3 h-3 rounded" 
+                                style={{ backgroundColor: workType.color || '#0074D9' }}
+                              />
+                              {workType.label_fr}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div>
