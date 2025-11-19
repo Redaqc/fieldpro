@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, BarChart3, Download } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 
 import InvoicesList from "../components/invoices/InvoicesList";
 import InvoiceDialog from "../components/invoices/InvoiceDialog";
@@ -17,6 +17,7 @@ import ExportDialog from "../components/invoices/ExportDialog";
 export default function Invoices() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [ageFilter, setAgeFilter] = useState("all");
   const [showDialog, setShowDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showChart, setShowChart] = useState(false);
@@ -88,7 +89,33 @@ export default function Invoices() {
     const matchesDateRange = (!startDate || new Date(invoice.issue_date) >= new Date(startDate)) &&
                              (!endDate || new Date(invoice.issue_date) <= new Date(endDate));
 
-    return matchesSearch && matchesStatus && matchesDateRange;
+    let matchesAge = true;
+    if (ageFilter !== "all" && invoice.status !== 'paid' && invoice.status !== 'cancelled' && invoice.issue_date) {
+      const days = differenceInDays(new Date(), new Date(invoice.issue_date));
+      switch(ageFilter) {
+        case "unpaid":
+          matchesAge = true;
+          break;
+        case "under30":
+          matchesAge = days < 30;
+          break;
+        case "30to60":
+          matchesAge = days >= 30 && days < 60;
+          break;
+        case "60to90":
+          matchesAge = days >= 60 && days < 90;
+          break;
+        case "over90":
+          matchesAge = days >= 90;
+          break;
+        default:
+          matchesAge = true;
+      }
+    } else if (ageFilter !== "all" && (invoice.status === 'paid' || invoice.status === 'cancelled')) {
+      matchesAge = false;
+    }
+
+    return matchesSearch && matchesStatus && matchesDateRange && matchesAge;
   });
 
   return (
@@ -128,7 +155,10 @@ export default function Invoices() {
         </div>
       </div>
 
-      <InvoiceStats invoices={invoices} onFilterChange={setStatusFilter} />
+      <InvoiceStats invoices={invoices} onFilterChange={(filter) => {
+        setAgeFilter(filter);
+        setStatusFilter("all");
+      }} />
 
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">

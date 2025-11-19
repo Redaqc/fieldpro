@@ -36,31 +36,31 @@ export default function InvoiceStats({ invoices, onFilterChange }) {
       amount: totalDue, 
       label: `${dueCount} factures dues`, 
       borderColor: 'border-l-4 border-slate-400',
-      onClick: () => onFilterChange('sent')
+      onClick: () => onFilterChange('unpaid')
     },
     { 
       amount: under30.reduce((sum, inv) => sum + ((inv.total_amount || 0) - (inv.paid_amount || 0)), 0), 
       label: `moins de 30 jours (${under30.length})`, 
       borderColor: 'border-l-4 border-yellow-400',
-      onClick: () => onFilterChange('sent')
+      onClick: () => onFilterChange('under30')
     },
     { 
       amount: days30to60.reduce((sum, inv) => sum + ((inv.total_amount || 0) - (inv.paid_amount || 0)), 0), 
       label: `30-60 jours (${days30to60.length})`, 
       borderColor: 'border-l-4 border-orange-400',
-      onClick: () => onFilterChange('sent')
+      onClick: () => onFilterChange('30to60')
     },
     { 
       amount: days60to90.reduce((sum, inv) => sum + ((inv.total_amount || 0) - (inv.paid_amount || 0)), 0), 
       label: `60-90 jours (${days60to90.length})`, 
       borderColor: 'border-l-4 border-orange-500',
-      onClick: () => onFilterChange('overdue')
+      onClick: () => onFilterChange('60to90')
     },
     { 
       amount: over90.reduce((sum, inv) => sum + ((inv.total_amount || 0) - (inv.paid_amount || 0)), 0), 
       label: `plus de 90 jours (${over90.length})`, 
       borderColor: 'border-l-4 border-red-500',
-      onClick: () => onFilterChange('overdue')
+      onClick: () => onFilterChange('over90')
     },
   ];
 
