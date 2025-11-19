@@ -26,6 +26,30 @@ export default function MaterialDialog({ open, onClose, onSave, material }) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handlePhotoUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const uploadPromises = files.map(file => 
+        base44.integrations.Core.UploadFile({ file })
+      );
+      const results = await Promise.all(uploadPromises);
+      const urls = results.map(r => r.file_url);
+      handleChange('photos', [...(formData.photos || []), ...urls]);
+    } catch (error) {
+      alert('Erreur lors du téléchargement des photos');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removePhoto = (index) => {
+    const newPhotos = formData.photos.filter((_, i) => i !== index);
+    handleChange('photos', newPhotos);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave(formData);
