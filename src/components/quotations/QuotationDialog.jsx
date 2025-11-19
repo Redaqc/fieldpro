@@ -50,6 +50,7 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
   const [showGrandTotalOnly, setShowGrandTotalOnly] = useState(false);
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [showMaterialSelector, setShowMaterialSelector] = useState(false);
+  const [selectedItems, setSelectedItems] = useState([]);
 
   const { data: materials = [] } = useQuery({
     queryKey: ['materials'],
@@ -137,15 +138,31 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
     setShowBundleSelector(false);
   };
 
+  const toggleItemSelection = (index) => {
+    if (selectedItems.includes(index)) {
+      setSelectedItems(selectedItems.filter(i => i !== index));
+    } else {
+      setSelectedItems([...selectedItems, index]);
+    }
+  };
+
   const createBundleFromItems = async () => {
     if (!newBundleName.trim()) {
-      alert("Enter bundle name");
+      alert("Entrez un nom pour le bundle");
       return;
     }
     
-    const itemsForBundle = formData.line_items.filter(item => item.type === "item" && item.total > 0);
+    if (selectedItems.length === 0) {
+      alert("Sélectionnez au moins un item");
+      return;
+    }
+
+    const itemsForBundle = selectedItems
+      .map(index => formData.line_items[index])
+      .filter(item => item.type === "item" && item.total > 0);
+    
     if (itemsForBundle.length === 0) {
-      alert("No items to create bundle from");
+      alert("Aucun item valide sélectionné");
       return;
     }
 
@@ -170,12 +187,13 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
         status: "active"
       });
       
-      alert("Bundle created successfully!");
+      alert("Bundle créé avec succès!");
       setShowBundleCreator(false);
       setNewBundleName("");
       setNewBundleDescription("");
+      setSelectedItems([]);
     } catch (error) {
-      alert("Failed to create bundle");
+      alert("Échec de la création du bundle");
     }
   };
 
@@ -630,9 +648,16 @@ Merci de votre confiance.
                 <Package className="w-3 h-3 mr-1" />
                 <span className="font-bold text-xs">Choose from Bundle</span>
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowBundleCreator(true)} disabled={itemsFrozen}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowBundleCreator(true)} 
+                disabled={itemsFrozen || selectedItems.length === 0}
+                className={selectedItems.length > 0 ? 'bg-blue-50 border-blue-300' : ''}
+              >
                 <Package className="w-3 h-3 mr-1" />
-                <span className="font-bold text-xs">Create Bundle</span>
+                <span className="font-bold text-xs">Create Bundle {selectedItems.length > 0 ? `(${selectedItems.length})` : ''}</span>
               </Button>
               <Button type="button" variant="outline" size="sm" onClick={() => setShowMaterialSelector(true)} disabled={itemsFrozen}>
                 <Package className="w-3 h-3 mr-1" />
@@ -642,7 +667,20 @@ Merci de votre confiance.
 
             {/* Items Table Header */}
             <div className="grid grid-cols-12 gap-2 mb-2 px-2 text-xs font-semibold text-slate-600">
-              <div className="col-span-1"></div>
+              <div className="col-span-1 flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={selectedItems.length === formData.line_items.filter(i => i.type === 'item').length && selectedItems.length > 0}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedItems(formData.line_items.map((_, idx) => idx).filter(idx => formData.line_items[idx].type === 'item'));
+                    } else {
+                      setSelectedItems([]);
+                    }
+                  }}
+                  className="w-3 h-3"
+                />
+              </div>
               <div className="col-span-5">Item</div>
               <div className="col-span-2">Qty</div>
               <div className="col-span-2">Unit Price</div>
@@ -709,8 +747,16 @@ Merci de votre confiance.
 
                               return (
                                 <div className="grid grid-cols-12 gap-2 p-2 hover:bg-slate-50 rounded items-center">
-                                  <div className="col-span-1 flex justify-center" {...provided.dragHandleProps}>
-                                    <GripVertical className="w-4 h-4 text-slate-400 cursor-grab" />
+                                  <div className="col-span-1 flex items-center gap-1">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedItems.includes(index)}
+                                      onChange={() => toggleItemSelection(index)}
+                                      className="w-3 h-3"
+                                    />
+                                    <div {...provided.dragHandleProps}>
+                                      <GripVertical className="w-4 h-4 text-slate-400 cursor-grab" />
+                                    </div>
                                   </div>
                                   <div className="col-span-5">
                                     <Input
@@ -989,14 +1035,28 @@ Merci de votre confiance.
           {showBundleCreator && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowBundleCreator(false)}>
               <div className="bg-white rounded-lg p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-                <h3 className="text-lg font-semibold mb-4">Create Bundle from Items</h3>
+                <h3 className="text-lg font-semibold mb-4">Créer Bundle avec Items Sélectionnés</h3>
+                
+                {/* Show selected items */}
+                <div className="mb-4 p-3 bg-slate-50 rounded max-h-40 overflow-y-auto">
+                  <p className="text-xs font-semibold text-slate-600 mb-2">Items sélectionnés ({selectedItems.length}):</p>
+                  {selectedItems.map(idx => {
+                    const item = formData.line_items[idx];
+                    return (
+                      <div key={idx} className="text-xs text-slate-700 py-1">
+                        • {item.description} - Qty: {item.quantity} - ${item.total?.toFixed(2)}
+                      </div>
+                    );
+                  })}
+                </div>
+
                 <div className="space-y-3">
                   <div>
-                    <Label>Bundle Name</Label>
+                    <Label>Nom du Bundle</Label>
                     <Input
                       value={newBundleName}
                       onChange={(e) => setNewBundleName(e.target.value)}
-                      placeholder="Enter bundle name"
+                      placeholder="Entrez le nom du bundle"
                     />
                   </div>
                   <div>
@@ -1004,13 +1064,17 @@ Merci de votre confiance.
                     <Textarea
                       value={newBundleDescription}
                       onChange={(e) => setNewBundleDescription(e.target.value)}
-                      placeholder="Enter bundle description"
+                      placeholder="Entrez la description du bundle"
                       rows={3}
                     />
                   </div>
                   <div className="flex gap-2">
-                    <Button type="button" className="flex-1" onClick={createBundleFromItems}>Create Bundle</Button>
-                    <Button type="button" variant="outline" onClick={() => setShowBundleCreator(false)}>Cancel</Button>
+                    <Button type="button" className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={createBundleFromItems}>
+                      Créer Bundle
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setShowBundleCreator(false)}>
+                      Annuler
+                    </Button>
                   </div>
                 </div>
               </div>
