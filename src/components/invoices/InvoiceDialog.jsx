@@ -62,7 +62,7 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
     };
     const newItems = [...formData.line_items, newItem];
     setFormData(prev => ({ ...prev, line_items: newItems }));
-    calculateTotals(newItems, formData.submission_items || []);
+    calculateTotals(newItems);
   };
 
   const addTitle = () => {
@@ -103,7 +103,7 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
     }
     
     setFormData(prev => ({ ...prev, line_items: newItems }));
-    calculateTotals(newItems, formData.submission_items || []);
+    calculateTotals(newItems);
   };
 
   const removeLineItem = (index) => {
@@ -127,40 +127,49 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
       .map(i => formData.line_items[i])
       .filter(item => item.type === 'item');
 
+    if (bundleItems.length === 0) {
+      alert("Sélectionnez au moins un item (pas de titre/description)");
+      return;
+    }
+
     const bundleName = prompt("Nom du Bundle:");
     if (!bundleName) return;
 
-    const bundlePrice = bundleItems.reduce((sum, item) => sum + item.total, 0);
+    const bundlePrice = bundleItems.reduce((sum, item) => sum + (item.total || 0), 0);
 
-    const bundleData = {
-      name: bundleName,
-      items: bundleItems.map(item => ({
-        service_name: item.description,
-        quantity: item.quantity,
-        unit_price: item.unit_price
-      })),
-      bundle_price: bundlePrice,
-      original_price: bundlePrice,
-      status: "active"
-    };
+    try {
+      const bundleData = {
+        name: bundleName,
+        items: bundleItems.map(item => ({
+          service_name: item.description,
+          quantity: item.quantity || 1,
+          unit_price: item.unit_price || 0
+        })),
+        bundle_price: bundlePrice,
+        original_price: bundlePrice,
+        status: "active"
+      };
 
-    await base44.entities.Bundle.create(bundleData);
+      await base44.entities.Bundle.create(bundleData);
 
-    // Remove selected items and add bundle
-    const remainingItems = formData.line_items.filter((_, i) => !selectedItems.includes(i));
-    const bundleItem = {
-      description: bundleName,
-      quantity: 1,
-      unit_price: bundlePrice,
-      total: bundlePrice,
-      type: "bundle",
-      bundle_items: bundleItems
-    };
-    
-    const newItems = [...remainingItems, bundleItem];
-    setFormData(prev => ({ ...prev, line_items: newItems }));
-    setSelectedItems([]);
-    calculateTotals(newItems, formData.submission_items || []);
+      // Remove selected items and add bundle
+      const remainingItems = formData.line_items.filter((_, i) => !selectedItems.includes(i));
+      const bundleItem = {
+        description: bundleName,
+        quantity: 1,
+        unit_price: bundlePrice,
+        total: bundlePrice,
+        type: "bundle"
+      };
+      
+      const newItems = [...remainingItems, bundleItem];
+      setFormData(prev => ({ ...prev, line_items: newItems }));
+      setSelectedItems([]);
+      calculateTotals(newItems, formData.submission_items || []);
+    } catch (error) {
+      console.error("Erreur création bundle:", error);
+      alert("Erreur lors de la création du bundle");
+    }
   };
 
   const copyToSubmission = () => {
@@ -170,13 +179,16 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
     }));
   };
 
-  const calculateTotals = (billingItems, submissionItems) => {
+  const calculateTotals = (billingItems) => {
     const billingTotal = billingItems
       .filter(item => item.type === 'item' || item.type === 'bundle')
       .reduce((sum, item) => sum + (item.total || 0), 0);
     
-    const tps = billingTotal * (formData.tax_rate / 100);
-    const tvq = billingTotal * (formData.tax_rate_2 / 100);
+    const taxRate = formData.tax_rate || 5;
+    const taxRate2 = formData.tax_rate_2 || 9.975;
+    
+    const tps = billingTotal * (taxRate / 100);
+    const tvq = billingTotal * (taxRate2 / 100);
     const total = billingTotal + tps + tvq;
     
     setFormData(prev => ({
