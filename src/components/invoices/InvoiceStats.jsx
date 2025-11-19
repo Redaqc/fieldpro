@@ -21,23 +21,29 @@ export default function InvoiceStats({ invoices, onFilterChange }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {stats.map((stat) => (
-        <Card
-          key={stat.status}
-          className={`p-6 cursor-pointer hover:shadow-lg transition-all ${stat.bgColor}`}
-          onClick={() => onFilterChange(stat.status)}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <stat.icon className={`w-6 h-6 ${stat.color}`} />
-            <span className="text-2xl font-bold text-slate-900">{stat.count}</span>
+    <Card className="p-4">
+      <div className="flex items-center justify-between gap-6">
+        {stats.map((stat, index) => (
+          <div
+            key={stat.status}
+            className={`flex items-center gap-4 flex-1 p-4 rounded-lg cursor-pointer hover:shadow-md transition-all ${stat.bgColor}`}
+            onClick={() => onFilterChange(stat.status)}
+          >
+            <div className={`p-3 rounded-full ${stat.bgColor}`}>
+              <stat.icon className={`w-6 h-6 ${stat.color}`} />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">{stat.title}</p>
+              <div className="flex items-baseline gap-3 mt-1">
+                <span className="text-2xl font-bold text-slate-900">{stat.count}</span>
+                <span className={`text-lg font-semibold ${stat.color}`}>
+                  ${stat.total.toFixed(0)}
+                </span>
+              </div>
+            </div>
           </div>
-          <h3 className="text-sm font-semibold text-slate-700 mb-1">{stat.title}</h3>
-          <p className={`text-xl font-bold ${stat.color}`}>
-            ${stat.total.toFixed(2)}
-          </p>
-        </Card>
-      ))}
-    </div>
+        ))}
+      </div>
+    </Card>
   );
 }
