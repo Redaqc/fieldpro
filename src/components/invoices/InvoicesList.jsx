@@ -1,9 +1,10 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, Calendar, DollarSign } from "lucide-react";
-import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import { format, differenceInDays } from "date-fns";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const statusColors = {
   draft: "bg-gray-100 text-gray-800",
@@ -13,85 +14,106 @@ const statusColors = {
   cancelled: "bg-slate-100 text-slate-800"
 };
 
-export default function InvoicesList({ invoices, isLoading, onInvoiceClick }) {
-  if (isLoading) {
-    return (
-      <div className="grid gap-4">
-        {[...Array(5)].map((_, i) => (
-          <Card key={i} className="p-6">
-            <Skeleton className="h-6 w-32 mb-4" />
-            <Skeleton className="h-4 w-full mb-2" />
-            <Skeleton className="h-4 w-3/4" />
-          </Card>
-        ))}
-      </div>
-    );
-  }
+export default function InvoicesList({ invoices, isLoading, onInvoiceClick, onDelete }) {
+  const calculateAge = (issueDate) => {
+    if (!issueDate) return '-';
+    const days = differenceInDays(new Date(), new Date(issueDate));
+    return `${days}j`;
+  };
+
+  const calculateOverdue = (dueDate, status) => {
+    if (!dueDate || status === 'paid') return '-';
+    const days = differenceInDays(new Date(), new Date(dueDate));
+    return days > 0 ? `${days}j` : '-';
+  };
+
+  const calculateRemaining = (total, paid) => {
+    const remaining = (total || 0) - (paid || 0);
+    return remaining > 0 ? remaining : 0;
+  };
+
+  const calculatePaymentDays = (issueDate, paidDate, status) => {
+    if (status !== 'paid' || !issueDate) return '-';
+    const days = paidDate 
+      ? differenceInDays(new Date(paidDate), new Date(issueDate))
+      : differenceInDays(new Date(), new Date(issueDate));
+    return `${days}j`;
+  };
 
   if (invoices.length === 0) {
     return (
       <Card className="p-12 text-center">
-        <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-slate-900 mb-2">No invoices found</h3>
-        <p className="text-slate-500">Create your first invoice to get started</p>
+        <p className="text-slate-500">Aucune facture trouvée</p>
       </Card>
     );
   }
 
   return (
-    <div className="grid gap-4">
-      {invoices.map((invoice) => (
-        <Card
-          key={invoice.id}
-          className="p-6 hover:shadow-md transition-all cursor-pointer border-slate-200"
-          onClick={() => onInvoiceClick(invoice)}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <FileText className="w-5 h-5 text-slate-400" />
-                <h3 className="font-semibold text-lg text-slate-900">
-                  {invoice.invoice_number}
-                </h3>
+    <Card>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Numéro</TableHead>
+            <TableHead>Client</TableHead>
+            <TableHead>Date Émission</TableHead>
+            <TableHead>Date Échéance</TableHead>
+            <TableHead>Âge</TableHead>
+            <TableHead>Retard</TableHead>
+            <TableHead className="text-right">Montant Total</TableHead>
+            <TableHead className="text-right">Reste à Payer</TableHead>
+            <TableHead>Jours Paiement</TableHead>
+            <TableHead>Statut</TableHead>
+            <TableHead></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {invoices.map((invoice) => (
+            <TableRow
+              key={invoice.id}
+              className="cursor-pointer hover:bg-slate-50"
+              onClick={() => onInvoiceClick(invoice)}
+            >
+              <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+              <TableCell>{invoice.customer_name || '-'}</TableCell>
+              <TableCell>
+                {invoice.issue_date ? format(new Date(invoice.issue_date), 'dd MMM yyyy') : '-'}
+              </TableCell>
+              <TableCell>
+                {invoice.due_date ? format(new Date(invoice.due_date), 'dd MMM yyyy') : '-'}
+              </TableCell>
+              <TableCell>{calculateAge(invoice.issue_date)}</TableCell>
+              <TableCell className={calculateOverdue(invoice.due_date, invoice.status) !== '-' ? 'text-red-600 font-semibold' : ''}>
+                {calculateOverdue(invoice.due_date, invoice.status)}
+              </TableCell>
+              <TableCell className="text-right font-semibold">
+                ${(invoice.total_amount || 0).toFixed(2)}
+              </TableCell>
+              <TableCell className="text-right font-semibold text-orange-600">
+                ${calculateRemaining(invoice.total_amount, invoice.paid_amount).toFixed(2)}
+              </TableCell>
+              <TableCell>{calculatePaymentDays(invoice.issue_date, invoice.paid_date, invoice.status)}</TableCell>
+              <TableCell>
                 <Badge className={statusColors[invoice.status]}>
                   {invoice.status}
                 </Badge>
-              </div>
-
-              <div className="space-y-2 text-sm text-slate-600">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Customer:</span>
-                  <span>{invoice.customer_name || 'Unknown'}</span>
-                </div>
-                {invoice.issue_date && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>Issued: {format(new Date(invoice.issue_date), 'MMM d, yyyy')}</span>
-                  </div>
-                )}
-                {invoice.due_date && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>Due: {format(new Date(invoice.due_date), 'MMM d, yyyy')}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="text-right">
-              <p className="text-sm text-slate-500 mb-1">Total Amount</p>
-              <p className="text-2xl font-bold text-slate-900">
-                ${(invoice.total_amount || 0).toFixed(2)}
-              </p>
-              {invoice.paid_amount > 0 && invoice.status !== 'paid' && (
-                <p className="text-sm text-green-600 mt-1">
-                  ${invoice.paid_amount.toFixed(2)} paid
-                </p>
-              )}
-            </div>
-          </div>
-        </Card>
-      ))}
-    </div>
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm('Supprimer cette facture?')) onDelete(invoice.id);
+                  }}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Card>
   );
 }
