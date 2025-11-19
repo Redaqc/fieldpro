@@ -18,10 +18,14 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
     expiry_date: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
     status: "draft",
     line_items: [],
+    submission_items: [],
     bundles: [],
     subtotal: 0,
-    tax_rate: 0,
+    submission_subtotal: 0,
+    tax_rate: 5,
+    tax_rate_2: 9.975,
     tax_amount: 0,
+    tax_amount_2: 0,
     total_amount: 0,
     notes: "",
     terms: "",
@@ -48,6 +52,7 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
     if (customer) {
       handleChange('customer_id', customerId);
       handleChange('customer_name', `${customer.first_name} ${customer.last_name}`);
+      handleChange('customer_price_list_id', customer.price_list_id);
     }
   };
 
@@ -140,37 +145,50 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
   };
 
   const copyToSubmission = () => {
-    let submissionText = "";
+    const itemsToCopy = formData.line_items.filter(item => item.type === "item").map(item => ({...item}));
+    setFormData(prev => ({ 
+      ...prev, 
+      submission_items: itemsToCopy
+    }));
+    calculateSubmissionTotals(itemsToCopy);
+  };
+
+  const addSubmissionItem = () => {
+    const newItems = [...formData.submission_items, { description: "", quantity: 1, unit_price: 0, total: 0, type: "item" }];
+    setFormData(prev => ({ ...prev, submission_items: newItems }));
+  };
+
+  const updateSubmissionItem = (index, field, value) => {
+    const newItems = [...formData.submission_items];
+    newItems[index] = { ...newItems[index], [field]: value };
     
-    formData.line_items.forEach(item => {
-      if (item.type === "title") {
-        submissionText += `\n\n## ${item.description}\n`;
-      } else if (item.type === "description") {
-        submissionText += `${item.description}\n`;
-      } else {
-        submissionText += `- ${item.description} (Qty: ${item.quantity}) - $${item.total.toFixed(2)}\n`;
-      }
-    });
-
-    if (formData.bundles.length > 0) {
-      submissionText += "\n\n## Bundles\n";
-      formData.bundles.forEach(bundle => {
-        submissionText += `- ${bundle.bundle_name} (Qty: ${bundle.quantity}) - $${bundle.total.toFixed(2)}\n`;
-      });
-    }
-
-    if (!showSubtotalsOnly && !showGrandTotalOnly) {
-      submissionText += `\n\n**Subtotal:** $${formData.subtotal.toFixed(2)}`;
-      submissionText += `\n**Tax:** $${formData.tax_amount.toFixed(2)}`;
+    if (field === 'quantity' || field === 'unit_price') {
+      newItems[index].total = (newItems[index].quantity || 0) * (newItems[index].unit_price || 0);
     }
     
-    if (showSubtotalsOnly) {
-      submissionText += `\n\n**Subtotal:** $${formData.subtotal.toFixed(2)}`;
-    }
-    
-    submissionText += `\n**Total:** $${formData.total_amount.toFixed(2)}`;
+    setFormData(prev => ({ ...prev, submission_items: newItems }));
+    calculateSubmissionTotals(newItems);
+  };
 
-    setFormData(prev => ({ ...prev, submission_body: prev.submission_body + submissionText }));
+  const removeSubmissionItem = (index) => {
+    const newItems = formData.submission_items.filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, submission_items: newItems }));
+    calculateSubmissionTotals(newItems);
+  };
+
+  const calculateSubmissionTotals = (items) => {
+    const subtotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
+    const tax1 = subtotal * (formData.tax_rate / 100);
+    const tax2 = subtotal * (formData.tax_rate_2 / 100);
+    const total = subtotal + tax1 + tax2;
+    
+    setFormData(prev => ({
+      ...prev,
+      submission_subtotal: subtotal,
+      tax_amount: tax1,
+      tax_amount_2: tax2,
+      total_amount: total
+    }));
   };
 
   const duplicatePreviousCalculation = () => {
@@ -457,17 +475,53 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
               <div className="col-span-2 text-right">Total</div>
             </div>
 
-            {/* Preview Items */}
+            {/* Action Buttons for Submission */}
+            <div className="flex gap-2 mb-3">
+              <Button type="button" variant="outline" size="sm" onClick={addSubmissionItem}>
+                <Plus className="w-3 h-3 mr-1" />
+                <span className="text-xs font-bold">Add Item</span>
+              </Button>
+            </div>
+
+            {/* Editable Submission Items */}
             <div className="space-y-1 mb-4 min-h-[100px] max-h-48 overflow-y-auto bg-slate-50 rounded p-2">
-              {formData.line_items.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-4">No items added yet</p>
+              {formData.submission_items.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-4">Click "Copy to Submission" to add items</p>
               ) : (
-                formData.line_items.filter(i => i.type === 'item').map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-2 text-sm py-1">
-                    <div className="col-span-6">{item.description}</div>
-                    <div className="col-span-2">${item.unit_price.toFixed(2)}</div>
-                    <div className="col-span-2">{item.quantity}</div>
-                    <div className="col-span-2 text-right font-semibold">${item.total.toFixed(3)}</div>
+                formData.submission_items.map((item, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-2 items-center p-1 hover:bg-slate-100 rounded">
+                    <div className="col-span-5">
+                      <Input
+                        value={item.description}
+                        onChange={(e) => updateSubmissionItem(index, 'description', e.target.value)}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Input
+                        type="number"
+                        value={item.unit_price}
+                        onChange={(e) => updateSubmissionItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                        className="h-7 text-xs"
+                        step="0.01"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => updateSubmissionItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                    <div className="col-span-2 text-right">
+                      <span className="text-xs font-semibold">${item.total.toFixed(3)}</span>
+                    </div>
+                    <div className="col-span-1 flex justify-center">
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeSubmissionItem(index)} className="h-6 w-6">
+                        <Minus className="w-3 h-3 text-red-500" />
+                      </Button>
+                    </div>
                   </div>
                 ))
               )}
@@ -489,29 +543,45 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
             <div className="space-y-2 border-t pt-3">
               <div className="flex justify-between text-sm">
                 <span>Total before tax:</span>
-                <span className="font-semibold">${formData.subtotal.toFixed(3)}</span>
+                <span className="font-semibold">${formData.submission_subtotal.toFixed(3)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Total sale:</span>
-                <span className="font-semibold">${formData.subtotal.toFixed(3)}</span>
+                <span className="font-semibold">${formData.submission_subtotal.toFixed(3)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span>TPS (5%):</span>
-                <Input
-                  type="number"
-                  value={formData.tax_rate}
-                  onChange={(e) => {
-                    const rate = parseFloat(e.target.value) || 0;
-                    handleChange('tax_rate', rate);
-                    calculateTotals(formData.line_items, formData.bundles);
-                  }}
-                  className="w-24 h-7 text-right text-sm"
-                  step="0.01"
-                />
+                <span>TPS:</span>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={formData.tax_rate}
+                    onChange={(e) => {
+                      handleChange('tax_rate', parseFloat(e.target.value) || 0);
+                      calculateSubmissionTotals(formData.submission_items);
+                    }}
+                    className="w-16 h-7 text-right text-xs"
+                    step="0.01"
+                  />
+                  <span className="text-xs">%</span>
+                  <span className="font-semibold w-20 text-right">${formData.tax_amount.toFixed(3)}</span>
+                </div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>TVQ (9.975%):</span>
-                <span className="font-semibold">${formData.tax_amount.toFixed(3)}</span>
+              <div className="flex justify-between items-center text-sm">
+                <span>TVQ:</span>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={formData.tax_rate_2}
+                    onChange={(e) => {
+                      handleChange('tax_rate_2', parseFloat(e.target.value) || 0);
+                      calculateSubmissionTotals(formData.submission_items);
+                    }}
+                    className="w-16 h-7 text-right text-xs"
+                    step="0.001"
+                  />
+                  <span className="text-xs">%</span>
+                  <span className="font-semibold w-20 text-right">${formData.tax_amount_2.toFixed(3)}</span>
+                </div>
               </div>
               <div className="flex justify-between text-base font-bold border-t pt-2">
                 <span>Total:</span>
@@ -533,7 +603,7 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
             <div className="mt-4 pt-4 border-t">
               <div className="flex justify-between text-sm">
                 <span className="font-semibold">Profit on this cost:</span>
-                <span className="font-bold text-green-600">${(formData.total_amount - formData.subtotal).toFixed(3)}</span>
+                <span className="font-bold text-green-600">${(formData.submission_subtotal - formData.subtotal).toFixed(3)}</span>
               </div>
             </div>
           </div>
@@ -554,11 +624,20 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
           {showPriceListDialog && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPriceListDialog(false)}>
               <div className="bg-white rounded-lg p-6 max-w-2xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                <h3 className="text-lg font-semibold mb-4">Select Item from Price List</h3>
+                <h3 className="text-lg font-semibold mb-4">Select Item from Customer's Price List</h3>
                 <div className="space-y-2">
-                  {priceLists.flatMap(pl => 
-                    (pl.items || []).map((item, idx) => (
-                      <div key={`${pl.id}-${idx}`} className="flex justify-between items-center p-3 bg-slate-50 rounded hover:bg-slate-100 cursor-pointer" onClick={() => addItemFromPriceList(item)}>
+                  {(() => {
+                    const customer = customers.find(c => c.id === formData.customer_id);
+                    const customerPriceList = priceLists.find(pl => pl.id === customer?.price_list_id);
+                    
+                    if (!customer?.price_list_id || !customerPriceList) {
+                      return <p className="text-sm text-slate-500">No price list assigned to this customer. Using all price lists.</p>;
+                    }
+                    
+                    const itemsToShow = customerPriceList ? customerPriceList.items || [] : priceLists.flatMap(pl => pl.items || []);
+                    
+                    return itemsToShow.map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded hover:bg-slate-100 cursor-pointer" onClick={() => addItemFromPriceList(item)}>
                         <div>
                           <p className="font-medium">{item.service_name}</p>
                           <p className="text-sm text-slate-500">{item.description}</p>
@@ -568,8 +647,8 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
                           <p className="text-xs text-slate-500">{item.unit}</p>
                         </div>
                       </div>
-                    ))
-                  )}
+                    ));
+                  })()}
                 </div>
                 <Button type="button" className="mt-4 w-full" onClick={() => setShowPriceListDialog(false)}>Close</Button>
               </div>
