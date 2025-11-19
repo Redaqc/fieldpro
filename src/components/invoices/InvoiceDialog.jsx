@@ -15,6 +15,7 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
   const [formData, setFormData] = useState(invoice || {
     customer_id: "",
     customer_name: "",
+    project_name: "",
     job_id: "",
     issue_date: format(new Date(), 'yyyy-MM-dd'),
     due_date: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
@@ -159,6 +160,15 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label>Project Name</Label>
+              <Input
+                value={formData.project_name}
+                onChange={(e) => handleChange('project_name', e.target.value)}
+                placeholder="Project name"
+              />
             </div>
 
             <div>
