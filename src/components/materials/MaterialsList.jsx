@@ -26,13 +26,14 @@ export default function MaterialsList({ materials, isLoading, onMaterialClick, o
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Code</TableHead>
+            <TableHead>Photo</TableHead>
+            <TableHead>Code/SKU</TableHead>
             <TableHead>Nom</TableHead>
-            <TableHead>Catégorie</TableHead>
-            <TableHead>Unité</TableHead>
-            <TableHead className="text-right">Prix Unitaire</TableHead>
+            <TableHead>Fournisseur</TableHead>
+            <TableHead className="text-right">Prix vente</TableHead>
+            <TableHead className="text-right">Prix coûtant</TableHead>
             <TableHead className="text-right">Stock</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Statut</TableHead>
             <TableHead></TableHead>
           </TableRow>
         </TableHeader>
@@ -43,19 +44,40 @@ export default function MaterialsList({ materials, isLoading, onMaterialClick, o
               className="cursor-pointer hover:bg-slate-50"
               onClick={() => onMaterialClick(material)}
             >
+              <TableCell>
+                {material.photos && material.photos.length > 0 ? (
+                  <img 
+                    src={material.photos[0]} 
+                    alt={material.name} 
+                    className="w-12 h-12 object-cover rounded"
+                  />
+                ) : (
+                  <div className="w-12 h-12 bg-slate-100 rounded flex items-center justify-center">
+                    <span className="text-slate-400 text-xs">N/A</span>
+                  </div>
+                )}
+              </TableCell>
               <TableCell className="font-medium">{material.code || '-'}</TableCell>
               <TableCell>{material.name}</TableCell>
-              <TableCell className="capitalize">{material.category?.replace('_', ' ')}</TableCell>
-              <TableCell>{material.unit}</TableCell>
-              <TableCell className="text-right font-semibold">
+              <TableCell>
+                {material.supplier ? (
+                  <span className="text-slate-700">{material.supplier}</span>
+                ) : (
+                  <span className="text-slate-400 italic">-</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right font-semibold text-green-700">
                 ${(material.unit_price || 0).toFixed(2)}
+              </TableCell>
+              <TableCell className="text-right font-semibold text-slate-600">
+                ${(material.cost_price || 0).toFixed(2)}
               </TableCell>
               <TableCell className="text-right">
                 {material.quantity_in_stock || 0}
               </TableCell>
               <TableCell>
                 <Badge className={statusColors[material.status]}>
-                  {material.status}
+                  {material.status === 'active' ? 'Actif' : material.status === 'inactive' ? 'Inactif' : 'Discontinué'}
                 </Badge>
               </TableCell>
               <TableCell>

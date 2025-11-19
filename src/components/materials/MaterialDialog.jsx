@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Upload, Trash2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 
 export default function MaterialDialog({ open, onClose, onSave, material }) {
   const [formData, setFormData] = useState(material || {
@@ -18,9 +20,12 @@ export default function MaterialDialog({ open, onClose, onSave, material }) {
     quantity_in_stock: 0,
     reorder_level: 0,
     supplier: "",
+    photos: [],
     status: "active",
     notes: ""
   });
+
+  const [uploading, setUploading] = useState(false);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -63,6 +68,45 @@ export default function MaterialDialog({ open, onClose, onSave, material }) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Photos Section */}
+          <div>
+            <Label>Photos du matériel</Label>
+            <div className="mt-2">
+              {formData.photos && formData.photos.length > 0 && (
+                <div className="flex gap-2 mb-3 flex-wrap">
+                  {formData.photos.map((photo, index) => (
+                    <div key={index} className="relative">
+                      <img src={photo} alt="Material" className="w-20 h-20 object-cover rounded border" />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(index)}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                  disabled={uploading}
+                />
+                <Button type="button" variant="outline" disabled={uploading} asChild>
+                  <span>
+                    <Upload className="w-4 h-4 mr-2" />
+                    {uploading ? 'Téléchargement...' : 'Ajouter photos'}
+                  </span>
+                </Button>
+              </label>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Code/SKU</Label>
