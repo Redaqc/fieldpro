@@ -7,6 +7,7 @@ import { Plus, Search } from "lucide-react";
 
 import AssetsList from "../components/assets/AssetsList";
 import AssetDialog from "../components/assets/AssetDialog";
+import AIMaintenancePanel from "../components/assets/AIMaintenancePanel";
 
 export default function Assets() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -99,6 +100,11 @@ export default function Assets() {
           className="pl-9 border-slate-200"
         />
       </div>
+
+      <AIMaintenancePanel 
+        assets={assets}
+        onRefresh={() => queryClient.invalidateQueries({ queryKey: ['assets'] })}
+      />
 
       <AssetsList
         assets={filteredAssets}

@@ -1,6 +1,6 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Trash2, Edit, Bell, AlertTriangle } from "lucide-react";
+import { AlertCircle, Trash2, Edit, Bell, AlertTriangle, Brain } from "lucide-react";
 import { format, differenceInDays, isPast } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -79,6 +79,7 @@ export default function AssetsList({ assets, isLoading, onAssetClick, onDelete }
             <TableHead className="font-semibold">Statut</TableHead>
             <TableHead className="font-semibold">Prochain entretien</TableHead>
             <TableHead className="font-semibold">Notification</TableHead>
+            <TableHead className="font-semibold">Risque IA</TableHead>
             <TableHead className="w-24"></TableHead>
           </TableRow>
         </TableHeader>
@@ -153,6 +154,24 @@ export default function AssetsList({ assets, isLoading, onAssetClick, onDelete }
                     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md border-2 ${notification.color}`}>
                       {notification.icon}
                       <span className="text-xs font-medium">{notification.text}</span>
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {asset.failure_risk_score > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Brain className={`w-4 h-4 ${
+                        asset.failure_risk_score > 70 ? 'text-red-600' :
+                        asset.failure_risk_score > 40 ? 'text-yellow-600' :
+                        'text-green-600'
+                      }`} />
+                      <span className={`text-sm font-semibold ${
+                        asset.failure_risk_score > 70 ? 'text-red-700' :
+                        asset.failure_risk_score > 40 ? 'text-yellow-700' :
+                        'text-green-700'
+                      }`}>
+                        {asset.failure_risk_score}%
+                      </span>
                     </div>
                   )}
                 </TableCell>
