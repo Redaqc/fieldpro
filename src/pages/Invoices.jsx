@@ -80,7 +80,22 @@ export default function Invoices() {
       invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
+    let matchesStatus = true;
+    if (statusFilter === "unpaid") {
+      matchesStatus = invoice.status !== 'paid' && invoice.status !== 'cancelled';
+    } else if (statusFilter === "under30" || statusFilter === "30-60" || statusFilter === "60-90" || statusFilter === "over90") {
+      if (!invoice.due_date || invoice.status === 'paid') {
+        matchesStatus = false;
+      } else {
+        const days = differenceInDays(new Date(), new Date(invoice.due_date));
+        if (statusFilter === "under30") matchesStatus = days < 0 || days <= 30;
+        else if (statusFilter === "30-60") matchesStatus = days > 30 && days <= 60;
+        else if (statusFilter === "60-90") matchesStatus = days > 60 && days <= 90;
+        else if (statusFilter === "over90") matchesStatus = days > 90;
+      }
+    } else if (statusFilter !== "all") {
+      matchesStatus = invoice.status === statusFilter;
+    }
 
     const matchesDateRange = (!startDate || new Date(invoice.issue_date) >= new Date(startDate)) &&
                              (!endDate || new Date(invoice.issue_date) <= new Date(endDate));
