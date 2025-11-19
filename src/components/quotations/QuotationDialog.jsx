@@ -501,10 +501,10 @@ Merci de votre confiance.
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Customer & Basic Info */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* Header Row 1 */}
+          <div className="grid grid-cols-4 gap-3">
             <div>
-              <Label className="text-xs">Customer *</Label>
+              <Label className="text-xs font-semibold">Customer *</Label>
               <Select value={formData.customer_id} onValueChange={handleCustomerSelect} required>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Select customer" />
@@ -520,17 +520,27 @@ Merci de votre confiance.
             </div>
 
             <div>
-              <Label className="text-xs">Nom du Projet</Label>
+              <Label className="text-xs font-semibold">Numéro de Facture</Label>
               <Input
-                value={formData.project_name}
-                onChange={(e) => handleChange('project_name', e.target.value)}
-                placeholder="Nom du projet"
+                value={formData.quote_number || ''}
+                onChange={(e) => handleChange('quote_number', e.target.value)}
+                placeholder="Auto-généré"
                 className="h-9"
               />
             </div>
 
             <div>
-              <Label className="text-xs">Date de Début des Travaux</Label>
+              <Label className="text-xs font-semibold">Numéro de PO</Label>
+              <Input
+                value={formData.po_number || ''}
+                onChange={(e) => handleChange('po_number', e.target.value)}
+                placeholder="Numéro PO"
+                className="h-9"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold">Date de Début des Travaux</Label>
               <Input
                 type="date"
                 value={formData.work_start_date}
@@ -540,9 +550,20 @@ Merci de votre confiance.
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          {/* Header Row 2 */}
+          <div className="grid grid-cols-4 gap-3">
             <div>
-              <Label className="text-xs">Issue Date *</Label>
+              <Label className="text-xs font-semibold">Nom du Projet</Label>
+              <Input
+                value={formData.project_name}
+                onChange={(e) => handleChange('project_name', e.target.value)}
+                placeholder="Nom du projet"
+                className="h-9"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold">Issue Date *</Label>
               <Input
                 type="date"
                 value={formData.issue_date}
@@ -553,7 +574,7 @@ Merci de votre confiance.
             </div>
 
             <div>
-              <Label className="text-xs">Expiry Date</Label>
+              <Label className="text-xs font-semibold">Expiry Date</Label>
               <Input
                 type="date"
                 value={formData.expiry_date}
@@ -563,7 +584,7 @@ Merci de votre confiance.
             </div>
 
             <div>
-              <Label className="text-xs">Sent Date</Label>
+              <Label className="text-xs font-semibold">Sent Date</Label>
               <Input
                 type="date"
                 value={formData.sent_date}
@@ -720,7 +741,7 @@ Merci de votre confiance.
                                     />
                                   </div>
                                   <div className="col-span-1 text-right">
-                                    <span className="font-semibold text-sm">${(item.total || 0).toFixed(3)}</span>
+                                    <span className="font-semibold text-sm">${(item.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                   </div>
                                   <div className="col-span-1 flex justify-center">
                                     <Button type="button" variant="ghost" size="icon" onClick={() => removeLineItem(index)} className="h-7 w-7" disabled={itemsFrozen}>
@@ -742,13 +763,25 @@ Merci de votre confiance.
 
             {/* Totals */}
             <div className="border-t pt-3 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="font-semibold">Total Cost:</span>
-                <span className="font-bold">${formData.subtotal.toFixed(3)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="font-semibold">Total Sale:</span>
-                <span className="font-bold">${formData.subtotal.toFixed(3)}</span>
+              <div className="flex justify-end">
+                <div className="w-64 space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Sous-total:</span>
+                    <span className="font-semibold">${formData.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>TPS (5%):</span>
+                    <span className="font-semibold">${(formData.subtotal * 0.05).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>TVQ (9,975%):</span>
+                    <span className="font-semibold">${(formData.subtotal * 0.09975).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between text-base font-bold border-t pt-2">
+                    <span>Total:</span>
+                    <span>${(formData.subtotal * 1.14975).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -811,7 +844,7 @@ Merci de votre confiance.
                       />
                     </div>
                     <div className="col-span-2 text-right">
-                      <span className="text-xs font-semibold">${item.total.toFixed(3)}</span>
+                      <span className="text-xs font-semibold">${item.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                     <div className="col-span-1 flex justify-center">
                       <Button type="button" variant="ghost" size="icon" onClick={() => removeSubmissionItem(index)} className="h-6 w-6">
@@ -838,50 +871,20 @@ Merci de votre confiance.
             {/* Summary Totals */}
             <div className="space-y-2 border-t pt-3">
               <div className="flex justify-between text-sm">
-                <span>Total before tax:</span>
-                <span className="font-semibold">${formData.submission_subtotal.toFixed(3)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Total sale:</span>
-                <span className="font-semibold">${formData.submission_subtotal.toFixed(3)}</span>
+                <span>Sous-total:</span>
+                <span className="font-semibold">${formData.submission_subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span>TPS:</span>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={formData.tax_rate}
-                    onChange={(e) => {
-                      handleChange('tax_rate', parseFloat(e.target.value) || 0);
-                      calculateSubmissionTotals(formData.submission_items);
-                    }}
-                    className="w-16 h-7 text-right text-xs"
-                    step="0.01"
-                  />
-                  <span className="text-xs">%</span>
-                  <span className="font-semibold w-20 text-right">${formData.tax_amount.toFixed(3)}</span>
-                </div>
+                <span>TPS (5%):</span>
+                <span className="font-semibold">${formData.tax_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span>TVQ:</span>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={formData.tax_rate_2}
-                    onChange={(e) => {
-                      handleChange('tax_rate_2', parseFloat(e.target.value) || 0);
-                      calculateSubmissionTotals(formData.submission_items);
-                    }}
-                    className="w-16 h-7 text-right text-xs"
-                    step="0.001"
-                  />
-                  <span className="text-xs">%</span>
-                  <span className="font-semibold w-20 text-right">${formData.tax_amount_2.toFixed(3)}</span>
-                </div>
+                <span>TVQ (9,975%):</span>
+                <span className="font-semibold">${formData.tax_amount_2.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between text-base font-bold border-t pt-2">
                 <span>Total:</span>
-                <span>${formData.total_amount.toFixed(3)}</span>
+                <span>${formData.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
 
@@ -899,7 +902,7 @@ Merci de votre confiance.
             <div className="mt-4 pt-4 border-t">
               <div className="flex justify-between text-sm">
                 <span className="font-semibold">Profit on this cost:</span>
-                <span className="font-bold text-green-600">${(formData.submission_subtotal - formData.subtotal).toFixed(3)}</span>
+                <span className="font-bold text-green-600">${(formData.submission_subtotal - formData.subtotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
           </div>
