@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Upload } from "lucide-react";
+import { Plus, Search, Upload, Download } from "lucide-react";
 
 import PriceListTable from "../components/pricelists/PriceListTable";
 import BundleTable from "../components/pricelists/BundleTable";
@@ -85,6 +85,33 @@ export default function PriceLists() {
     },
   });
 
+  const exportToCSV = (priceList) => {
+    if (!priceList || !priceList.items || priceList.items.length === 0) {
+      alert('Aucun item à exporter');
+      return;
+    }
+
+    const headers = ['service_name', 'description', 'unit_price', 'unit', 'category'];
+    const rows = priceList.items.map(item => [
+      item.service_name || '',
+      item.description || '',
+      item.unit_price || 0,
+      item.unit || 'each',
+      item.category || ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${priceList.name || 'pricelist'}.csv`;
+    link.click();
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -141,6 +168,7 @@ export default function PriceLists() {
               setShowPriceListDialog(true);
             }}
             onDelete={(id) => deletePriceListMutation.mutate(id)}
+            onExport={exportToCSV}
           />
         </TabsContent>
 

@@ -30,7 +30,6 @@ export default function BundleTable({ bundles, onEdit, onDelete }) {
             <TableHead className="font-semibold">Nombre d'items</TableHead>
             <TableHead className="font-semibold text-right">Prix bundle</TableHead>
             <TableHead className="font-semibold text-right">Prix original</TableHead>
-            <TableHead className="font-semibold">Rabais</TableHead>
             <TableHead className="font-semibold">Statut</TableHead>
             <TableHead className="w-24"></TableHead>
           </TableRow>
@@ -52,13 +51,6 @@ export default function BundleTable({ bundles, onEdit, onDelete }) {
               </TableCell>
               <TableCell className="text-right text-slate-500 line-through">
                 ${(bundle.original_price || 0).toFixed(2)}
-              </TableCell>
-              <TableCell>
-                {bundle.discount_percentage > 0 && (
-                  <Badge className="bg-red-100 text-red-700">
-                    -{bundle.discount_percentage}%
-                  </Badge>
-                )}
               </TableCell>
               <TableCell>
                 <Badge className={bundle.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>

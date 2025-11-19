@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, Download } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-export default function PriceListTable({ priceLists, onEdit, onDelete }) {
+export default function PriceListTable({ priceLists, onEdit, onDelete, onExport }) {
   if (priceLists.length === 0) {
     return (
       <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
@@ -66,6 +66,17 @@ export default function PriceListTable({ priceLists, onEdit, onDelete }) {
                     className="h-8 w-8"
                   >
                     <Edit className="w-4 h-4 text-slate-600" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onExport(priceList);
+                    }}
+                    className="h-8 w-8 text-green-600"
+                  >
+                    <Download className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
