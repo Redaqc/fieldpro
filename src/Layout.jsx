@@ -16,7 +16,8 @@ import {
   Package,
   FileCheck,
   DollarSign,
-  Clock
+  Clock,
+  MapPin
 } from "lucide-react";
 import {
   Sidebar,
@@ -66,6 +67,11 @@ const navigationItems = [
     title: "Time Tracking",
     url: createPageUrl("TimeTracking"),
     icon: Clock,
+  },
+  {
+    title: "GPS Tracking",
+    url: createPageUrl("GPSTracking"),
+    icon: MapPin,
   },
   {
     title: "Quotations",
