@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import QuotationsList from "../components/quotations/QuotationsList";
 import QuotationDialog from "../components/quotations/QuotationDialog";
+import QuotationStats from "../components/quotations/QuotationStats";
 
 export default function Quotations() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -105,6 +106,8 @@ export default function Quotations() {
           Create Quotation
         </Button>
       </div>
+
+      <QuotationStats quotations={quotations} />
 
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
