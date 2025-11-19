@@ -212,7 +212,59 @@ TOTAL: $${formData.total_amount.toFixed(2)}
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    handleSubmit(new Event('submit'));
+    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+    await handleSubmit(submitEvent);
+  };
+
+  const sendQuotationEmail = async () => {
+    const customer = customers.find(c => c.id === formData.customer_id);
+    if (!customer?.email) {
+      alert('Customer email not found');
+      return;
+    }
+
+    const emailBody = `
+Bonjour ${formData.customer_name},
+
+Voici votre soumission ${formData.quote_number}
+${formData.project_name ? `Projet: ${formData.project_name}` : ''}
+
+Articles:
+${formData.submission_items.map(item => 
+  `${item.description} - Quantité: ${item.quantity} - Prix unitaire: $${item.unit_price} - Total: $${item.total.toFixed(2)}`
+).join('\n')}
+
+Sous-total: $${formData.submission_subtotal.toFixed(2)}
+TPS (${formData.tax_rate}%): $${formData.tax_amount.toFixed(2)}
+TVQ (${formData.tax_rate_2}%): $${formData.tax_amount_2.toFixed(2)}
+TOTAL: $${formData.total_amount.toFixed(2)}
+
+Merci de votre confiance.
+    `;
+
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: customer.email,
+        subject: `Soumission ${formData.quote_number} - ${formData.project_name || 'Votre projet'}`,
+        body: emailBody
+      });
+      
+      handleChange('status', 'sent');
+      if (!formData.sent_date) {
+        handleChange('sent_date', format(new Date(), 'yyyy-MM-dd'));
+      }
+      
+      const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+      await handleSubmit(submitEvent);
+      alert('Email envoyé avec succès!');
+    } catch (error) {
+      alert('Erreur lors de l\'envoi de l\'email');
+    }
+  };
+
+  const scheduleLater = async () => {
+    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+    await handleSubmit(submitEvent);
   };
 
   const copyToSubmission = () => {
@@ -453,10 +505,6 @@ TOTAL: $${formData.total_amount.toFixed(2)}
               <Button type="button" variant="outline" size="sm" onClick={() => setShowBundleCreator(true)} disabled={itemsFrozen}>
                 <Package className="w-3 h-3 mr-1" />
                 <span className="font-bold text-xs">Create Bundle</span>
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => window.open('/price-lists', '_blank')}>
-                <Package className="w-3 h-3 mr-1" />
-                <span className="font-bold text-xs">Modify Bundles</span>
               </Button>
             </div>
 
@@ -949,7 +997,7 @@ TOTAL: $${formData.total_amount.toFixed(2)}
 
             <div className="flex justify-between gap-3">
               <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={onClose}>
+                <Button type="button" variant="outline" onClick={scheduleLater}>
                   Schedule Later
                 </Button>
               </div>
@@ -958,7 +1006,7 @@ TOTAL: $${formData.total_amount.toFixed(2)}
                   <FileDown className="w-4 h-4 mr-2" />
                   Create PDF and Save
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                <Button type="button" className="bg-green-600 hover:bg-green-700" onClick={sendQuotationEmail}>
                   Send
                 </Button>
               </div>
