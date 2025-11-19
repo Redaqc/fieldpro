@@ -93,8 +93,11 @@ export default function Invoices() {
     if (ageFilter !== "all" && invoice.status !== 'paid' && invoice.status !== 'cancelled' && invoice.issue_date) {
       const days = differenceInDays(new Date(), new Date(invoice.issue_date));
       switch(ageFilter) {
+        case "draft":
+          matchesAge = invoice.status === 'draft';
+          break;
         case "unpaid":
-          matchesAge = true;
+          matchesAge = invoice.status !== 'draft';
           break;
         case "under30":
           matchesAge = days < 30;

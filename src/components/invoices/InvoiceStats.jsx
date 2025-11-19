@@ -2,8 +2,10 @@ import React from "react";
 import { differenceInDays } from "date-fns";
 
 export default function InvoiceStats({ invoices, onFilterChange }) {
-  const unpaidInvoices = invoices.filter(inv => inv.status !== 'paid' && inv.status !== 'cancelled');
+  const draftInvoices = invoices.filter(inv => inv.status === 'draft');
+  const unpaidInvoices = invoices.filter(inv => inv.status !== 'paid' && inv.status !== 'cancelled' && inv.status !== 'draft');
   
+  const draftTotal = draftInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
   const totalDue = unpaidInvoices.reduce((sum, inv) => sum + ((inv.total_amount || 0) - (inv.paid_amount || 0)), 0);
   const dueCount = unpaidInvoices.length;
   
@@ -32,6 +34,12 @@ export default function InvoiceStats({ invoices, onFilterChange }) {
   });
 
   const stats = [
+    { 
+      amount: draftTotal, 
+      label: `${draftInvoices.length} brouillons`, 
+      borderColor: 'border-l-4 border-gray-400',
+      onClick: () => onFilterChange('draft')
+    },
     { 
       amount: totalDue, 
       label: `${dueCount} factures dues`, 
@@ -65,7 +73,7 @@ export default function InvoiceStats({ invoices, onFilterChange }) {
   ];
 
   return (
-    <div className="grid grid-cols-5 gap-4 mb-6">
+    <div className="grid grid-cols-6 gap-4 mb-6">
       {stats.map((stat, index) => (
         <div
           key={index}
