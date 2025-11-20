@@ -174,6 +174,12 @@ export default function Layout({ children, currentPageName }) {
     initialData: [],
   });
 
+  const { data: roles = [] } = useQuery({
+    queryKey: ['roles'],
+    queryFn: () => base44.entities.Role.list(),
+    initialData: [],
+  });
+
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ['unreadNotifications', user?.email],
     queryFn: async () => {
