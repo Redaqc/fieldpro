@@ -32,6 +32,7 @@ const PERMISSION_LABELS = {
   automations: "Automatisations",
   profitability: "Rentabilité",
   costs: "Gestion des coûts",
+  can_view_prices: "Voir les prix (factures, soumissions, jobs)",
 };
 
 export default function RoleManager() {
