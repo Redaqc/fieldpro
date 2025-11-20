@@ -32,6 +32,8 @@ import CustomerPortal from './pages/CustomerPortal';
 import AdvancedReports from './pages/AdvancedReports';
 import MaintenanceTracker from './pages/MaintenanceTracker';
 import TeamChat from './pages/TeamChat';
+import NotificationCenter from './pages/NotificationCenter';
+import BIDashboard from './pages/BIDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -70,6 +72,8 @@ export const PAGES = {
     "AdvancedReports": AdvancedReports,
     "MaintenanceTracker": MaintenanceTracker,
     "TeamChat": TeamChat,
+    "NotificationCenter": NotificationCenter,
+    "BIDashboard": BIDashboard,
 }
 
 export const pagesConfig = {
