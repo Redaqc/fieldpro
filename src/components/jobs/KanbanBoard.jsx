@@ -126,6 +126,20 @@ export default function KanbanBoard({ jobs, onEditJob, currentUser }) {
                               }`}
                               onClick={() => onEditJob(job)}
                             >
+                              {/* Labels */}
+                              {job.labels && job.labels.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mb-2">
+                                  {job.labels.map((label, idx) => (
+                                    <div 
+                                      key={idx} 
+                                      className="h-2 w-12 rounded-full"
+                                      style={{ backgroundColor: label.color }}
+                                      title={label.name}
+                                    />
+                                  ))}
+                                </div>
+                              )}
+
                               {/* Title */}
                               <h4 className="font-semibold text-sm mb-2 line-clamp-2">
                                 {job.title}

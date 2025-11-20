@@ -101,6 +101,7 @@ export default function JobsTable({ jobs, onEditJob }) {
                   </div>
                 </th>
                 <th className="text-left p-3">Technicien</th>
+                <th className="text-left p-3">Labels</th>
                 <th className="text-left p-3">Progression</th>
               </tr>
             </thead>
@@ -153,6 +154,24 @@ export default function JobsTable({ jobs, onEditJob }) {
                       ) : (
                         <span className="text-slate-400">-</span>
                       )}
+                    </td>
+                    <td className="p-3">
+                      <div className="flex flex-wrap gap-1">
+                        {job.labels?.slice(0, 3).map((label, idx) => (
+                          <Badge 
+                            key={idx} 
+                            className="text-white text-xs"
+                            style={{ backgroundColor: label.color }}
+                          >
+                            {label.name}
+                          </Badge>
+                        ))}
+                        {job.labels?.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{job.labels.length - 3}
+                          </Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3">
                       {allChecklistItems.length > 0 ? (

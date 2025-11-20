@@ -88,8 +88,21 @@ export default function JobsList({ jobs, onEditJob }) {
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <h3 className="font-semibold text-lg">{job.title}</h3>
+                    {job.labels && job.labels.length > 0 && (
+                      <div className="flex gap-1">
+                        {job.labels.map((label, idx) => (
+                          <Badge 
+                            key={idx} 
+                            className="text-white text-xs"
+                            style={{ backgroundColor: label.color }}
+                          >
+                            {label.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                     <Badge className={statusColors[job.status]}>
                       {job.status === 'todo' ? 'À faire' :
                        job.status === 'in_progress' ? 'En cours' :

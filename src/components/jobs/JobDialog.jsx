@@ -22,6 +22,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
     priority: 'medium',
     technician_id: '',
     technician_name: '',
+    labels: [],
     checklist: [],
     comments: [],
     activity_log: [],
@@ -30,6 +31,12 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
 
   const [newComment, setNewComment] = useState('');
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [newLabel, setNewLabel] = useState({ name: '', color: '#3b82f6' });
+  
+  const labelColors = [
+    '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
+    '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'
+  ];
 
   const queryClient = useQueryClient();
 
@@ -37,6 +44,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
     if (job) {
       setFormData({
         ...job,
+        labels: job.labels || [],
         checklist: job.checklist || [],
         comments: job.comments || [],
         activity_log: job.activity_log || [],
@@ -51,12 +59,14 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
         priority: 'medium',
         technician_id: '',
         technician_name: '',
+        labels: [],
         checklist: [],
         comments: [],
         activity_log: [],
         attachments: [],
       });
     }
+    setNewLabel({ name: '', color: '#3b82f6' });
   }, [job, open]);
 
   const createJobMutation = useMutation({
@@ -90,6 +100,54 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
         details: 'Job créé',
       }];
       createJobMutation.mutate({ ...dataToSave, activity_log: activity });
+    }
+  };
+
+  const addLabel = () => {
+    if (!newLabel.name.trim()) return;
+    
+    const updatedLabels = [...(formData.labels || []), newLabel];
+    setFormData({ ...formData, labels: updatedLabels });
+    setNewLabel({ name: '', color: '#3b82f6' });
+    
+    if (job) {
+      updateJobMutation.mutate({
+        id: job.id,
+        data: { labels: updatedLabels },
+      });
+    }
+  };
+
+  const removeLabel = (index) => {
+    const updatedLabels = formData.labels.filter((_, idx) => idx !== index);
+    setFormData({ ...formData, labels: updatedLabels });
+    
+    if (job) {
+      updateJobMutation.mutate({
+        id: job.id,
+        data: { labels: updatedLabels },
+      });
+    }
+  };
+
+  const deleteChecklistItem = (groupId, itemId) => {
+    const updatedChecklist = formData.checklist.map(group => {
+      if (group.id === groupId) {
+        return {
+          ...group,
+          items: group.items.filter(item => item.id !== itemId),
+        };
+      }
+      return group;
+    });
+
+    setFormData({ ...formData, checklist: updatedChecklist });
+    
+    if (job) {
+      updateJobMutation.mutate({
+        id: job.id,
+        data: { checklist: updatedChecklist },
+      });
     }
   };
 
@@ -342,6 +400,51 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
             </div>
           </div>
 
+          {/* Labels */}
+          <div>
+            <Label className="text-sm font-medium">Labels</Label>
+            <div className="flex gap-2 flex-wrap mb-3 mt-2">
+              {formData.labels?.map((label, idx) => (
+                <Badge 
+                  key={idx} 
+                  className="gap-2 pr-1 text-white"
+                  style={{ backgroundColor: label.color }}
+                >
+                  {label.name}
+                  <X 
+                    className="w-3 h-3 cursor-pointer hover:bg-white/20 rounded" 
+                    onClick={() => removeLabel(idx)} 
+                  />
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={newLabel.name}
+                onChange={(e) => setNewLabel({ ...newLabel, name: e.target.value })}
+                placeholder="Nom du label"
+                className="flex-1 h-11"
+                onKeyDown={(e) => e.key === 'Enter' && addLabel()}
+              />
+              <div className="flex gap-1">
+                {labelColors.map(color => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`w-8 h-11 rounded border-2 transition-all ${
+                      newLabel.color === color ? 'border-slate-900 scale-110' : 'border-slate-200'
+                    }`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setNewLabel({ ...newLabel, color })}
+                  />
+                ))}
+              </div>
+              <Button onClick={addLabel} size="sm" className="h-11 px-3">
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
           <Tabs defaultValue="checklist" className="w-full">
             <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full h-auto">
               <TabsTrigger value="checklist" className="flex items-center gap-1 sm:gap-2 py-2.5">
@@ -389,16 +492,24 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                   </div>
                   <div className="space-y-2">
                     {(group.items || []).map(item => (
-                      <div key={item.id} className="flex items-center gap-2">
+                      <div key={item.id} className="flex items-center gap-2 group">
                         <input
                           type="checkbox"
                           checked={item.completed}
                           onChange={() => toggleChecklistItem(group.id, item.id)}
                           className="w-4 h-4"
                         />
-                        <span className={item.completed ? 'line-through text-slate-500' : ''}>
+                        <span className={`flex-1 ${item.completed ? 'line-through text-slate-500' : ''}`}>
                           {item.text}
                         </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => deleteChecklistItem(group.id, item.id)}
+                        >
+                          <X className="w-3 h-3 text-red-500" />
+                        </Button>
                       </div>
                     ))}
                   </div>
