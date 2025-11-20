@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
@@ -15,13 +15,15 @@ export default function AddressAutocompleteSettings() {
     queryKey: ['integrationSettings', 'address_autocomplete'],
     queryFn: async () => {
       const settings = await base44.entities.IntegrationSettings.filter({ integration_type: 'address_autocomplete' });
-      const result = settings[0] || null;
-      if (result?.api_key) {
-        setApiKey(result.api_key);
-      }
-      return result;
+      return settings[0] || null;
     },
   });
+
+  useEffect(() => {
+    if (addressSettings?.api_key) {
+      setApiKey(addressSettings.api_key);
+    }
+  }, [addressSettings]);
 
   const updateMutation = useMutation({
     mutationFn: async (updates) => {
