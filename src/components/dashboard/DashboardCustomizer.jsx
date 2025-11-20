@@ -6,20 +6,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, Users, TrendingUp, DollarSign, LayoutDashboard, BarChart, Clock, UserCheck, UserCircle, FileText, Activity, Briefcase, Trophy, Package, TrendingDown } from "lucide-react";
 
 const AVAILABLE_WIDGETS = [
-  { id: 'invoices_due', name: 'Factures À Recevoir', icon: FileText, description: 'Factures dues et en retard', color: 'text-orange-500' },
-  { id: 'jobs_by_status_new', name: 'Jobs par Statut (Nouveau)', icon: Briefcase, description: 'Soumis, planifié, en cours, terminé', color: 'text-blue-500' },
-  { id: 'recent_activities', name: 'Activités Récentes', icon: Activity, description: 'Factures, soumissions, dépenses', color: 'text-purple-500' },
-  { id: 'payments_chart', name: 'Paiements Reçus', icon: DollarSign, description: 'Graphique des paiements reçus', color: 'text-green-500' },
-  { id: 'top_clients', name: 'Top Clients', icon: Trophy, description: 'Clients avec plus de revenus', color: 'text-yellow-500' },
-  { id: 'stock_alert', name: 'Alertes Stock', icon: Package, description: 'Matériaux en rupture ou bas', color: 'text-red-500' },
-  { id: 'sales_vs_cost', name: 'Ventes vs Coûts', icon: TrendingDown, description: 'Comparaison ventes et coûts', color: 'text-indigo-500' },
-  { id: 'overdue_jobs_new', name: 'Jobs en Retard (Nouveau)', icon: Clock, description: 'Jobs dépassant date limite', color: 'text-red-600' },
-  { id: 'urgent_jobs', name: 'Jobs Urgents', icon: AlertTriangle, description: 'Jobs prioritaires', color: 'text-red-500' },
-  { id: 'tasks_by_technician', name: 'Répartition des Tâches', icon: Users, description: 'Distribution par technicien', color: 'text-blue-500' },
-  { id: 'project_progress', name: 'Avancement Projets', icon: TrendingUp, description: 'Progression via jalons', color: 'text-green-500' },
-  { id: 'financial_indicators', name: 'Indicateurs Financiers', icon: DollarSign, description: 'Revenus et coûts', color: 'text-green-600' },
-  { id: 'technician_performance', name: 'Performance Techniciens', icon: UserCheck, description: 'Statistiques techniciens', color: 'text-teal-500' },
-  { id: 'invoice_summary', name: 'Résumé Factures', icon: FileText, description: 'Résumé des factures', color: 'text-cyan-500' },
+  { id: 'invoices_due', name: 'Factures À Recevoir', icon: FileText, description: 'Factures dues et en retard', color: 'text-orange-500', bgColor: 'bg-orange-100' },
+  { id: 'jobs_by_status_new', name: 'Jobs par Statut (Nouveau)', icon: Briefcase, description: 'Soumis, planifié, en cours, terminé', color: 'text-blue-500', bgColor: 'bg-blue-100' },
+  { id: 'recent_activities', name: 'Activités Récentes', icon: Activity, description: 'Factures, soumissions, dépenses', color: 'text-purple-500', bgColor: 'bg-purple-100' },
+  { id: 'payments_chart', name: 'Paiements Reçus', icon: DollarSign, description: 'Graphique des paiements reçus', color: 'text-green-500', bgColor: 'bg-green-100' },
+  { id: 'top_clients', name: 'Top Clients', icon: Trophy, description: 'Clients avec plus de revenus', color: 'text-yellow-500', bgColor: 'bg-yellow-100' },
+  { id: 'stock_alert', name: 'Alertes Stock', icon: Package, description: 'Matériaux en rupture ou bas', color: 'text-red-500', bgColor: 'bg-red-100' },
+  { id: 'sales_vs_cost', name: 'Ventes vs Coûts', icon: TrendingDown, description: 'Comparaison ventes et coûts', color: 'text-indigo-500', bgColor: 'bg-indigo-100' },
+  { id: 'overdue_jobs_new', name: 'Jobs en Retard (Nouveau)', icon: Clock, description: 'Jobs dépassant date limite', color: 'text-red-600', bgColor: 'bg-red-100' },
+  { id: 'urgent_jobs', name: 'Jobs Urgents', icon: AlertTriangle, description: 'Jobs prioritaires', color: 'text-red-500', bgColor: 'bg-red-100' },
+  { id: 'tasks_by_technician', name: 'Répartition des Tâches', icon: Users, description: 'Distribution par technicien', color: 'text-blue-500', bgColor: 'bg-blue-100' },
+  { id: 'project_progress', name: 'Avancement Projets', icon: TrendingUp, description: 'Progression via jalons', color: 'text-green-500', bgColor: 'bg-green-100' },
+  { id: 'financial_indicators', name: 'Indicateurs Financiers', icon: DollarSign, description: 'Revenus et coûts', color: 'text-green-600', bgColor: 'bg-green-100' },
+  { id: 'technician_performance', name: 'Performance Techniciens', icon: UserCheck, description: 'Statistiques techniciens', color: 'text-teal-500', bgColor: 'bg-teal-100' },
+  { id: 'invoice_summary', name: 'Résumé Factures', icon: FileText, description: 'Résumé des factures', color: 'text-cyan-500', bgColor: 'bg-cyan-100' },
 ];
 
 export default function DashboardCustomizer({ open, onClose, selectedWidgets, onSave }) {
@@ -63,14 +63,12 @@ export default function DashboardCustomizer({ open, onClose, selectedWidgets, on
                   }`}
                   onClick={() => toggleWidget(widget.id)}
                 >
-                  <div className="absolute inset-0 opacity-10">
-                    <div className={`w-full h-full ${widget.color.replace('text-', 'bg-')}`} />
-                  </div>
+                  <div className={`absolute inset-0 ${widget.bgColor} opacity-10`} />
                   <div className="relative flex items-start gap-3">
                     <Checkbox checked={isSelected} />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <div className={`p-1.5 rounded ${widget.color.replace('text-', 'bg-')} bg-opacity-20`}>
+                        <div className={`p-1.5 rounded ${widget.bgColor}`}>
                           <Icon className={`w-5 h-5 ${widget.color}`} />
                         </div>
                         <p className="font-semibold text-sm">{widget.name}</p>
