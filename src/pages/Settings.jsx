@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Edit, Save, X, Eye, EyeOff, Link2, CheckCircle, XCircle, RefreshCw, Download, AlertCircle, List, Settings as SettingsIcon, GitBranch, Flag, BarChart, FileText, TrendingDown, Paperclip, MessageSquare, Activity, Building2, Image as ImageIcon, Receipt, Upload } from "lucide-react";
+import { Plus, Trash2, Edit, Save, X, Eye, EyeOff, Link2, CheckCircle, XCircle, RefreshCw, Download, AlertCircle, List, Settings as SettingsIcon, GitBranch, Flag, BarChart, FileText, TrendingDown, Paperclip, MessageSquare, Activity, Building2, Image as ImageIcon, Receipt, Upload, Palette } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -331,6 +331,10 @@ export default function Settings() {
           </TabsTrigger>
           <TabsTrigger value="features">Fonctionnalités Jobs</TabsTrigger>
           <TabsTrigger value="checklists">Modèles de checklist</TabsTrigger>
+          <TabsTrigger value="branding" className="flex items-center gap-2">
+            <Palette className="w-4 h-4" />
+            White Label
+          </TabsTrigger>
           <TabsTrigger value="integrations" className="flex items-center gap-2">
             <Link2 className="w-4 h-4" />
             Intégrations
@@ -904,7 +908,102 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="branding">
+          <Card>
+            <CardHeader>
+              <CardTitle>White Label Branding</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-sm text-slate-600 mb-4">
+                Customize the look and feel of your application and customer-facing pages
+              </p>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>Primary Color</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      type="color"
+                      className="w-20"
+                    />
+                    <Input placeholder="#3b82f6" className="flex-1" />
+                  </div>
+                </div>
+                <div>
+                  <Label>Secondary Color</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      type="color"
+                      className="w-20"
+                    />
+                    <Input placeholder="#8b5cf6" className="flex-1" />
+                  </div>
+                </div>
+                <div>
+                  <Label>Accent Color</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      type="color"
+                      className="w-20"
+                    />
+                    <Input placeholder="#10b981" className="flex-1" />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label>Custom Domain</Label>
+                <Input
+                  placeholder="fieldservice.yourcompany.com"
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label>Customer Portal Welcome Message</Label>
+                <Textarea
+                  placeholder="Welcome to our customer portal..."
+                  rows={3}
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <p className="font-medium">Hide "Powered by Base44"</p>
+                  <p className="text-xs text-slate-500">Remove branding from customer-facing pages</p>
+                </div>
+                <Switch />
+              </div>
+
+              <Button className="bg-blue-600 w-full">
+                Save Branding Settings
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="integrations">
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-900">
+                <strong>Note:</strong> Pour gérer les intégrations tierces (QuickBooks, Google Calendar, etc.), visitez la page <a href="/IntegrationMarketplace" className="underline font-semibold">Integration Marketplace</a>.
+              </p>
+            </div>
+
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <p className="text-sm text-purple-900">
+                <strong>Webhooks:</strong> Configurez des webhooks personnalisés sur la page <a href="/WebhookManager" className="underline font-semibold">Webhook Manager</a>.
+              </p>
+            </div>
+
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-sm text-green-900">
+                <strong>Champs personnalisés:</strong> Ajoutez des champs personnalisés aux entités sur la page <a href="/CustomFields" className="underline font-semibold">Custom Fields</a>.
+              </p>
+            </div>
+          </div>
+
           <Tabs defaultValue="zoho" className="space-y-4">
             <TabsList>
               <TabsTrigger value="zoho">Zoho Books</TabsTrigger>
