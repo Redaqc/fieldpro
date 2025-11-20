@@ -2,27 +2,29 @@ import React, { useState, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-                        LayoutDashboard, 
-                        Briefcase, 
-                        Users, 
-                        Calendar,
-                        FileText,
-                        UserCircle,
-                        Menu,
-                        X,
-                        Settings,
-                        Bell,
-                        Search,
-                        Package,
-                        FileCheck,
-                        DollarSign,
-                        Clock,
-                        MapPin,
-                        BarChart3,
-                        TrendingUp,
-                        Zap,
-                        RefreshCw
-                      } from "lucide-react";
+                              LayoutDashboard, 
+                              Briefcase, 
+                              Users, 
+                              Calendar,
+                              FileText,
+                              UserCircle,
+                              Menu,
+                              X,
+                              Settings,
+                              Bell,
+                              Search,
+                              Package,
+                              FileCheck,
+                              DollarSign,
+                              Clock,
+                              MapPin,
+                              BarChart3,
+                              TrendingUp,
+                              Zap,
+                              RefreshCw,
+                              Wrench,
+                              MessageCircle
+                            } from "lucide-react";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 import GlobalSearch from "@/components/shared/GlobalSearch";
 import QuickActionsMenu from "@/components/shared/QuickActionsMenu";

@@ -30,6 +30,8 @@ import ManagerDashboard from './pages/ManagerDashboard';
 import AutomationRules from './pages/AutomationRules';
 import CustomerPortal from './pages/CustomerPortal';
 import AdvancedReports from './pages/AdvancedReports';
+import MaintenanceTracker from './pages/MaintenanceTracker';
+import TeamChat from './pages/TeamChat';
 import __Layout from './Layout.jsx';
 
 
@@ -66,6 +68,8 @@ export const PAGES = {
     "AutomationRules": AutomationRules,
     "CustomerPortal": CustomerPortal,
     "AdvancedReports": AdvancedReports,
+    "MaintenanceTracker": MaintenanceTracker,
+    "TeamChat": TeamChat,
 }
 
 export const pagesConfig = {
