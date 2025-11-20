@@ -13,6 +13,10 @@ import GPSStatusCard from "../components/mobile/GPSStatusCard";
 import OfflineIndicator from "../components/mobile/OfflineIndicator";
 import OfflineStorage from "../components/mobile/OfflineStorage";
 import syncManager from "../components/mobile/SyncManager";
+import VoiceNoteRecorder from "../components/mobile/VoiceNoteRecorder";
+import VoiceNotesList from "../components/mobile/VoiceNotesList";
+import OfflineQueueManager from "../components/mobile/OfflineQueueManager";
+import PushNotifications from "../components/mobile/PushNotifications";
 
 export default function TechnicianMobile() {
   const [currentPosition, setCurrentPosition] = useState(null);
@@ -21,6 +25,7 @@ export default function TechnicianMobile() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [syncStatus, setSyncStatus] = useState('synced');
   const [pendingCount, setPendingCount] = useState(0);
+  const [voiceNotes, setVoiceNotes] = useState([]);
   const queryClient = useQueryClient();
 
   const { data: currentUser } = useQuery({
@@ -308,12 +313,32 @@ export default function TechnicianMobile() {
         {/* GPS Status */}
         <GPSStatusCard status={gpsStatus} position={currentPosition} />
 
+        {/* Push Notifications */}
+        <PushNotifications />
+
+        {/* Offline Queue */}
+        <OfflineQueueManager />
+
         {/* Quick Punch */}
         <QuickPunchCard 
           technician={currentTech}
           activeEntry={activeEntry}
           currentPosition={currentPosition}
           isOnline={isOnline}
+        />
+
+        {/* Voice Notes */}
+        <VoiceNoteRecorder
+          onSave={(note) => {
+            setVoiceNotes([...voiceNotes, note]);
+          }}
+        />
+
+        <VoiceNotesList
+          voiceNotes={voiceNotes}
+          onDelete={(idx) => {
+            setVoiceNotes(voiceNotes.filter((_, i) => i !== idx));
+          }}
         />
 
         {/* Active Time */}
