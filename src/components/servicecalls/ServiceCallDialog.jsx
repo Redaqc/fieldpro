@@ -13,6 +13,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock, List, StopCircle, TrendingDown, GitBranch, Flag, BarChart } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import TaskDependenciesTab from "../jobs/TaskDependenciesTab";
+import MilestonesTab from "../jobs/MilestonesTab";
+import GanttChart from "../jobs/GanttChart";
+import CostsTab from "../jobs/CostsTab";
+import InvoicingTab from "../jobs/InvoicingTab";
 
 export default function ServiceCallDialog({ open, onClose, call, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
@@ -1027,6 +1032,56 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
                 <span className="font-medium">Checklist</span>
               </TabsTrigger>
               
+              {appSettings?.feature_task_dependencies && (
+                <TabsTrigger 
+                  value="dependencies" 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                >
+                  <GitBranch className="w-4 h-4" />
+                  <span className="font-medium">Dépendances</span>
+                </TabsTrigger>
+              )}
+              
+              {appSettings?.feature_milestones && (
+                <TabsTrigger 
+                  value="milestones" 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                >
+                  <Flag className="w-4 h-4" />
+                  <span className="font-medium">Jalons</span>
+                </TabsTrigger>
+              )}
+              
+              {appSettings?.feature_gantt_chart && (
+                <TabsTrigger 
+                  value="gantt" 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                >
+                  <BarChart className="w-4 h-4" />
+                  <span className="font-medium">Gantt</span>
+                </TabsTrigger>
+              )}
+              
+              {appSettings?.feature_job_invoicing && (
+                <TabsTrigger 
+                  value="invoicing" 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="font-medium">Facturation</span>
+                </TabsTrigger>
+              )}
+              
+              {isAdminOrManager && appSettings?.feature_job_costs && (
+                <TabsTrigger 
+                  value="costs" 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                >
+                  <TrendingDown className="w-4 h-4" />
+                  <span className="font-medium">Coûts</span>
+                </TabsTrigger>
+              )}
+              
               {appSettings?.feature_job_attachments && (
                 <TabsTrigger 
                   value="attachments" 
@@ -1168,6 +1223,58 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
                 </Select>
               </div>
             </TabsContent>
+
+            {appSettings?.feature_task_dependencies && (
+              <TabsContent value="dependencies" className="space-y-4">
+                <TaskDependenciesTab 
+                  formData={formData}
+                  setFormData={setFormData}
+                  job={call}
+                  updateJobMutation={updateCallMutation}
+                  technicians={technicians}
+                />
+              </TabsContent>
+            )}
+
+            {appSettings?.feature_milestones && (
+              <TabsContent value="milestones" className="space-y-4">
+                <MilestonesTab 
+                  formData={formData}
+                  setFormData={setFormData}
+                  job={call}
+                  updateJobMutation={updateCallMutation}
+                />
+              </TabsContent>
+            )}
+
+            {appSettings?.feature_gantt_chart && (
+              <TabsContent value="gantt" className="space-y-4">
+                <GanttChart 
+                  job={formData}
+                  technicians={technicians}
+                />
+              </TabsContent>
+            )}
+
+            {appSettings?.feature_job_invoicing && (
+              <TabsContent value="invoicing" className="space-y-4">
+                <InvoicingTab 
+                  job={call}
+                  formData={formData}
+                  setFormData={setFormData}
+                />
+              </TabsContent>
+            )}
+
+            {isAdminOrManager && appSettings?.feature_job_costs && (
+              <TabsContent value="costs" className="space-y-4">
+                <CostsTab 
+                  job={call}
+                  formData={formData}
+                  setFormData={setFormData}
+                />
+              </TabsContent>
+            )}
 
             {appSettings?.feature_job_attachments && (
               <TabsContent value="attachments" className="space-y-3">
