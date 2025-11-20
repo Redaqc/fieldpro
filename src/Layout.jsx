@@ -201,6 +201,26 @@ const getNavigationItems = (t) => [
     icon: Users,
   },
   {
+    title: "Maintenance Tracker",
+    url: createPageUrl("MaintenanceTracker"),
+    icon: Wrench,
+  },
+  {
+    title: "Team Chat",
+    url: createPageUrl("TeamChat"),
+    icon: MessageCircle,
+  },
+  {
+    title: "Notifications",
+    url: createPageUrl("NotificationCenter"),
+    icon: Bell,
+  },
+  {
+    title: "BI Dashboard",
+    url: createPageUrl("BIDashboard"),
+    icon: BarChart3,
+  },
+  {
     title: t('profitability'),
     url: createPageUrl("ProfitabilityReports"),
     icon: TrendingUp,
