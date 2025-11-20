@@ -14,6 +14,7 @@ import GPSTracking from './pages/GPSTracking';
 import TechnicianMobile from './pages/TechnicianMobile';
 import NotificationSettings from './pages/NotificationSettings';
 import Calendar from './pages/Calendar';
+import TimeReports from './pages/TimeReports';
 import __Layout from './Layout.jsx';
 
 
@@ -34,6 +35,7 @@ export const PAGES = {
     "TechnicianMobile": TechnicianMobile,
     "NotificationSettings": NotificationSettings,
     "Calendar": Calendar,
+    "TimeReports": TimeReports,
 }
 
 export const pagesConfig = {
