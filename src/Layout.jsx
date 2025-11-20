@@ -189,6 +189,16 @@ const getNavigationItems = (t) => [
     icon: BarChart3,
   },
   {
+    title: "Advanced Analytics",
+    url: createPageUrl("AdvancedReports"),
+    icon: TrendingUp,
+  },
+  {
+    title: "Customer Portal",
+    url: createPageUrl("CustomerPortal"),
+    icon: Users,
+  },
+  {
     title: t('profitability'),
     url: createPageUrl("ProfitabilityReports"),
     icon: TrendingUp,

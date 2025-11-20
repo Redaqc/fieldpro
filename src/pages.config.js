@@ -28,6 +28,8 @@ import DispatcherDashboard from './pages/DispatcherDashboard';
 import RecurringJobs from './pages/RecurringJobs';
 import ManagerDashboard from './pages/ManagerDashboard';
 import AutomationRules from './pages/AutomationRules';
+import CustomerPortal from './pages/CustomerPortal';
+import AdvancedReports from './pages/AdvancedReports';
 import __Layout from './Layout.jsx';
 
 
@@ -62,6 +64,8 @@ export const PAGES = {
     "RecurringJobs": RecurringJobs,
     "ManagerDashboard": ManagerDashboard,
     "AutomationRules": AutomationRules,
+    "CustomerPortal": CustomerPortal,
+    "AdvancedReports": AdvancedReports,
 }
 
 export const pagesConfig = {
