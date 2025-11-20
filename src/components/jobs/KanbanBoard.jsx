@@ -8,11 +8,11 @@ import { format } from "date-fns";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 const COLUMNS = [
-  { id: 'new', title: 'À faire', color: 'bg-slate-100' },
+  { id: 'todo', title: 'À faire', color: 'bg-slate-100' },
   { id: 'in_progress', title: 'En cours', color: 'bg-blue-100' },
   { id: 'review', title: 'En révision', color: 'bg-purple-100' },
   { id: 'completed', title: 'Terminé', color: 'bg-green-100' },
-  { id: 'cancelled', title: 'Archivé', color: 'bg-gray-100' },
+  { id: 'archived', title: 'Archivé', color: 'bg-gray-100' },
 ];
 
 export default function KanbanBoard({ jobs, onEditJob, currentUser }) {
@@ -61,14 +61,7 @@ export default function KanbanBoard({ jobs, onEditJob, currentUser }) {
   };
 
   const getJobsByStatus = (status) => {
-    return jobs.filter(j => {
-      const jobStatus = j.status || 'new';
-      // Pour la colonne "À faire", inclure aussi les statuts vides, null, undefined
-      if (status === 'new') {
-        return !j.status || j.status === 'new' || j.status === '';
-      }
-      return jobStatus === status;
-    }).sort((a, b) => 
+    return jobs.filter(j => j.status === status).sort((a, b) => 
       new Date(b.created_date) - new Date(a.created_date)
     );
   };
@@ -162,7 +155,19 @@ export default function KanbanBoard({ jobs, onEditJob, currentUser }) {
                                  </div>
                                )}
 
-
+                               {/* Status Badge */}
+                               {job.status && (
+                                 <Badge className={`${
+                                   job.status === 'in_progress' ? 'bg-orange-500' :
+                                   job.status === 'completed' ? 'bg-green-500' :
+                                   job.status === 'review' ? 'bg-purple-500' : 'bg-slate-400'
+                                 } text-white text-xs font-medium`}>
+                                   {job.status === 'todo' ? 'À faire' :
+                                    job.status === 'in_progress' ? 'En cours' :
+                                    job.status === 'review' ? 'En révision' : 
+                                    job.status === 'completed' ? 'Terminé' : 'Archivé'}
+                                 </Badge>
+                               )}
 
                                {/* Title */}
                                <h4 className="font-bold text-base text-slate-900 line-clamp-2 leading-tight">
