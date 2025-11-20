@@ -3,18 +3,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AlertTriangle, Users, TrendingUp, DollarSign, LayoutDashboard, BarChart, Clock, UserCheck, UserCircle, FileText } from "lucide-react";
+import { AlertTriangle, Users, TrendingUp, DollarSign, LayoutDashboard, BarChart, Clock, UserCheck, UserCircle, FileText, Activity, Briefcase, Trophy, Package, TrendingDown } from "lucide-react";
 
 const AVAILABLE_WIDGETS = [
-  { id: 'urgent_jobs', name: 'Jobs Urgents & En Retard', icon: AlertTriangle, description: 'Jobs prioritaires et en retard', color: 'text-red-500' },
-  { id: 'tasks_by_technician', name: 'Répartition des Tâches', icon: Users, description: 'Distribution des jobs par technicien', color: 'text-blue-500' },
-  { id: 'project_progress', name: 'Avancement Projets', icon: TrendingUp, description: 'Progression via jalons et tâches', color: 'text-green-500' },
-  { id: 'financial_indicators', name: 'Indicateurs Financiers', icon: DollarSign, description: 'Factures, revenus et coûts', color: 'text-green-600' },
-  { id: 'jobs_by_status', name: 'Jobs par Statut', icon: LayoutDashboard, description: 'Vue graphique des jobs par statut', color: 'text-purple-500' },
-  { id: 'monthly_revenue', name: 'Revenus Mensuels', icon: BarChart, description: 'Évolution des revenus sur 6 mois', color: 'text-indigo-500' },
-  { id: 'overdue_jobs', name: 'Jobs en Retard', icon: Clock, description: 'Liste des jobs en retard', color: 'text-orange-500' },
-  { id: 'technician_performance', name: 'Performance Techniciens', icon: UserCheck, description: 'Performance des techniciens', color: 'text-teal-500' },
-  { id: 'customer_stats', name: 'Statistiques Clients', icon: UserCircle, description: 'Statistiques sur les clients', color: 'text-pink-500' },
+  { id: 'invoices_due', name: 'Factures À Recevoir', icon: FileText, description: 'Factures dues et en retard', color: 'text-orange-500' },
+  { id: 'jobs_by_status_new', name: 'Jobs par Statut (Nouveau)', icon: Briefcase, description: 'Soumis, planifié, en cours, terminé', color: 'text-blue-500' },
+  { id: 'recent_activities', name: 'Activités Récentes', icon: Activity, description: 'Factures, soumissions, dépenses', color: 'text-purple-500' },
+  { id: 'payments_chart', name: 'Paiements Reçus', icon: DollarSign, description: 'Graphique des paiements reçus', color: 'text-green-500' },
+  { id: 'top_clients', name: 'Top Clients', icon: Trophy, description: 'Clients avec plus de revenus', color: 'text-yellow-500' },
+  { id: 'stock_alert', name: 'Alertes Stock', icon: Package, description: 'Matériaux en rupture ou bas', color: 'text-red-500' },
+  { id: 'sales_vs_cost', name: 'Ventes vs Coûts', icon: TrendingDown, description: 'Comparaison ventes et coûts', color: 'text-indigo-500' },
+  { id: 'overdue_jobs_new', name: 'Jobs en Retard (Nouveau)', icon: Clock, description: 'Jobs dépassant date limite', color: 'text-red-600' },
+  { id: 'urgent_jobs', name: 'Jobs Urgents', icon: AlertTriangle, description: 'Jobs prioritaires', color: 'text-red-500' },
+  { id: 'tasks_by_technician', name: 'Répartition des Tâches', icon: Users, description: 'Distribution par technicien', color: 'text-blue-500' },
+  { id: 'project_progress', name: 'Avancement Projets', icon: TrendingUp, description: 'Progression via jalons', color: 'text-green-500' },
+  { id: 'financial_indicators', name: 'Indicateurs Financiers', icon: DollarSign, description: 'Revenus et coûts', color: 'text-green-600' },
+  { id: 'technician_performance', name: 'Performance Techniciens', icon: UserCheck, description: 'Statistiques techniciens', color: 'text-teal-500' },
   { id: 'invoice_summary', name: 'Résumé Factures', icon: FileText, description: 'Résumé des factures', color: 'text-cyan-500' },
 ];
 
