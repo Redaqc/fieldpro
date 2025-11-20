@@ -14,7 +14,7 @@ import { format, endOfDay, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 
-const WORKIZ_REPORTS = [
+const STANDARD_REPORTS = [
   { id: 'jobs', name: 'Jobs', description: 'Rapports complets sur les jobs', icon: Briefcase, color: 'from-blue-500 to-blue-600', isTab: true },
   { id: 'sales', name: 'Ventes', description: 'Analyse des ventes et revenus', icon: DollarSign, color: 'from-green-500 to-green-600', isTab: true },
   { id: 'job_statistics', name: 'Statistiques Jobs', description: 'Métriques détaillées des jobs', icon: BarChart3, color: 'from-purple-500 to-purple-600', isTab: true },
@@ -252,7 +252,7 @@ export default function Reports() {
         <TabsList className="flex-wrap h-auto bg-white border shadow-sm p-1">
           <TabsTrigger value="workiz" className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
             <BarChart2 className="w-4 h-4" />
-            Rapports Workiz
+            Tous les rapports
           </TabsTrigger>
           <TabsTrigger value="custom" className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
             <FileText className="w-4 h-4" />
@@ -262,7 +262,7 @@ export default function Reports() {
 
         <TabsContent value="workiz" className="space-y-6 mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {WORKIZ_REPORTS.map(report => {
+            {STANDARD_REPORTS.map(report => {
               const Icon = report.icon;
               
               if (report.isTab) {
