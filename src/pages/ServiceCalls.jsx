@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Plus, Phone } from "lucide-react";
+import { Plus, Phone, LayoutGrid, List, Calendar as CalendarIcon, Table } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import ServiceCallDialog from "../components/servicecalls/ServiceCallDialog";
 import ServiceCallKanban from "../components/servicecalls/ServiceCallKanban";
 import ServiceCallsList from "../components/servicecalls/ServiceCallsList";
+import ServiceCallsCalendar from "../components/servicecalls/ServiceCallsCalendar";
+import ServiceCallsTable from "../components/servicecalls/ServiceCallsTable";
 
 export default function ServiceCalls() {
   const [showDialog, setShowDialog] = useState(false);
@@ -75,8 +77,22 @@ export default function ServiceCalls() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
         <div className="px-6 pt-4 bg-white border-b">
           <TabsList>
-            <TabsTrigger value="kanban">Kanban</TabsTrigger>
-            <TabsTrigger value="list">Liste</TabsTrigger>
+            <TabsTrigger value="kanban" className="flex items-center gap-2">
+              <LayoutGrid className="w-4 h-4" />
+              Kanban
+            </TabsTrigger>
+            <TabsTrigger value="list" className="flex items-center gap-2">
+              <List className="w-4 h-4" />
+              Liste
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="flex items-center gap-2">
+              <CalendarIcon className="w-4 h-4" />
+              Calendrier
+            </TabsTrigger>
+            <TabsTrigger value="table" className="flex items-center gap-2">
+              <Table className="w-4 h-4" />
+              Tableau
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -86,6 +102,8 @@ export default function ServiceCalls() {
               calls={serviceCalls}
               onEditCall={handleEditCall}
               currentUser={currentUser}
+              technicians={technicians}
+              workTypes={workTypes}
             />
           </TabsContent>
 
@@ -93,6 +111,25 @@ export default function ServiceCalls() {
             <ServiceCallsList 
               calls={serviceCalls}
               onEditCall={handleEditCall}
+              technicians={technicians}
+              customers={customers}
+            />
+          </TabsContent>
+
+          <TabsContent value="calendar" className="h-full m-0 overflow-auto">
+            <ServiceCallsCalendar 
+              calls={serviceCalls}
+              onEditCall={handleEditCall}
+              technicians={technicians}
+            />
+          </TabsContent>
+
+          <TabsContent value="table" className="h-full m-0 overflow-auto">
+            <ServiceCallsTable 
+              calls={serviceCalls}
+              onEditCall={handleEditCall}
+              technicians={technicians}
+              customers={customers}
             />
           </TabsContent>
         </div>
