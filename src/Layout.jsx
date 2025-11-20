@@ -207,11 +207,11 @@ export default function Layout({ children, currentPageName }) {
   // Determine visible modules based on role permissions
   let visibleModules;
   if (isAdmin) {
-    visibleModules = ['dashboard', 'jobs', 'schedule', 'calendar', 'customers', 'team', 'time_tracking', 'documents', 'forms', 'reports', 'quotations', 'invoices', 'assets', 'price_lists', 'materials', 'gpstracking', 'settings', 'rolemanager'];
+    visibleModules = ['dashboard', 'jobs', 'servicecalls', 'schedule', 'calendar', 'customers', 'team', 'time_tracking', 'documents', 'forms', 'reports', 'quotations', 'invoices', 'assets', 'price_lists', 'materials', 'gpstracking', 'settings', 'rolemanager'];
   } else if (userRole?.permissions) {
     visibleModules = Object.keys(userRole.permissions).filter(key => userRole.permissions[key]);
   } else {
-    visibleModules = currentTech?.visible_modules || ['dashboard', 'jobs', 'schedule', 'calendar', 'time_tracking', 'documents', 'forms'];
+    visibleModules = currentTech?.visible_modules || ['dashboard', 'jobs', 'servicecalls', 'schedule', 'calendar', 'time_tracking', 'documents', 'forms'];
   }
 
   // Filter navigation items based on user permissions
