@@ -41,71 +41,16 @@ export default function TimeTracking() {
     mutationFn: async (technicianId) => {
       const tech = technicians.find(t => t.id === technicianId);
       
-      // Get current GPS location
-      let location = null;
-      let locationData = null;
-      
-      if (navigator.geolocation) {
-        try {
-          const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 5000,
-              maximumAge: 0
-            });
-          });
-          
-          location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy
-          };
-          
-          // Save GPS location
-          locationData = await base44.entities.GPSLocation.create({
-            technician_id: technicianId,
-            technician_name: `${tech.first_name} ${tech.last_name}`,
-            latitude: location.lat,
-            longitude: location.lng,
-            accuracy: location.accuracy,
-            timestamp: new Date().toISOString(),
-            activity: "clock_in"
-          });
-
-          // Check if in GPS zone if required
-          if (!tech.gps_punch_outside_zone) {
-            const zones = await base44.entities.GPSZone.list();
-            const activeZones = zones.filter(z => z.active);
-            
-            let inZone = false;
-            for (const zone of activeZones) {
-              const distance = calculateDistance(
-                location.lat, location.lng,
-                zone.center_lat, zone.center_lng
-              );
-              if (distance <= zone.radius_meters) {
-                inZone = true;
-                break;
-              }
-            }
-            
-            if (!inZone && activeZones.length > 0) {
-              throw new Error("Vous devez être dans une zone GPS de projet pour poinçonner");
-            }
-          }
-        } catch (error) {
-          if (!tech.gps_punch_outside_zone) {
-            throw new Error("Impossible d'obtenir la localisation GPS");
-          }
-          console.warn("GPS error:", error);
-        }
+      // Check if technician can punch outside GPS zone
+      if (!tech.gps_punch_outside_zone) {
+        // In a real app, you would check GPS location here
+        // For now, we'll allow it but could add validation
       }
       
       return base44.entities.TimeEntry.create({
         technician_id: technicianId,
         technician_name: `${tech.first_name} ${tech.last_name}`,
         clock_in: new Date().toISOString(),
-        location_in: location ? `${location.lat},${location.lng}` : null,
         status: "in_progress"
       });
     },
@@ -113,19 +58,6 @@ export default function TimeTracking() {
       queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
     },
   });
-
-  // Helper function to calculate distance between two GPS points
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371000; // Earth radius in meters
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  };
 
   const clockOutMutation = useMutation({
     mutationFn: async (entryId) => {
