@@ -21,6 +21,7 @@ import FormBuilder from './pages/FormBuilder';
 import Forms from './pages/Forms';
 import Reports from './pages/Reports';
 import FormAutomations from './pages/FormAutomations';
+import RoleManager from './pages/RoleManager';
 import __Layout from './Layout.jsx';
 
 
@@ -48,6 +49,7 @@ export const PAGES = {
     "Forms": Forms,
     "Reports": Reports,
     "FormAutomations": FormAutomations,
+    "RoleManager": RoleManager,
 }
 
 export const pagesConfig = {

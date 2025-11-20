@@ -24,18 +24,19 @@ import {
             } from "lucide-react";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+        Sidebar,
+        SidebarContent,
+        SidebarGroup,
+        SidebarGroupContent,
+        SidebarMenu,
+        SidebarMenuButton,
+        SidebarMenuItem,
+        SidebarHeader,
+        SidebarFooter,
+        SidebarProvider,
+        SidebarTrigger,
+      } from "@/components/ui/sidebar";
+      import { Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { base44 } from "@/api/base44Client";
@@ -148,7 +149,12 @@ const navigationItems = [
     url: createPageUrl("Settings"),
     icon: Settings,
   },
-];
+  {
+    title: "Rôles",
+    url: createPageUrl("RoleManager"),
+    icon: Shield,
+  },
+  ];
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -182,12 +188,20 @@ export default function Layout({ children, currentPageName }) {
   // Find current user's technician profile to check permissions
   const currentTech = technicians.find(t => t.email === user?.email);
 
-  // If user is admin or has no tech profile, show all
-  const isAdmin = user?.role === 'admin' || !currentTech;
+  // Get user's role and permissions
+  const userRole = currentTech?.role_id ? roles.find(r => r.id === currentTech.role_id) : null;
+  const isAdmin = user?.role === 'admin';
   const isAdminOrManager = isAdmin || currentTech?.role === 'admin' || currentTech?.role === 'manager';
-  const visibleModules = isAdmin 
-    ? ['dashboard', 'jobs', 'schedule', 'calendar', 'customers', 'team', 'time_tracking', 'documents', 'forms', 'reports', 'quotations', 'invoices', 'assets', 'price_lists', 'materials', 'gpstracking', 'settings']
-    : (currentTech?.visible_modules || ['dashboard', 'jobs', 'schedule', 'calendar', 'time_tracking', 'documents', 'forms']);
+
+  // Determine visible modules based on role permissions
+  let visibleModules;
+  if (isAdmin) {
+    visibleModules = ['dashboard', 'jobs', 'schedule', 'calendar', 'customers', 'team', 'time_tracking', 'documents', 'forms', 'reports', 'quotations', 'invoices', 'assets', 'price_lists', 'materials', 'gpstracking', 'settings', 'rolemanager'];
+  } else if (userRole?.permissions) {
+    visibleModules = Object.keys(userRole.permissions).filter(key => userRole.permissions[key]);
+  } else {
+    visibleModules = currentTech?.visible_modules || ['dashboard', 'jobs', 'schedule', 'calendar', 'time_tracking', 'documents', 'forms'];
+  }
 
   // Filter navigation items based on user permissions
   const filteredNavigation = navigationItems.filter(item => {
@@ -203,8 +217,8 @@ export default function Layout({ children, currentPageName }) {
       return isAdminOrManager;
     }
 
-    // Settings always visible for admins
-    if (moduleName === 'settings') {
+    // Settings and Role Manager only for admins
+    if (moduleName === 'settings' || moduleName === 'rolemanager') {
       return isAdmin || currentTech?.role === 'admin';
     }
 
