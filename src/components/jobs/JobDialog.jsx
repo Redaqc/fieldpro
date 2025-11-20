@@ -1,55 +1,70 @@
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, X } from "lucide-react";
+import { X } from "lucide-react";
 
-export default function JobDialog({ open, onClose, onSave, job, customers, technicians }) {
-  const [formData, setFormData] = useState(job || {
-    title: "",
-    description: "",
-    customer_id: "",
-    customer_name: "",
-    technician_id: "",
-    technician_name: "",
-    service_type: "general",
-    priority: "medium",
-    status: "scheduled",
-    scheduled_date: "",
-    scheduled_time: "",
-    duration_minutes: 60,
-    location: "",
-    estimated_cost: 0,
-    notes: ""
+export default function JobDialog({ open, onClose, job, onSave, customers, technicians }) {
+  const [formData, setFormData] = useState({
+    title: job?.title || '',
+    description: job?.description || '',
+    status: job?.status || 'to_do',
+    priority: job?.priority || 'medium',
+    due_date: job?.due_date || '',
+    customer_id: job?.customer_id || '',
+    customer_name: job?.customer_name || '',
+    assigned_to: job?.assigned_to || [],
+    assigned_names: job?.assigned_names || [],
+    labels: job?.labels || [],
+    trello_card_ref: job?.trello_card_ref || '',
+    location: job?.location || '',
+    scheduled_date: job?.scheduled_date || '',
+    scheduled_time: job?.scheduled_time || '',
+    ...job,
   });
 
-  const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleCustomerSelect = (customerId) => {
-    const customer = customers.find(c => c.id === customerId);
-    if (customer) {
-      handleChange('customer_id', customerId);
-      handleChange('customer_name', `${customer.first_name} ${customer.last_name}`);
-      handleChange('location', customer.address || '');
-    }
-  };
-
-  const handleTechnicianSelect = (techId) => {
-    const tech = technicians.find(t => t.id === techId);
-    if (tech) {
-      handleChange('technician_id', techId);
-      handleChange('technician_name', `${tech.first_name} ${tech.last_name}`);
-    }
-  };
+  const [newLabel, setNewLabel] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave(formData);
+  };
+
+  const addLabel = () => {
+    if (newLabel.trim() && !formData.labels.includes(newLabel.trim())) {
+      setFormData({
+        ...formData,
+        labels: [...formData.labels, newLabel.trim()]
+      });
+      setNewLabel('');
+    }
+  };
+
+  const removeLabel = (label) => {
+    setFormData({
+      ...formData,
+      labels: formData.labels.filter(l => l !== label)
+    });
+  };
+
+  const handleTechnicianChange = (techId) => {
+    const tech = technicians.find(t => t.id === techId);
+    if (!tech) return;
+
+    const isSelected = formData.assigned_to.includes(techId);
+    
+    setFormData({
+      ...formData,
+      assigned_to: isSelected 
+        ? formData.assigned_to.filter(id => id !== techId)
+        : [...formData.assigned_to, techId],
+      assigned_names: isSelected
+        ? formData.assigned_names.filter(n => n !== `${tech.first_name} ${tech.last_name}`)
+        : [...formData.assigned_names, `${tech.first_name} ${tech.last_name}`]
+    });
   };
 
   return (
@@ -60,85 +75,45 @@ export default function JobDialog({ open, onClose, onSave, job, customers, techn
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label>Job Title *</Label>
+            <Input
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              placeholder="Enter job title..."
+              required
+            />
+          </div>
+
+          <div>
+            <Label>Description</Label>
+            <Textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Describe the job..."
+              rows={4}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <Label htmlFor="title">Job Title *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => handleChange('title', e.target.value)}
-                placeholder="e.g., Fix leaking pipe"
-                required
-              />
-            </div>
-
-            <div className="col-span-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => handleChange('description', e.target.value)}
-                placeholder="Job details..."
-                rows={3}
-              />
-            </div>
-
             <div>
-              <Label htmlFor="customer">Customer *</Label>
-              <Select value={formData.customer_id} onValueChange={handleCustomerSelect} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map(customer => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.first_name} {customer.last_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="technician">Technician</Label>
-              <Select value={formData.technician_id} onValueChange={handleTechnicianSelect}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Assign technician" />
-                </SelectTrigger>
-                <SelectContent>
-                  {technicians.map(tech => (
-                    <SelectItem key={tech.id} value={tech.id}>
-                      {tech.first_name} {tech.last_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="service_type">Service Type *</Label>
-              <Select value={formData.service_type} onValueChange={(val) => handleChange('service_type', val)} required>
+              <Label>Status</Label>
+              <Select value={formData.status} onValueChange={(val) => setFormData({ ...formData, status: val })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="plumbing">Plumbing</SelectItem>
-                  <SelectItem value="electrical">Electrical</SelectItem>
-                  <SelectItem value="hvac">HVAC</SelectItem>
-                  <SelectItem value="carpentry">Carpentry</SelectItem>
-                  <SelectItem value="general">General</SelectItem>
-                  <SelectItem value="appliance_repair">Appliance Repair</SelectItem>
-                  <SelectItem value="landscaping">Landscaping</SelectItem>
-                  <SelectItem value="cleaning">Cleaning</SelectItem>
-                  <SelectItem value="painting">Painting</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="to_do">To Do</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="review">Review</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label htmlFor="priority">Priority</Label>
-              <Select value={formData.priority} onValueChange={(val) => handleChange('priority', val)}>
+              <Label>Priority</Label>
+              <Select value={formData.priority} onValueChange={(val) => setFormData({ ...formData, priority: val })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -150,83 +125,118 @@ export default function JobDialog({ open, onClose, onSave, job, customers, techn
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
+          <div>
+            <Label>Customer</Label>
+            <Select
+              value={formData.customer_id}
+              onValueChange={(val) => {
+                const customer = customers.find(c => c.id === val);
+                setFormData({
+                  ...formData,
+                  customer_id: val,
+                  customer_name: customer ? `${customer.first_name} ${customer.last_name}` : ''
+                });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select customer" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map(c => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.first_name} {c.last_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Assigned To</Label>
+            <div className="border rounded-lg p-3 space-y-2">
+              {technicians.map(tech => (
+                <label key={tech.id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.assigned_to.includes(tech.id)}
+                    onChange={() => handleTechnicianChange(tech.id)}
+                    className="rounded"
+                  />
+                  <span>{tech.first_name} {tech.last_name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="scheduled_date">Scheduled Date</Label>
+              <Label>Due Date</Label>
               <Input
-                id="scheduled_date"
                 type="date"
-                value={formData.scheduled_date}
-                onChange={(e) => handleChange('scheduled_date', e.target.value)}
+                value={formData.due_date}
+                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
               />
             </div>
 
             <div>
-              <Label htmlFor="scheduled_time">Scheduled Time</Label>
+              <Label>Scheduled Time</Label>
               <Input
-                id="scheduled_time"
                 type="time"
                 value={formData.scheduled_time}
-                onChange={(e) => handleChange('scheduled_time', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="duration">Duration (minutes)</Label>
-              <Input
-                id="duration"
-                type="number"
-                value={formData.duration_minutes}
-                onChange={(e) => handleChange('duration_minutes', parseInt(e.target.value))}
-                min="15"
-                step="15"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="estimated_cost">Estimated Cost ($)</Label>
-              <Input
-                id="estimated_cost"
-                type="number"
-                value={formData.estimated_cost}
-                onChange={(e) => handleChange('estimated_cost', parseFloat(e.target.value))}
-                min="0"
-                step="0.01"
-              />
-            </div>
-
-            <div className="col-span-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => handleChange('location', e.target.value)}
-                placeholder="Job location address"
-              />
-            </div>
-
-            <div className="col-span-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => handleChange('notes', e.target.value)}
-                placeholder="Additional notes..."
-                rows={2}
+                onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
               />
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
+          <div>
+            <Label>Labels/Tags</Label>
+            <div className="flex gap-2 mb-2 flex-wrap">
+              {formData.labels.map((label, i) => (
+                <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded text-sm">
+                  {label}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => removeLabel(label)} />
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+                placeholder="Add label..."
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addLabel())}
+              />
+              <Button type="button" onClick={addLabel} variant="outline">Add</Button>
+            </div>
+          </div>
+
+          <div>
+            <Label>Trello Card Reference</Label>
+            <Input
+              value={formData.trello_card_ref}
+              onChange={(e) => setFormData({ ...formData, trello_card_ref: e.target.value })}
+              placeholder="e.g., https://trello.com/c/..."
+            />
+          </div>
+
+          <div>
+            <Label>Location</Label>
+            <Input
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              placeholder="Job location..."
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
-              <X className="w-4 h-4 mr-2" />
               Cancel
             </Button>
             <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-              <Save className="w-4 h-4 mr-2" />
-              Save Job
+              {job ? 'Update Job' : 'Create Job'}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

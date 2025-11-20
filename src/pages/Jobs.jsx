@@ -1,24 +1,25 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, Calendar as CalendarIcon, Table } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import JobKanban from "../components/jobs/JobKanban";
 import JobsList from "../components/jobs/JobsList";
+import JobCalendar from "../components/jobs/JobCalendar";
+import JobTable from "../components/jobs/JobTable";
 import JobDialog from "../components/jobs/JobDialog";
-import JobDetailsTrello from "../components/jobs/JobDetailsTrello"; // Changed from JobDetails
+import JobDetailsTrello from "../components/jobs/JobDetailsTrello";
 
 export default function Jobs() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [view, setView] = useState("kanban");
   const [showDialog, setShowDialog] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const queryClient = useQueryClient();
 
-  // Check URL for action=new or id=xxx
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('action') === 'new') {
@@ -26,7 +27,6 @@ export default function Jobs() {
       setSelectedJob(null);
     } else if (params.get('id')) {
       const jobId = params.get('id');
-      // Fetch and show job details
       base44.entities.Job.filter({ id: jobId }).then(jobs => {
         if (jobs.length > 0) {
           setSelectedJob(jobs[0]);
@@ -72,7 +72,6 @@ export default function Jobs() {
     mutationFn: ({ id, data }) => base44.entities.Job.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      setSelectedJob(null);
     },
   });
 
@@ -85,11 +84,23 @@ export default function Jobs() {
   });
 
   const handleSaveJob = (jobData) => {
+    const activityLog = {
+      action: selectedJob?.id ? 'updated' : 'created',
+      user_name: user?.full_name || 'User',
+      timestamp: new Date().toISOString(),
+      details: selectedJob?.id ? 'Job updated' : 'Job created'
+    };
+
+    const dataWithLog = {
+      ...jobData,
+      activity_log: [...(jobData.activity_log || []), activityLog]
+    };
+
     if (selectedJob?.id) {
-      updateJobMutation.mutate({ id: selectedJob.id, data: jobData });
+      updateJobMutation.mutate({ id: selectedJob.id, data: dataWithLog });
     } else {
       const jobNumber = `JOB-${Date.now().toString().slice(-6)}`;
-      createJobMutation.mutate({ ...jobData, job_number: jobNumber });
+      createJobMutation.mutate({ ...dataWithLog, job_number: jobNumber });
     }
   };
 
@@ -97,11 +108,10 @@ export default function Jobs() {
     const matchesSearch = searchTerm === "" || 
       job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.job_number?.toLowerCase().includes(searchTerm.toLowerCase());
+      job.job_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.labels?.some(l => l.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesStatus = statusFilter === "all" || job.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+    return matchesSearch && job.status !== 'archived';
   });
 
   return (
@@ -109,7 +119,7 @@ export default function Jobs() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Jobs</h1>
-          <p className="text-slate-500 mt-1">Manage and track all your service jobs</p>
+          <p className="text-slate-500 mt-1">Manage jobs with Kanban board</p>
         </div>
         <Button 
           onClick={() => {
@@ -123,33 +133,71 @@ export default function Jobs() {
         </Button>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <Input
-            placeholder="Search jobs by title, customer, or job number..."
+            placeholder="Search jobs..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 border-slate-200"
           />
         </div>
         
-        <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+        <Tabs value={view} onValueChange={setView}>
           <TabsList className="bg-white border border-slate-200">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
-            <TabsTrigger value="in_progress">In Progress</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
+            <TabsTrigger value="kanban" className="flex items-center gap-2">
+              <LayoutGrid className="w-4 h-4" />
+              Kanban
+            </TabsTrigger>
+            <TabsTrigger value="list" className="flex items-center gap-2">
+              <List className="w-4 h-4" />
+              List
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="flex items-center gap-2">
+              <CalendarIcon className="w-4 h-4" />
+              Calendar
+            </TabsTrigger>
+            <TabsTrigger value="table" className="flex items-center gap-2">
+              <Table className="w-4 h-4" />
+              Table
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
-      <JobsList 
-        jobs={filteredJobs}
-        isLoading={isLoading}
-        onJobClick={setSelectedJob}
-      />
+      {view === 'kanban' && (
+        <JobKanban
+          jobs={filteredJobs}
+          isLoading={isLoading}
+          onJobClick={setSelectedJob}
+          onUpdate={updateJobMutation.mutate}
+        />
+      )}
+
+      {view === 'list' && (
+        <JobsList
+          jobs={filteredJobs}
+          isLoading={isLoading}
+          onJobClick={setSelectedJob}
+        />
+      )}
+
+      {view === 'calendar' && (
+        <JobCalendar
+          jobs={filteredJobs}
+          onJobClick={setSelectedJob}
+        />
+      )}
+
+      {view === 'table' && (
+        <JobTable
+          jobs={filteredJobs}
+          isLoading={isLoading}
+          onJobClick={setSelectedJob}
+          technicians={technicians}
+        />
+      )}
 
       {showDialog && (
         <JobDialog
@@ -158,6 +206,7 @@ export default function Jobs() {
             setShowDialog(false);
             setSelectedJob(null);
           }}
+          job={selectedJob}
           onSave={handleSaveJob}
           customers={customers}
           technicians={technicians}
@@ -168,12 +217,10 @@ export default function Jobs() {
         <JobDetailsTrello
           job={selectedJob}
           onClose={() => setSelectedJob(null)}
-          // onEdit is not used by JobDetailsTrello, removed from props
           onUpdate={updateJobMutation.mutate}
-          // onDelete is not used by JobDetailsTrello, removed from props
           customers={customers}
           technicians={technicians}
-          currentUser={user} // Pass currentUser to JobDetailsTrello
+          currentUser={user}
         />
       )}
     </div>
