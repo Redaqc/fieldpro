@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Users } from "lucide-react";
+import { Plus, Search, Users, Grid, List } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 import TeamList from "../components/team/TeamList";
@@ -141,14 +141,32 @@ export default function Team() {
         </Card>
       </div>
 
-      <div className="relative">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-        <Input
-          placeholder="Rechercher techniciens par nom, email, téléphone..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-9 border-slate-200"
-        />
+      <div className="flex gap-4 items-center">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            placeholder="Rechercher techniciens par nom, email, téléphone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 border-slate-200"
+          />
+        </div>
+        <div className="flex gap-1 border rounded-lg p-1">
+          <Button
+            variant={viewMode === "cards" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("cards")}
+          >
+            <Grid className="w-4 h-4" />
+          </Button>
+          <Button
+            variant={viewMode === "list" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+          >
+            <List className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       <TeamList
@@ -167,6 +185,7 @@ export default function Team() {
           }
         }}
         jobs={jobs}
+        viewMode={viewMode}
       />
 
       {showDialog && (
