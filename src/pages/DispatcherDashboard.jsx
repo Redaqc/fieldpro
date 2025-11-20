@@ -17,6 +17,7 @@ import {
   Search
 } from "lucide-react";
 import { format } from "date-fns";
+import AIDispatcherAssistant from "../components/dispatcher/AIDispatcherAssistant";
 
 export default function DispatcherDashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -177,6 +178,17 @@ export default function DispatcherDashboard() {
           />
         </div>
       </div>
+
+      {/* AI Dispatcher Assistant */}
+      <AIDispatcherAssistant 
+        jobs={jobs}
+        serviceCalls={serviceCalls}
+        technicians={technicians}
+        onAssign={() => {
+          queryClient.invalidateQueries({ queryKey: ['jobs'] });
+          queryClient.invalidateQueries({ queryKey: ['serviceCalls'] });
+        }}
+      />
 
       {/* Alert Bar */}
       {(urgentWork.length > 0 || overdueWork.length > 0) && (
