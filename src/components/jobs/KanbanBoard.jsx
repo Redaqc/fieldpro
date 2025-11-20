@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, CheckSquare, Paperclip, AlertCircle } from "lucide-react";
+import { Calendar, User, CheckSquare, Paperclip, AlertCircle, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
@@ -116,108 +116,97 @@ export default function KanbanBoard({ jobs, onEditJob, currentUser }) {
 
                       return (
                         <Draggable key={job.id} draggableId={job.id} index={index}>
-                          {(provided, snapshot) => (
-                            <Card
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`mb-2 p-3 cursor-pointer hover:shadow-md transition-shadow ${
-                                snapshot.isDragging ? 'shadow-lg rotate-2' : ''
-                              }`}
-                              onClick={() => onEditJob(job)}
-                            >
-                              {/* Work Type Badge */}
-                              {job.work_type_name && (
-                                <div className="mb-2">
-                                  <Badge 
-                                    className="text-white text-xs"
-                                    style={{ backgroundColor: job.work_type_color || '#0074D9' }}
-                                  >
-                                    {job.work_type_name}
-                                  </Badge>
-                                </div>
-                              )}
+                         {(provided, snapshot) => (
+                           <Card
+                             ref={provided.innerRef}
+                             {...provided.draggableProps}
+                             {...provided.dragHandleProps}
+                             className={`mb-3 cursor-pointer hover:shadow-lg transition-all duration-200 ${
+                               snapshot.isDragging ? 'shadow-xl ring-2 ring-blue-400 scale-105' : ''
+                             } bg-white`}
+                             onClick={() => onEditJob(job)}
+                           >
+                             {/* Header with Job Number */}
+                             <div className="px-4 pt-3 pb-2 border-b border-slate-100">
+                               <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
+                                 <span>Job ID: {job.job_number || job.id.slice(0, 5)}</span>
+                               </div>
+                             </div>
 
-                              {/* Labels */}
-                              {job.labels && job.labels.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mb-2">
-                                  {job.labels.map((label, idx) => (
-                                    <div 
-                                      key={idx} 
-                                      className="h-2 w-12 rounded-full"
-                                      style={{ backgroundColor: label.color }}
-                                      title={label.name}
-                                    />
-                                  ))}
-                                </div>
-                              )}
+                             {/* Content */}
+                             <div className="p-4 space-y-3">
+                               {/* Client */}
+                               {job.customer_name && (
+                                 <div className="flex items-center gap-2 text-sm text-slate-700">
+                                   <User className="w-4 h-4 text-slate-400" />
+                                   <span className="font-medium">{job.customer_name}</span>
+                                 </div>
+                               )}
 
-                              {/* Title */}
-                              <h4 className="font-semibold text-sm mb-2 line-clamp-2">
-                                {job.title}
-                              </h4>
+                               {/* Scheduled */}
+                               {(job.start_date || job.due_date) && (
+                                 <div className="flex items-center gap-2 text-xs text-slate-600">
+                                   <Calendar className="w-4 h-4 text-slate-400" />
+                                   <span>
+                                     {job.start_date && format(new Date(job.start_date), 'MMM d')}
+                                     {job.start_date && job.due_date && ' - '}
+                                     {job.due_date && format(new Date(job.due_date), 'MMM d, yyyy')}
+                                   </span>
+                                 </div>
+                               )}
 
-                              {/* Metadata */}
-                              <div className="space-y-2 text-xs">
-                                {/* Priority & Overdue */}
-                                <div className="flex items-center gap-2">
-                                  {job.priority && (
-                                    <Badge className={priorityColors[job.priority]}>
-                                      {job.priority}
-                                    </Badge>
-                                  )}
-                                  {overdue && (
-                                    <Badge className="bg-red-100 text-red-800 flex items-center gap-1">
-                                      <AlertCircle className="w-3 h-3" />
-                                      En retard
-                                    </Badge>
-                                  )}
-                                </div>
+                               {/* Status Badge */}
+                               {job.status && (
+                                 <Badge className={`${
+                                   job.status === 'in_progress' ? 'bg-orange-500' :
+                                   job.status === 'completed' ? 'bg-green-500' :
+                                   job.status === 'review' ? 'bg-purple-500' : 'bg-slate-400'
+                                 } text-white text-xs font-medium`}>
+                                   {job.status === 'todo' ? 'À faire' :
+                                    job.status === 'in_progress' ? 'En cours' :
+                                    job.status === 'review' ? 'En révision' : 
+                                    job.status === 'completed' ? 'Terminé' : 'Archivé'}
+                                 </Badge>
+                               )}
 
-                                {/* Due Date */}
-                                {job.due_date && (
-                                  <div className="flex items-center gap-1 text-slate-600">
-                                    <Calendar className="w-3 h-3" />
-                                    <span className={overdue ? 'text-red-600 font-semibold' : ''}>
-                                      {format(new Date(job.due_date), 'dd MMM yyyy')}
-                                    </span>
-                                  </div>
-                                )}
+                               {/* Title */}
+                               <h4 className="font-bold text-base text-slate-900 line-clamp-2 leading-tight">
+                                 {job.title}
+                               </h4>
 
-                                {/* Checklist Progress */}
-                                {checklistProgress && checklistProgress.total > 0 && (
-                                  <div className="flex items-center gap-1 text-slate-600">
-                                    <CheckSquare className="w-3 h-3" />
-                                    <span>
-                                      {checklistProgress.completed}/{checklistProgress.total}
-                                    </span>
-                                  </div>
-                                )}
+                               {/* Address */}
+                               {(job.location || job.project_addresses?.[0]) && (
+                                 <div className="flex items-start gap-2 text-xs text-slate-600">
+                                   <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                                   <span className="line-clamp-2">{job.location || job.project_addresses[0]}</span>
+                                 </div>
+                               )}
 
-                                {/* Attachments */}
-                                {job.attachments && job.attachments.length > 0 && (
-                                  <div className="flex items-center gap-1 text-slate-600">
-                                    <Paperclip className="w-3 h-3" />
-                                    <span>{job.attachments.length}</span>
-                                  </div>
-                                )}
+                               {/* Assigned Tech */}
+                               {job.technicians && job.technicians.length > 0 && (
+                                 <div className="flex items-center gap-2 text-xs text-slate-600">
+                                   <User className="w-4 h-4 text-slate-400" />
+                                   <span className="font-medium">{job.technicians.map(t => t.name).join(', ')}</span>
+                                 </div>
+                               )}
+                             </div>
 
-                                {/* Assigned Technicians */}
-                                {job.technicians && job.technicians.length > 0 && (
-                                  <div className="flex items-center gap-1 text-slate-600">
-                                    <User className="w-3 h-3" />
-                                    <span className="text-xs">{job.technicians.length} tech{job.technicians.length > 1 ? 's' : ''}</span>
-                                  </div>
-                                )}
-                                {!job.technicians && job.technician_name && (
-                                  <div className="flex items-center gap-1 text-slate-600">
-                                    <User className="w-3 h-3" />
-                                    <span className="text-xs">{job.technician_name}</span>
-                                  </div>
-                                )}
-                              </div>
-                            </Card>
-                          )}
+                             {/* Footer with Labels */}
+                             {job.labels && job.labels.length > 0 && (
+                               <div className="px-4 pb-3 flex flex-wrap gap-1">
+                                 {job.labels.map((label, idx) => (
+                                   <Badge 
+                                     key={idx}
+                                     className="text-white text-xs font-medium"
+                                     style={{ backgroundColor: label.color }}
+                                   >
+                                     {label.name}
+                                   </Badge>
+                                 ))}
+                               </div>
+                             )}
+                           </Card>
+                         )}
                         </Draggable>
                       );
                     })}
