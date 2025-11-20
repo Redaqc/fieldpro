@@ -57,6 +57,14 @@ export default function Settings() {
     },
   });
 
+  const { data: languageSettings } = useQuery({
+    queryKey: ['languageSettings'],
+    queryFn: async () => {
+      const settings = await base44.entities.LanguageSettings.list();
+      return settings[0] || { language: 'fr' };
+    },
+  });
+
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const createMutation = useMutation({
@@ -187,6 +195,19 @@ export default function Settings() {
     updateTaxSettingsMutation.mutate({ ...taxSettings, taxes });
   };
 
+  const updateLanguageMutation = useMutation({
+    mutationFn: (lang) => {
+      if (languageSettings?.id) {
+        return base44.entities.LanguageSettings.update(languageSettings.id, { language: lang });
+      } else {
+        return base44.entities.LanguageSettings.create({ language: lang });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['languageSettings'] });
+    },
+  });
+
   const handleCreateTemplate = () => {
     const name = prompt('Nom du modèle de checklist:');
     if (!name) return;
@@ -216,7 +237,11 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="work-types" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="language" className="flex items-center gap-2">
+            <SettingsIcon className="w-4 h-4" />
+            Langue
+          </TabsTrigger>
           <TabsTrigger value="work-types">Types de travaux</TabsTrigger>
           <TabsTrigger value="company" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
@@ -233,6 +258,54 @@ export default function Settings() {
           <TabsTrigger value="features">Fonctionnalités Jobs</TabsTrigger>
           <TabsTrigger value="checklists">Modèles de checklist</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="language">
+          <Card>
+            <CardHeader>
+              <CardTitle>Langue de l'interface / Interface Language</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-sm text-slate-600">
+                Choisissez la langue de l'interface pour tous les utilisateurs. / Choose the interface language for all users.
+              </p>
+              
+              <div className="flex flex-col md:flex-row gap-4">
+                <Button
+                  variant={languageSettings?.language === 'fr' ? "default" : "outline"}
+                  size="lg"
+                  onClick={() => updateLanguageMutation.mutate('fr')}
+                  className="flex-1 h-24 text-lg"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-3xl">🇫🇷</span>
+                    <span>Français</span>
+                  </div>
+                </Button>
+                
+                <Button
+                  variant={languageSettings?.language === 'en' ? "default" : "outline"}
+                  size="lg"
+                  onClick={() => updateLanguageMutation.mutate('en')}
+                  className="flex-1 h-24 text-lg"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-3xl">🇬🇧</span>
+                    <span>English</span>
+                  </div>
+                </Button>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-900">
+                  <strong>Note:</strong> Le changement de langue s'appliquera à tous les utilisateurs de l'application après rechargement de la page.
+                </p>
+                <p className="text-sm text-blue-900 mt-2">
+                  <strong>Note:</strong> The language change will apply to all application users after page reload.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="work-types">
           <Card>

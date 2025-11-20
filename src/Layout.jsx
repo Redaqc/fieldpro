@@ -1,27 +1,28 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useTranslation } from "@/utils/translations";
 import { 
-              LayoutDashboard, 
-              Briefcase, 
-              Users, 
-              Calendar,
-              FileText,
-              UserCircle,
-              Menu,
-              X,
-              Settings,
-              Bell,
-              Search,
-              Package,
-              FileCheck,
-              DollarSign,
-              Clock,
-              MapPin,
-              BarChart3,
-              TrendingUp,
-              Zap
-            } from "lucide-react";
+                  LayoutDashboard, 
+                  Briefcase, 
+                  Users, 
+                  Calendar,
+                  FileText,
+                  UserCircle,
+                  Menu,
+                  X,
+                  Settings,
+                  Bell,
+                  Search,
+                  Package,
+                  FileCheck,
+                  DollarSign,
+                  Clock,
+                  MapPin,
+                  BarChart3,
+                  TrendingUp,
+                  Zap
+                } from "lucide-react";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 import {
         Sidebar,
@@ -42,9 +43,9 @@ import { Input } from "@/components/ui/input";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 
-const navigationItems = [
+const getNavigationItems = (t) => [
   {
-    title: "Dashboard",
+    title: t('dashboard'),
     url: createPageUrl("Dashboard"),
     icon: LayoutDashboard,
   },
@@ -55,107 +56,107 @@ const navigationItems = [
     mobileOnly: true,
   },
   {
-    title: "Jobs",
+    title: t('jobs'),
     url: createPageUrl("Jobs"),
     icon: Briefcase,
   },
   {
-    title: "Appels de Service",
+    title: t('serviceCalls'),
     url: createPageUrl("ServiceCalls"),
     icon: UserCircle,
   },
   {
-    title: "Schedule",
+    title: t('schedule'),
     url: createPageUrl("Schedule"),
     icon: Calendar,
   },
   {
-    title: "Calendrier",
+    title: t('calendar'),
     url: createPageUrl("Calendar"),
     icon: Calendar,
   },
   {
-    title: "Customers",
+    title: t('customers'),
     url: createPageUrl("Customers"),
     icon: Users,
   },
   {
-    title: "Team",
+    title: t('team'),
     url: createPageUrl("Team"),
     icon: UserCircle,
   },
   {
-    title: "Time Tracking",
+    title: t('timeTracking'),
     url: createPageUrl("TimeTracking"),
     icon: Clock,
   },
   {
-    title: "Documents",
+    title: t('documents'),
     url: createPageUrl("Documents"),
     icon: FileText,
   },
   {
-    title: "Formulaires",
+    title: t('forms'),
     url: createPageUrl("Forms"),
     icon: FileCheck,
   },
   {
-    title: "Automatisations",
+    title: t('automations'),
     url: createPageUrl("FormAutomations"),
     icon: Zap,
   },
   {
-    title: "Rapports",
+    title: t('reports'),
     url: createPageUrl("Reports"),
     icon: BarChart3,
   },
   {
-    title: "Rentabilité",
+    title: t('profitability'),
     url: createPageUrl("ProfitabilityReports"),
     icon: TrendingUp,
   },
   {
-    title: "Gestion Coûts",
+    title: t('costsManagement'),
     url: createPageUrl("CostsManagement"),
     icon: DollarSign,
   },
   {
-    title: "GPS Tracking",
+    title: t('gpsTracking'),
     url: createPageUrl("GPSTracking"),
     icon: MapPin,
   },
   {
-    title: "Quotations",
+    title: t('quotations'),
     url: createPageUrl("Quotations"),
     icon: FileCheck,
   },
   {
-    title: "Invoices",
+    title: t('invoices'),
     url: createPageUrl("Invoices"),
     icon: FileText,
   },
   {
-    title: "Assets",
+    title: t('assets'),
     url: createPageUrl("Assets"),
     icon: Package,
   },
   {
-    title: "Price Lists",
+    title: t('priceLists'),
     url: createPageUrl("PriceLists"),
     icon: DollarSign,
   },
   {
-    title: "Materials",
+    title: t('materials'),
     url: createPageUrl("Materials"),
     icon: Package,
   },
   {
-    title: "Settings",
+    title: t('settings'),
     url: createPageUrl("Settings"),
     icon: Settings,
   },
   {
-    title: "Rôles",
+    title: t('roles'),
     url: createPageUrl("RoleManager"),
     icon: Shield,
   },
@@ -196,6 +197,16 @@ export default function Layout({ children, currentPageName }) {
     refetchInterval: 30000,
   });
 
+  const { data: languageSettings } = useQuery({
+    queryKey: ['languageSettings'],
+    queryFn: async () => {
+      const settings = await base44.entities.LanguageSettings.list();
+      return settings[0] || { language: 'fr' };
+    },
+  });
+
+  const { t } = useTranslation(languageSettings);
+
   // Find current user's technician profile to check permissions
   const currentTech = technicians.find(t => t.email === user?.email);
 
@@ -213,6 +224,8 @@ export default function Layout({ children, currentPageName }) {
   } else {
     visibleModules = currentTech?.visible_modules || ['dashboard', 'jobs', 'servicecalls', 'schedule', 'calendar', 'time_tracking', 'documents', 'forms'];
   }
+
+  const navigationItems = getNavigationItems(t);
 
   // Filter navigation items based on user permissions
   const filteredNavigation = navigationItems.filter(item => {
