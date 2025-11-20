@@ -139,13 +139,34 @@ export default function RoleManager() {
   };
 
   const assignRoleToTechnician = (technicianId, roleId) => {
+    if (!roleId) {
+      // Unassign role
+      updateTechnicianMutation.mutate({
+        id: technicianId,
+        data: {
+          role_id: null,
+          role_name: null,
+          visible_modules: ['dashboard', 'jobs', 'schedule', 'calendar', 'time_tracking'],
+          can_view_prices: true,
+        },
+      });
+      return;
+    }
+
     const role = roles.find(r => r.id === roleId);
+    if (!role) return;
+
+    const permissions = role.permissions || {};
+    const visibleModules = Object.keys(permissions)
+      .filter(key => key !== 'can_view_prices' && permissions[key]);
+
     updateTechnicianMutation.mutate({
       id: technicianId,
       data: {
         role_id: roleId,
-        role_name: role?.name,
-        visible_modules: Object.keys(role?.permissions || {}).filter(key => role?.permissions[key]),
+        role_name: role.name,
+        visible_modules: visibleModules,
+        can_view_prices: permissions.can_view_prices !== false,
       },
     });
   };
