@@ -266,12 +266,328 @@ export default function IntegrationMarketplace() {
       </div>
 
       <Dialog open={!!configDialog} onOpenChange={() => setConfigDialog(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Configure {configDialog}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
+            {configDialog === 'zoho_books' && (
+              <Tabs defaultValue="connection" className="space-y-4">
+                <TabsList>
+                  <TabsTrigger value="connection">Connexion</TabsTrigger>
+                  <TabsTrigger value="sync">Synchronisation</TabsTrigger>
+                  <TabsTrigger value="advanced">Avancé</TabsTrigger>
+                  <TabsTrigger value="logs">Logs</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="connection">
+                  <Card>
+                    <CardContent className="space-y-4 pt-6">
+                      {zohoConnected ? (
+                        <>
+                          <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="w-5 h-5 text-green-600" />
+                              <span className="font-medium text-green-900">Connecté à Zoho Books</span>
+                            </div>
+                            <Badge className="bg-green-500">Active</Badge>
+                          </div>
+                          
+                          <div className="text-sm space-y-2">
+                            <p><strong>Organisation:</strong> {zohoSettings.zoho_organization_id}</p>
+                            <p><strong>Dernier sync:</strong> {zohoSettings.last_sync_customers ? format(new Date(zohoSettings.last_sync_customers), 'dd/MM/yyyy HH:mm') : 'Jamais'}</p>
+                          </div>
+
+                          <div className="border-t pt-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Label className="font-semibold">Sync Automatique</Label>
+                              <Switch
+                                checked={zohoSettings.auto_sync_enabled || false}
+                                onCheckedChange={(checked) => {
+                                  base44.entities.IntegrationSettings.update(zohoSettings.id, { auto_sync_enabled: checked });
+                                  queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                                }}
+                              />
+                            </div>
+
+                            {zohoSettings.auto_sync_enabled && (
+                              <>
+                                <div className="space-y-2">
+                                  <Label>Fréquence</Label>
+                                  <Select
+                                    value={zohoSettings.sync_frequency || 'daily'}
+                                    onValueChange={(value) => {
+                                      base44.entities.IntegrationSettings.update(zohoSettings.id, { sync_frequency: value });
+                                      queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                                    }}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="hourly">Toutes les heures</SelectItem>
+                                      <SelectItem value="daily">Quotidien</SelectItem>
+                                      <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          <Button 
+                            onClick={() => base44.entities.IntegrationSettings.update(zohoSettings.id, { is_active: false })}
+                            variant="outline"
+                            className="w-full"
+                          >
+                            Déconnecter
+                          </Button>
+                        </>
+                      ) : (
+                        <Button 
+                          onClick={() => connectZohoMutation.mutate()}
+                          className="w-full bg-blue-600 hover:bg-blue-700"
+                        >
+                          Connecter Zoho Books
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="sync">
+                  <Card>
+                    <CardContent className="space-y-3 pt-6">
+                      <Button
+                        onClick={() => syncMutation.mutate({ integration: 'zoho_books', operation: 'customers' })}
+                        disabled={!zohoConnected || syncMutation.isPending}
+                        className="w-full"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Sync Clients
+                      </Button>
+
+                      <Button
+                        onClick={() => syncMutation.mutate({ integration: 'zoho_books', operation: 'invoices' })}
+                        disabled={!zohoConnected || syncMutation.isPending}
+                        className="w-full"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Sync Factures
+                      </Button>
+
+                      <Button
+                        onClick={() => syncMutation.mutate({ integration: 'zoho_books', operation: 'items' })}
+                        disabled={!zohoConnected || syncMutation.isPending}
+                        className="w-full"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Sync Items
+                      </Button>
+
+                      {syncMutation.isPending && (
+                        <div className="text-sm text-blue-600 flex items-center gap-2">
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Synchronisation en cours...
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="advanced">
+                  <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Filtres de synchronisation</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Statuts clients à synchroniser</Label>
+                          <div className="flex gap-2">
+                            {['active', 'inactive', 'vip'].map(status => (
+                              <label key={status} className="flex items-center gap-2 border rounded px-3 py-2 cursor-pointer text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={(zohoSettings?.customer_filters?.status || ['active']).includes(status)}
+                                  onChange={(e) => {
+                                    if (zohoSettings) {
+                                      const current = zohoSettings.customer_filters?.status || ['active'];
+                                      const updated = e.target.checked 
+                                        ? [...current, status]
+                                        : current.filter(s => s !== status);
+                                      base44.entities.IntegrationSettings.update(zohoSettings.id, { 
+                                        customer_filters: { ...(zohoSettings.customer_filters || {}), status: updated }
+                                      });
+                                      queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                                    }
+                                  }}
+                                />
+                                <span className="capitalize">{status}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="logs">
+                  <Card>
+                    <CardContent className="space-y-3 pt-6 max-h-[60vh] overflow-y-auto">
+                      {syncLogs.filter(log => log.integration_type === 'zoho_books').map(log => (
+                        <div key={log.id} className="border rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Badge className={log.status === 'success' ? 'bg-green-500' : 'bg-red-500'}>
+                                {log.status}
+                              </Badge>
+                              <span className="font-medium">{log.operation}</span>
+                            </div>
+                            <span className="text-sm text-slate-500">
+                              {format(new Date(log.created_date), 'dd/MM/yyyy HH:mm')}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-sm text-slate-600">
+                            Traités: {log.records_processed} | Créés: {log.records_created} | Échecs: {log.records_failed}
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            )}
+
+            {configDialog === 'sage50' && (
+              <Tabs defaultValue="connection" className="space-y-4">
+                <TabsList>
+                  <TabsTrigger value="connection">Connexion</TabsTrigger>
+                  <TabsTrigger value="import">Import CSV</TabsTrigger>
+                  <TabsTrigger value="logs">Logs</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="connection">
+                  <Card>
+                    <CardContent className="space-y-4 pt-6">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm text-blue-900">
+                            <p className="font-semibold mb-1">Mode CSV activé</p>
+                            <p>Importez et exportez vos données via des fichiers CSV compatibles Sage 50 Canada.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {sage50Settings ? (
+                        <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                            <span className="font-medium text-green-900">Sage 50 activé</span>
+                          </div>
+                          <Badge className="bg-green-500">Active</Badge>
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={async () => {
+                            await base44.entities.IntegrationSettings.create({
+                              integration_type: 'sage50',
+                              sage50_sync_mode: 'csv',
+                              is_active: true
+                            });
+                            queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                          }}
+                          className="w-full"
+                        >
+                          Activer Sage 50
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="import">
+                  <Card>
+                    <CardContent className="space-y-4 pt-6">
+                      <div className="space-y-2">
+                        <Label>Fichier CSV</Label>
+                        <Input
+                          type="file"
+                          accept=".csv"
+                          onChange={(e) => setCsvFile(e.target.files[0])}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button
+                          onClick={() => handleCSVUpload('customers')}
+                          disabled={!csvFile || uploading}
+                          variant="outline"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Clients
+                        </Button>
+
+                        <Button
+                          onClick={() => handleCSVUpload('items')}
+                          disabled={!csvFile || uploading}
+                          variant="outline"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Items
+                        </Button>
+
+                        <Button
+                          onClick={() => handleCSVUpload('invoices')}
+                          disabled={!csvFile || uploading}
+                          variant="outline"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Factures
+                        </Button>
+                      </div>
+
+                      <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded">
+                        <FileText className="w-4 h-4 mb-2" />
+                        <p className="font-semibold mb-1">Format CSV requis:</p>
+                        <p>Clients: first_name, last_name, email, phone, company, address</p>
+                        <p>Items: item_code, item_name, price, description</p>
+                        <p>Factures: invoice_number, customer_name, date, subtotal, total</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="logs">
+                  <Card>
+                    <CardContent className="space-y-3 pt-6 max-h-[60vh] overflow-y-auto">
+                      {syncLogs.filter(log => log.integration_type === 'sage50').map(log => (
+                        <div key={log.id} className="border rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Badge className={log.status === 'success' ? 'bg-green-500' : 'bg-red-500'}>
+                                {log.status}
+                              </Badge>
+                              <span className="font-medium">{log.operation}</span>
+                            </div>
+                            <span className="text-sm text-slate-500">
+                              {format(new Date(log.created_date), 'dd/MM/yyyy HH:mm')}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-sm text-slate-600">
+                            Traités: {log.records_processed} | Créés: {log.records_created} | Échecs: {log.records_failed}
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            )}
+
             {configDialog === 'quickbooks' && (
               <>
                 <div>
@@ -296,6 +612,17 @@ export default function IntegrationMarketplace() {
                     })}
                     placeholder="Enter access token"
                   />
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setConfigDialog(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => saveMutation.mutate({ ...configData, status: 'active' })}
+                    disabled={saveMutation.isPending}
+                  >
+                    {saveMutation.isPending ? 'Saving...' : 'Save & Activate'}
+                  </Button>
                 </div>
               </>
             )}
@@ -325,20 +652,19 @@ export default function IntegrationMarketplace() {
                     placeholder="OAuth access token"
                   />
                 </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setConfigDialog(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => saveMutation.mutate({ ...configData, status: 'active' })}
+                    disabled={saveMutation.isPending}
+                  >
+                    {saveMutation.isPending ? 'Saving...' : 'Save & Activate'}
+                  </Button>
+                </div>
               </>
             )}
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setConfigDialog(null)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={() => saveMutation.mutate({ ...configData, status: 'active' })}
-                disabled={saveMutation.isPending}
-              >
-                {saveMutation.isPending ? 'Saving...' : 'Save & Activate'}
-              </Button>
-            </div>
           </div>
         </DialogContent>
       </Dialog>
