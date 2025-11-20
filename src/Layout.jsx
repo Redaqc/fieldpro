@@ -83,6 +83,21 @@ const navigationItems = [
     icon: Clock,
   },
   {
+    title: "Documents",
+    url: createPageUrl("Documents"),
+    icon: FileText,
+  },
+  {
+    title: "Formulaires",
+    url: createPageUrl("Forms"),
+    icon: FileCheck,
+  },
+  {
+    title: "Rapports",
+    url: createPageUrl("Reports"),
+    icon: BarChart3,
+  },
+  {
     title: "Rapports Temps",
     url: createPageUrl("TimeReports"),
     icon: BarChart3,
@@ -170,8 +185,8 @@ export default function Layout({ children, currentPageName }) {
   const isAdmin = user?.role === 'admin' || !currentTech;
   const isAdminOrManager = isAdmin || currentTech?.role === 'admin' || currentTech?.role === 'manager';
   const visibleModules = isAdmin 
-    ? ['dashboard', 'jobs', 'schedule', 'calendar', 'customers', 'team', 'time_tracking', 'quotations', 'invoices', 'assets', 'price_lists', 'materials', 'gpstracking', 'settings']
-    : (currentTech?.visible_modules || ['dashboard', 'jobs', 'schedule', 'calendar', 'time_tracking']);
+    ? ['dashboard', 'jobs', 'schedule', 'calendar', 'customers', 'team', 'time_tracking', 'documents', 'forms', 'reports', 'quotations', 'invoices', 'assets', 'price_lists', 'materials', 'gpstracking', 'settings']
+    : (currentTech?.visible_modules || ['dashboard', 'jobs', 'schedule', 'calendar', 'time_tracking', 'documents', 'forms']);
 
   // Filter navigation items based on user permissions
   const filteredNavigation = navigationItems.filter(item => {
@@ -196,7 +211,14 @@ export default function Layout({ children, currentPageName }) {
     const moduleMapping = {
       'timetracking': 'time_tracking',
       'pricelists': 'price_lists',
-      'gpstracking': 'gps_tracking'
+      'gpstracking': 'gps_tracking',
+      'timereports': 'time_tracking',
+      'profitabilityreports': 'reports',
+      'costsmanagement': 'costs',
+      'documents': 'documents',
+      'forms': 'forms',
+      'formbuilder': 'forms',
+      'reports': 'reports'
     };
 
     const mappedModule = moduleMapping[moduleName] || moduleName;
