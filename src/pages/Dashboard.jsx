@@ -130,8 +130,12 @@ export default function Dashboard() {
   const userRole = currentUser?.role === 'admin' ? 'admin' : (currentTech?.role || 'technician');
 
   const getActiveWidgets = () => {
-    if (selectedView === 'custom' && userConfig?.layout) {
-      return userConfig.layout.map(w => w.type);
+    if (selectedView === 'custom') {
+      if (userConfig?.layout && userConfig.layout.length > 0) {
+        return userConfig.layout.map(w => w.type);
+      }
+      // Si pas de config, utiliser la vue admin par défaut
+      return DEFAULT_VIEWS.admin;
     }
     return DEFAULT_VIEWS[selectedView] || DEFAULT_VIEWS[userRole];
   };
