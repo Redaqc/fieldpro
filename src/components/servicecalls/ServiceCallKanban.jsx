@@ -56,10 +56,20 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
   };
 
   const getCallsByStatus = (status) => {
-    return calls.filter(c => c.status === status).sort((a, b) => 
+    return calls.filter(c => (c.status || 'new') === status).sort((a, b) => 
       new Date(b.created_date) - new Date(a.created_date)
     );
   };
+
+  console.log('Service Calls:', calls);
+  console.log('Calls by status:', {
+    new: calls.filter(c => (c.status || 'new') === 'new').length,
+    scheduled: calls.filter(c => c.status === 'scheduled').length,
+    in_progress: calls.filter(c => c.status === 'in_progress').length,
+    on_hold: calls.filter(c => c.status === 'on_hold').length,
+    review: calls.filter(c => c.status === 'review').length,
+    completed: calls.filter(c => c.status === 'completed').length,
+  });
 
   const priorityColors = {
     low: 'bg-blue-100 text-blue-800',
