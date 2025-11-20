@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import InvoicingTab from "./InvoicingTab";
 
-export default function JobDialog({ open, onClose, job, technicians, currentUser, workTypes = [] }) {
+export default function JobDialog({ open, onClose, job, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -468,6 +468,33 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
             />
           </div>
 
+          {/* Customer */}
+          <div>
+            <Label className="text-sm font-medium">Client</Label>
+            <Select 
+              value={formData.customer_id || ''} 
+              onValueChange={(value) => {
+                const customer = customers.find(c => c.id === value);
+                setFormData({ 
+                  ...formData, 
+                  customer_id: value,
+                  customer_name: customer ? `${customer.first_name} ${customer.last_name}` : ''
+                });
+              }}
+            >
+              <SelectTrigger className="mt-1 h-11">
+                <SelectValue placeholder="Sélectionner un client" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map(customer => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.first_name} {customer.last_name} {customer.company_name && `- ${customer.company_name}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Description */}
           <div>
             <Label className="text-sm font-medium">Description</Label>
@@ -477,6 +504,35 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               placeholder="Description détaillée..."
               rows={4}
               className="mt-1 text-base"
+            />
+          </div>
+
+          {/* Project Addresses */}
+          <div className="space-y-3 border rounded-lg p-4 bg-slate-50">
+            <Label className="text-sm font-medium">Adresses du projet</Label>
+            <Input
+              value={formData.project_address_1 || ''}
+              onChange={(e) => setFormData({ ...formData, project_address_1: e.target.value })}
+              placeholder="Adresse 1..."
+              className="h-10"
+            />
+            <Input
+              value={formData.project_address_2 || ''}
+              onChange={(e) => setFormData({ ...formData, project_address_2: e.target.value })}
+              placeholder="Adresse 2..."
+              className="h-10"
+            />
+            <Input
+              value={formData.project_address_3 || ''}
+              onChange={(e) => setFormData({ ...formData, project_address_3: e.target.value })}
+              placeholder="Adresse 3..."
+              className="h-10"
+            />
+            <Input
+              value={formData.project_address_4 || ''}
+              onChange={(e) => setFormData({ ...formData, project_address_4: e.target.value })}
+              placeholder="Adresse 4..."
+              className="h-10"
             />
           </div>
 
@@ -838,23 +894,27 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                   <Plus className="w-4 h-4 mr-2" />
                   Nouvelle checklist
                 </Button>
-                {checklistTemplates.length > 0 && (
-                  <Select onValueChange={applyChecklistTemplate}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Modèle de checklist" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {checklistTemplates.filter(t => t.active !== false).map(template => (
+                <Select onValueChange={applyChecklistTemplate}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Modèle de checklist" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {checklistTemplates.filter(t => t.active !== false).length === 0 ? (
+                      <div className="p-4 text-center text-sm text-slate-500">
+                        Aucun modèle disponible
+                      </div>
+                    ) : (
+                      checklistTemplates.filter(t => t.active !== false).map(template => (
                         <SelectItem key={template.id} value={template.id}>
                           <div className="flex items-center gap-2">
                             <List className="w-4 h-4" />
                             {template.name}
                           </div>
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             </TabsContent>
 
