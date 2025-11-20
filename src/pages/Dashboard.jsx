@@ -15,6 +15,7 @@ import WidgetUrgentJobs from "@/components/dashboard/WidgetUrgentJobs";
 import WidgetTasksByTechnician from "@/components/dashboard/WidgetTasksByTechnician";
 import WidgetProjectProgress from "@/components/dashboard/WidgetProjectProgress";
 import WidgetFinancialIndicators from "@/components/dashboard/WidgetFinancialIndicators";
+import AlertsPanel from "@/components/shared/AlertsPanel";
 
 const DEFAULT_VIEWS = {
   admin: ['urgent_jobs', 'financial_indicators', 'project_progress', 'tasks_by_technician', 'jobs_by_status', 'monthly_revenue', 'technician_performance', 'invoice_summary'],
@@ -169,6 +170,8 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      <AlertsPanel />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min">
         {activeWidgets.map(widgetType => renderWidget(widgetType))}

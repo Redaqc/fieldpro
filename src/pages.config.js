@@ -25,6 +25,7 @@ import RoleManager from './pages/RoleManager';
 import ServiceCalls from './pages/ServiceCalls';
 import ScheduleAnalytics from './pages/ScheduleAnalytics';
 import DispatcherDashboard from './pages/DispatcherDashboard';
+import RecurringJobs from './pages/RecurringJobs';
 import __Layout from './Layout.jsx';
 
 
@@ -56,6 +57,7 @@ export const PAGES = {
     "ServiceCalls": ServiceCalls,
     "ScheduleAnalytics": ScheduleAnalytics,
     "DispatcherDashboard": DispatcherDashboard,
+    "RecurringJobs": RecurringJobs,
 }
 
 export const pagesConfig = {
