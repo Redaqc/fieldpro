@@ -330,6 +330,14 @@ export default function Layout({ children, currentPageName }) {
     },
   });
 
+  const { data: appSettings } = useQuery({
+    queryKey: ['appSettings'],
+    queryFn: async () => {
+      const settings = await base44.entities.AppSettings.list();
+      return settings[0] || null;
+    },
+  });
+
   const lang = languageSettings?.language || 'fr';
   const t = useMemo(() => (key) => translations[lang]?.[key] || translations.fr[key] || key, [lang]);
 
@@ -353,9 +361,25 @@ export default function Layout({ children, currentPageName }) {
 
   const navigationItems = getNavigationItems(t);
 
-  // Filter navigation items based on user permissions
+  // Filter navigation items based on user permissions and menu configuration
   const filteredNavigation = navigationItems.filter(item => {
     const moduleName = item.url.split('?')[0].split('/').pop().toLowerCase();
+
+    // Check menu configuration first
+    if (appSettings?.menu_modules) {
+      const moduleKey = moduleName.replace(/dashboard/i, match => 
+        moduleName === 'dispatcherdashboard' ? 'dispatcherDashboard' :
+        moduleName === 'managerdashboard' ? 'managerDashboard' :
+        'dashboard'
+      ).replace(/([A-Z])/g, match => match).replace(/^[a-z]/, match => match);
+      
+      // Convert to camelCase for lookup
+      const camelKey = moduleName.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+      
+      if (appSettings.menu_modules[camelKey] === false) {
+        return false;
+      }
+    }
 
     // GPS Tracking visibility - only for managers and admins
     if (moduleName === 'gpstracking') {

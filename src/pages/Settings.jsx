@@ -335,6 +335,7 @@ export default function Settings() {
             <Palette className="w-4 h-4" />
             White Label
           </TabsTrigger>
+          <TabsTrigger value="menu">Configuration Menu</TabsTrigger>
           <TabsTrigger value="integrations" className="flex items-center gap-2">
             <Link2 className="w-4 h-4" />
             Intégrations
@@ -979,6 +980,76 @@ export default function Settings() {
               <Button className="bg-blue-600 w-full">
                 Save Branding Settings
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="menu">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configuration du menu</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600 mb-6">
+                Sélectionnez les modules à afficher dans le menu principal
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[
+                  { key: 'dashboard', label: 'Dashboard' },
+                  { key: 'dispatcherDashboard', label: 'Dispatcher Dashboard' },
+                  { key: 'managerDashboard', label: 'Manager Dashboard' },
+                  { key: 'technicianMobile', label: 'Mobile Tech' },
+                  { key: 'jobs', label: 'Jobs' },
+                  { key: 'serviceCalls', label: 'Service Calls' },
+                  { key: 'schedule', label: 'Schedule' },
+                  { key: 'scheduleAnalytics', label: 'Schedule Analytics' },
+                  { key: 'calendar', label: 'Calendar' },
+                  { key: 'customers', label: 'Customers' },
+                  { key: 'team', label: 'Team' },
+                  { key: 'timeTracking', label: 'Time Tracking' },
+                  { key: 'documents', label: 'Documents' },
+                  { key: 'forms', label: 'Forms' },
+                  { key: 'formAutomations', label: 'Form Automations' },
+                  { key: 'recurringJobs', label: 'Recurring Jobs' },
+                  { key: 'automationRules', label: 'Automation Rules' },
+                  { key: 'reports', label: 'Reports' },
+                  { key: 'advancedReports', label: 'Advanced Analytics' },
+                  { key: 'customerPortal', label: 'Customer Portal' },
+                  { key: 'maintenanceTracker', label: 'Maintenance Tracker' },
+                  { key: 'teamChat', label: 'Team Chat' },
+                  { key: 'notificationCenter', label: 'Notifications' },
+                  { key: 'biDashboard', label: 'BI Dashboard' },
+                  { key: 'integrationMarketplace', label: 'Integrations' },
+                  { key: 'customFields', label: 'Custom Fields' },
+                  { key: 'webhookManager', label: 'Webhooks' },
+                  { key: 'profitabilityReports', label: 'Profitability' },
+                  { key: 'costsManagement', label: 'Costs Management' },
+                  { key: 'gpsTracking', label: 'GPS Tracking' },
+                  { key: 'quotations', label: 'Quotations' },
+                  { key: 'invoices', label: 'Invoices' },
+                  { key: 'assets', label: 'Assets' },
+                  { key: 'priceLists', label: 'Price Lists' },
+                  { key: 'materials', label: 'Materials' },
+                  { key: 'settings', label: 'Settings' },
+                  { key: 'roleManager', label: 'Role Manager' }
+                ].map(module => (
+                  <div key={module.key} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50">
+                    <span className="text-sm font-medium">{module.label}</span>
+                    <Switch
+                      checked={appSettings?.menu_modules?.[module.key] !== false}
+                      onCheckedChange={(checked) => {
+                        const currentModules = appSettings?.menu_modules || {};
+                        updateAppSettingsMutation.mutate({
+                          menu_modules: {
+                            ...currentModules,
+                            [module.key]: checked
+                          }
+                        });
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
