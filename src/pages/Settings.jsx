@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Edit, Save, X, Eye, EyeOff, Link2, CheckCircle, XCircle, RefreshCw, Download, AlertCircle, List, Settings as SettingsIcon, GitBranch, Flag, BarChart, FileText, TrendingDown, Paperclip, MessageSquare, Activity, Building2, Image as ImageIcon, Receipt, Upload, Palette } from "lucide-react";
+import { Plus, Trash2, Edit, Save, X, Eye, EyeOff, Link2, CheckCircle, XCircle, RefreshCw, Download, AlertCircle, List, Settings as SettingsIcon, GitBranch, Flag, BarChart, FileText, TrendingDown, Paperclip, MessageSquare, Activity, Building2, Image as ImageIcon, Receipt, Upload, Palette, Shield } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -68,6 +68,11 @@ export default function Settings() {
       const settings = await base44.entities.LanguageSettings.list();
       return settings[0] || { language: 'fr' };
     },
+  });
+
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
   });
 
   const { data: zohoSettings } = useQuery({
@@ -316,6 +321,10 @@ export default function Settings() {
             <SettingsIcon className="w-4 h-4" />
             Langue
           </TabsTrigger>
+          <TabsTrigger value="security" className="flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Security Center
+          </TabsTrigger>
           <TabsTrigger value="work-types">Types de travaux</TabsTrigger>
           <TabsTrigger value="company" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
@@ -341,6 +350,79 @@ export default function Settings() {
             Intégrations
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="security">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Shield className="w-6 h-6 text-slate-500" />
+                <div>
+                  <CardTitle>Security Center</CardTitle>
+                  <p className="text-sm text-slate-500 mt-1">Manage your account security settings</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-8">
+              {/* Two-Factor Authentication */}
+              <div className="space-y-4">
+                <div className="border-b pb-3">
+                  <h3 className="text-lg font-semibold">Two-factor authentication (2FA)</h3>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Protect your account's sensitive information by adding an extra step to the login process.{' '}
+                    <a href="#" className="text-blue-600 hover:underline">Learn More</a>
+                  </p>
+                </div>
+
+                <div className="flex items-start gap-4 p-4 border rounded-lg bg-slate-50">
+                  <Switch
+                    checked={appSettings?.require_2fa || false}
+                    onCheckedChange={(checked) => updateAppSettingsMutation.mutate({ require_2fa: checked })}
+                  />
+                  <div className="flex-1">
+                    <p className="font-medium">Require Two-factor authentication (2FA)</p>
+                    <p className="text-sm text-slate-600 mt-1">
+                      When this is selected you'll be required to use 2FA to log in with a one-time code from your phone.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Security Notifications */}
+              <div className="space-y-4">
+                <div className="border-b pb-3">
+                  <h3 className="text-lg font-semibold">Security notifications</h3>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Get email notifications about every sensitive action made in your account
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="font-medium text-sm">Notify me about...</p>
+                  
+                  <div className="flex items-start gap-4 p-4 border rounded-lg">
+                    <Switch
+                      checked={appSettings?.notify_phone_change || false}
+                      onCheckedChange={(checked) => updateAppSettingsMutation.mutate({ notify_phone_change: checked })}
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium">Changes to a user's phone number</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4 p-4 border rounded-lg">
+                    <Switch
+                      checked={appSettings?.notify_email_change || false}
+                      onCheckedChange={(checked) => updateAppSettingsMutation.mutate({ notify_email_change: checked })}
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium">Changes to a user's email address</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="language">
           <Card>
