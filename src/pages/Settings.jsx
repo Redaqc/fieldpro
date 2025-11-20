@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Settings() {
   const [editingType, setEditingType] = useState(null);
@@ -929,9 +930,106 @@ export default function Settings() {
                       <>
                         <div className="text-sm space-y-2">
                           <p><strong>Organisation:</strong> {zohoSettings.zoho_organization_id}</p>
-                          <p><strong>Dernier sync clients:</strong> {zohoSettings.last_sync_customers ? format(new Date(zohoSettings.last_sync_customers), 'dd/MM/yyyy HH:mm') : 'Jamais'}</p>
-                          <p><strong>Dernier sync factures:</strong> {zohoSettings.last_sync_invoices ? format(new Date(zohoSettings.last_sync_invoices), 'dd/MM/yyyy HH:mm') : 'Jamais'}</p>
+                          <p><strong>Dernier sync manuel:</strong> {zohoSettings.last_sync_customers ? format(new Date(zohoSettings.last_sync_customers), 'dd/MM/yyyy HH:mm') : 'Jamais'}</p>
+                          <p><strong>Dernier sync auto:</strong> {zohoSettings.last_auto_sync ? format(new Date(zohoSettings.last_auto_sync), 'dd/MM/yyyy HH:mm') : 'Jamais'}</p>
                         </div>
+
+                        <div className="border-t pt-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label className="font-semibold">Sync Automatique</Label>
+                            <Switch
+                              checked={zohoSettings.auto_sync_enabled || false}
+                              onCheckedChange={(checked) => {
+                                base44.entities.IntegrationSettings.update(zohoSettings.id, { auto_sync_enabled: checked });
+                                queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                              }}
+                            />
+                          </div>
+
+                          {zohoSettings.auto_sync_enabled && (
+                            <>
+                              <div className="space-y-2">
+                                <Label>Fréquence</Label>
+                                <Select
+                                  value={zohoSettings.sync_frequency || 'daily'}
+                                  onValueChange={(value) => {
+                                    base44.entities.IntegrationSettings.update(zohoSettings.id, { sync_frequency: value });
+                                    queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="hourly">Toutes les heures</SelectItem>
+                                    <SelectItem value="daily">Quotidien</SelectItem>
+                                    <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {(zohoSettings.sync_frequency === 'daily' || zohoSettings.sync_frequency === 'weekly') && (
+                                <div className="space-y-2">
+                                  <Label>Heure de sync</Label>
+                                  <Input
+                                    type="time"
+                                    value={zohoSettings.sync_time || '02:00'}
+                                    onChange={(e) => {
+                                      base44.entities.IntegrationSettings.update(zohoSettings.id, { sync_time: e.target.value });
+                                      queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                                    }}
+                                  />
+                                </div>
+                              )}
+
+                              <div className="space-y-2">
+                                <Label>Opérations à synchroniser</Label>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm">Clients</span>
+                                  <Switch
+                                    checked={zohoSettings.sync_customers !== false}
+                                    onCheckedChange={(checked) => {
+                                      base44.entities.IntegrationSettings.update(zohoSettings.id, { sync_customers: checked });
+                                      queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                                    }}
+                                  />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm">Factures</span>
+                                  <Switch
+                                    checked={zohoSettings.sync_invoices !== false}
+                                    onCheckedChange={(checked) => {
+                                      base44.entities.IntegrationSettings.update(zohoSettings.id, { sync_invoices: checked });
+                                      queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                                    }}
+                                  />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm">Items</span>
+                                  <Switch
+                                    checked={zohoSettings.sync_items !== false}
+                                    onCheckedChange={(checked) => {
+                                      base44.entities.IntegrationSettings.update(zohoSettings.id, { sync_items: checked });
+                                      queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                                    }}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm">Notifier en cas d'erreur</span>
+                                <Switch
+                                  checked={zohoSettings.notify_on_errors !== false}
+                                  onCheckedChange={(checked) => {
+                                    base44.entities.IntegrationSettings.update(zohoSettings.id, { notify_on_errors: checked });
+                                    queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                                  }}
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+
                         <Button 
                           onClick={() => base44.entities.IntegrationSettings.update(zohoSettings.id, { is_active: false })}
                           variant="outline"
@@ -1019,10 +1117,60 @@ export default function Settings() {
                     </div>
 
                     {sage50Settings ? (
-                      <div className="text-sm space-y-2">
-                        <p><strong>Mode:</strong> {sage50Settings.sage50_sync_mode?.toUpperCase()}</p>
-                        <p><strong>Dernier sync:</strong> {sage50Settings.last_sync_customers ? format(new Date(sage50Settings.last_sync_customers), 'dd/MM/yyyy HH:mm') : 'Jamais'}</p>
-                      </div>
+                      <>
+                        <div className="text-sm space-y-2">
+                          <p><strong>Mode:</strong> {sage50Settings.sage50_sync_mode?.toUpperCase()}</p>
+                          <p><strong>Dernier sync:</strong> {sage50Settings.last_sync_customers ? format(new Date(sage50Settings.last_sync_customers), 'dd/MM/yyyy HH:mm') : 'Jamais'}</p>
+                        </div>
+
+                        <div className="border-t pt-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label className="font-semibold">Sync Automatique</Label>
+                            <Switch
+                              checked={sage50Settings.auto_sync_enabled || false}
+                              onCheckedChange={(checked) => {
+                                base44.entities.IntegrationSettings.update(sage50Settings.id, { auto_sync_enabled: checked });
+                                queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                              }}
+                            />
+                          </div>
+
+                          {sage50Settings.auto_sync_enabled && (
+                            <>
+                              <div className="space-y-2">
+                                <Label>Fréquence</Label>
+                                <Select
+                                  value={sage50Settings.sync_frequency || 'daily'}
+                                  onValueChange={(value) => {
+                                    base44.entities.IntegrationSettings.update(sage50Settings.id, { sync_frequency: value });
+                                    queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="hourly">Toutes les heures</SelectItem>
+                                    <SelectItem value="daily">Quotidien</SelectItem>
+                                    <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm">Notifier en cas d'erreur</span>
+                                <Switch
+                                  checked={sage50Settings.notify_on_errors !== false}
+                                  onCheckedChange={(checked) => {
+                                    base44.entities.IntegrationSettings.update(sage50Settings.id, { notify_on_errors: checked });
+                                    queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                                  }}
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </>
                     ) : (
                       <Button
                         onClick={async () => {
