@@ -123,17 +123,29 @@ export default function Layout({ children, currentPageName }) {
 
   // Find current user's technician profile to check permissions
   const currentTech = technicians.find(t => t.email === user?.email);
-  const visibleModules = currentTech?.visible_modules || ['dashboard', 'jobs', 'schedule', 'customers', 'team', 'time_tracking', 'quotations', 'invoices', 'assets', 'price_lists', 'materials'];
+
+  // If user is admin or has no tech profile, show all
+  const isAdmin = user?.role === 'admin' || !currentTech;
+  const visibleModules = isAdmin 
+    ? ['dashboard', 'jobs', 'schedule', 'customers', 'team', 'time_tracking', 'quotations', 'invoices', 'assets', 'price_lists', 'materials', 'gpstracking', 'settings']
+    : (currentTech?.visible_modules || ['dashboard', 'jobs', 'schedule', 'time_tracking']);
 
   // Filter navigation items based on user permissions
   const filteredNavigation = navigationItems.filter(item => {
     const moduleName = item.url.split('?')[0].split('/').pop().toLowerCase();
+
     // GPS Tracking visibility - only for managers and admins
     if (moduleName === 'gpstracking') {
-      return currentTech?.role === 'admin' || currentTech?.role === 'manager';
+      return isAdmin || currentTech?.role === 'admin' || currentTech?.role === 'manager';
     }
+
+    // Settings always visible for admins
+    if (moduleName === 'settings') {
+      return isAdmin || currentTech?.role === 'admin';
+    }
+
     return visibleModules.includes(moduleName);
-    });
+  });
 
   return (
     <SidebarProvider>
