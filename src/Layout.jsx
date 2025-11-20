@@ -18,7 +18,8 @@ import {
         DollarSign,
         Clock,
         MapPin,
-        BarChart3
+        BarChart3,
+        TrendingUp
       } from "lucide-react";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 import {
@@ -85,6 +86,11 @@ const navigationItems = [
     title: "Rapports Temps",
     url: createPageUrl("TimeReports"),
     icon: BarChart3,
+  },
+  {
+    title: "Rentabilité",
+    url: createPageUrl("ProfitabilityReports"),
+    icon: TrendingUp,
   },
   {
     title: "GPS Tracking",

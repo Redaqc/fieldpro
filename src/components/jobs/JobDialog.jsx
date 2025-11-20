@@ -10,10 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock, List, StopCircle } from "lucide-react";
+import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock, List, StopCircle, TrendingDown } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import InvoicingTab from "./InvoicingTab";
+import CostsTab from "./CostsTab";
 
 export default function JobDialog({ open, onClose, job, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
@@ -986,7 +987,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
           </div>
 
           <Tabs defaultValue="checklist" className="w-full">
-            <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full h-auto">
+            <TabsList className="grid grid-cols-2 sm:grid-cols-6 w-full h-auto">
               <TabsTrigger value="checklist" className="flex items-center gap-1 sm:gap-2 py-2.5">
                 <CheckSquare className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Checklist</span>
@@ -994,6 +995,10 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               <TabsTrigger value="invoicing" className="flex items-center gap-1 sm:gap-2 py-2.5">
                 <FileText className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Facturation</span>
+              </TabsTrigger>
+              <TabsTrigger value="costs" className="flex items-center gap-1 sm:gap-2 py-2.5">
+                <TrendingDown className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Coûts</span>
               </TabsTrigger>
               <TabsTrigger value="attachments" className="flex items-center gap-1 sm:gap-2 py-2.5">
                 <Paperclip className="w-4 h-4" />
@@ -1112,6 +1117,14 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
 
             <TabsContent value="invoicing" className="space-y-4">
               <InvoicingTab 
+                job={job}
+                formData={formData}
+                setFormData={setFormData}
+              />
+            </TabsContent>
+
+            <TabsContent value="costs" className="space-y-4">
+              <CostsTab 
                 job={job}
                 formData={formData}
                 setFormData={setFormData}

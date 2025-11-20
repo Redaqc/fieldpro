@@ -15,6 +15,7 @@ import TechnicianMobile from './pages/TechnicianMobile';
 import NotificationSettings from './pages/NotificationSettings';
 import Calendar from './pages/Calendar';
 import TimeReports from './pages/TimeReports';
+import ProfitabilityReports from './pages/ProfitabilityReports';
 import __Layout from './Layout.jsx';
 
 
@@ -36,6 +37,7 @@ export const PAGES = {
     "NotificationSettings": NotificationSettings,
     "Calendar": Calendar,
     "TimeReports": TimeReports,
+    "ProfitabilityReports": ProfitabilityReports,
 }
 
 export const pagesConfig = {
