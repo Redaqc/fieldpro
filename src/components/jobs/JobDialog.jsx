@@ -538,36 +538,72 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
             )}
           </div>
 
-          {/* Technicians Multi-Select */}
+          {/* Technicians Assignment */}
           <div>
-            <Label className="text-sm font-medium">Techniciens assignés</Label>
-            <div className="mt-2 border rounded-lg p-3 space-y-2 max-h-48 overflow-y-auto">
-              {technicians.map(tech => {
-                const isAssigned = (formData.technicians || []).find(t => t.id === tech.id);
-                return (
-                  <div key={tech.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded">
-                    <input
-                      type="checkbox"
-                      checked={!!isAssigned}
-                      onChange={() => toggleTechnician(tech.id)}
-                      className="w-4 h-4"
-                    />
-                    <div 
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                      style={{ backgroundColor: tech.color || '#64748b' }}
-                    >
-                      {tech.first_name[0]}{tech.last_name[0]}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{tech.first_name} {tech.last_name}</p>
-                      {isAssigned && (
-                        <p className="text-xs text-slate-500">{isAssigned.time_spent || 0}h passées</p>
-                      )}
-                    </div>
+            <Label className="text-sm font-medium mb-2 block">Techniciens assignés</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {(formData.technicians || []).map(assignedTech => {
+                    const tech = technicians.find(t => t.id === assignedTech.id);
+                    if (!tech) return null;
+                    return (
+                      <div 
+                        key={assignedTech.id}
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold cursor-pointer hover:opacity-80 transition-opacity"
+                        style={{ backgroundColor: tech.color || '#64748b' }}
+                        title={`${tech.first_name} ${tech.last_name}`}
+                      >
+                        {tech.first_name[0]}{tech.last_name[0]}
+                      </div>
+                    );
+                  })}
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    className="w-10 h-10 rounded-full"
+                    type="button"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </Button>
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-4">
+                <div className="space-y-3">
+                  <h3 className="font-semibold">Techniciens assignés</h3>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {technicians.map(tech => {
+                      const isAssigned = (formData.technicians || []).find(t => t.id === tech.id);
+                      return (
+                        <div 
+                          key={tech.id} 
+                          className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded cursor-pointer"
+                          onClick={() => toggleTechnician(tech.id)}
+                        >
+                          <div 
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                            style={{ backgroundColor: tech.color || '#64748b' }}
+                          >
+                            {tech.first_name[0]}{tech.last_name[0]}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{tech.first_name} {tech.last_name}</p>
+                            {isAssigned && (
+                              <p className="text-xs text-slate-500">{isAssigned.time_spent || 0}h passées</p>
+                            )}
+                          </div>
+                          {isAssigned ? (
+                            <X className="w-4 h-4 text-red-500 flex-shrink-0" />
+                          ) : (
+                            <Plus className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Labels */}
@@ -701,7 +737,19 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               {formData.checklist.map(group => (
                 <div key={group.id} className="border rounded-lg p-3">
                   <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-semibold">{group.name}</h4>
+                    <Input
+                      value={group.name}
+                      onChange={(e) => {
+                        const updatedChecklist = formData.checklist.map(g => 
+                          g.id === group.id ? { ...g, name: e.target.value } : g
+                        );
+                        setFormData({ ...formData, checklist: updatedChecklist });
+                        if (job) {
+                          updateJobMutation.mutate({ id: job.id, data: { checklist: updatedChecklist } });
+                        }
+                      }}
+                      className="font-semibold border-none shadow-none px-0 h-auto focus-visible:ring-0"
+                    />
                     <Button size="sm" variant="outline" onClick={() => addChecklistItem(group.id)}>
                       <Plus className="w-3 h-3 mr-1" />
                       Ajouter
