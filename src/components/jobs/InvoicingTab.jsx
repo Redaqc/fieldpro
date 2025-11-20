@@ -357,7 +357,7 @@ export default function InvoicingTab({ job, formData, setFormData }) {
         <h3 className="text-base font-bold">Éléments de Facturation</h3>
         <div className="flex gap-2 flex-wrap">
           {customerPriceList && customerPriceList.items && customerPriceList.items.length > 0 ? (
-            <Select onValueChange={(value) => addPriceListItem(parseInt(value))}>
+            <Select value="" onValueChange={(value) => addPriceListItem(parseInt(value))}>
               <SelectTrigger className="w-40 h-8 font-semibold">
                 <SelectValue placeholder="Item" />
               </SelectTrigger>
