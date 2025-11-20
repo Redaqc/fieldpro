@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -9,33 +9,35 @@ import { Button } from "@/components/ui/button";
 
 export default function AddressAutocompleteSettings() {
   const queryClient = useQueryClient();
-  const [localApiKey, setLocalApiKey] = useState('');
+  const [apiKey, setApiKey] = useState('');
 
   const { data: addressSettings } = useQuery({
     queryKey: ['integrationSettings', 'address_autocomplete'],
     queryFn: async () => {
       const settings = await base44.entities.IntegrationSettings.filter({ integration_type: 'address_autocomplete' });
-      return settings[0] || null;
+      const result = settings[0] || null;
+      if (result?.api_key) {
+        setApiKey(result.api_key);
+      }
+      return result;
     },
   });
 
-  useEffect(() => {
-    if (addressSettings?.api_key) {
-      setLocalApiKey(addressSettings.api_key);
-    }
-  }, [addressSettings?.api_key]);
-
-  const updateAddressSettings = async (updates) => {
-    if (addressSettings?.id) {
-      await base44.entities.IntegrationSettings.update(addressSettings.id, updates);
-    } else {
-      await base44.entities.IntegrationSettings.create({
-        integration_type: 'address_autocomplete',
-        ...updates
-      });
-    }
-    queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
-  };
+  const updateMutation = useMutation({
+    mutationFn: async (updates) => {
+      if (addressSettings?.id) {
+        return await base44.entities.IntegrationSettings.update(addressSettings.id, updates);
+      } else {
+        return await base44.entities.IntegrationSettings.create({
+          integration_type: 'address_autocomplete',
+          ...updates
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+    },
+  });
 
   return (
     <>
@@ -46,7 +48,7 @@ export default function AddressAutocompleteSettings() {
         </div>
         <Switch
           checked={addressSettings?.is_active || false}
-          onCheckedChange={(checked) => updateAddressSettings({ is_active: checked })}
+          onCheckedChange={(checked) => updateMutation.mutate({ is_active: checked })}
         />
       </div>
 
@@ -54,7 +56,7 @@ export default function AddressAutocompleteSettings() {
         <Label>Provider</Label>
         <Select
           value={addressSettings?.provider_type || 'google'}
-          onValueChange={(value) => updateAddressSettings({ provider_type: value })}
+          onValueChange={(value) => updateMutation.mutate({ provider_type: value })}
         >
           <SelectTrigger className="mt-1">
             <SelectValue />
@@ -70,13 +72,8 @@ export default function AddressAutocompleteSettings() {
         <Label>API Key</Label>
         <Input
           type="text"
-          value={localApiKey}
-          onChange={(e) => setLocalApiKey(e.target.value)}
-          onBlur={() => {
-            if (localApiKey !== addressSettings?.api_key) {
-              updateAddressSettings({ api_key: localApiKey });
-            }
-          }}
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
           placeholder="Enter your API key"
           className="mt-1"
         />
@@ -92,7 +89,7 @@ export default function AddressAutocompleteSettings() {
         <Label>Country Bias</Label>
         <Select
           value={addressSettings?.country_bias || 'ca'}
-          onValueChange={(value) => updateAddressSettings({ country_bias: value })}
+          onValueChange={(value) => updateMutation.mutate({ country_bias: value })}
         >
           <SelectTrigger className="mt-1">
             <SelectValue />
@@ -110,7 +107,7 @@ export default function AddressAutocompleteSettings() {
         <Label>Language</Label>
         <Select
           value={addressSettings?.language || 'fr'}
-          onValueChange={(value) => updateAddressSettings({ language: value })}
+          onValueChange={(value) => updateMutation.mutate({ language: value })}
         >
           <SelectTrigger className="mt-1">
             <SelectValue />
@@ -130,14 +127,11 @@ export default function AddressAutocompleteSettings() {
       </div>
 
       <Button 
-        onClick={() => {
-          if (localApiKey !== addressSettings?.api_key) {
-            updateAddressSettings({ api_key: localApiKey });
-          }
-        }}
+        onClick={() => updateMutation.mutate({ api_key: apiKey })}
+        disabled={updateMutation.isPending}
         className="w-full bg-blue-600 hover:bg-blue-700"
       >
-        Save Settings
+        {updateMutation.isPending ? 'Saving...' : 'Save API Key'}
       </Button>
     </>
   );
