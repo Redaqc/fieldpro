@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Save, X, Upload, Image } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import AddressAutocompleteInput from "../shared/AddressAutocompleteInput";
 
 export default function CustomerDialog({ open, onClose, onSave, customer }) {
   const [formData, setFormData] = useState(customer || {
@@ -175,11 +176,15 @@ export default function CustomerDialog({ open, onClose, onSave, customer }) {
             </div>
 
             <div className="col-span-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => handleChange('address', e.target.value)}
+              <AddressAutocompleteInput
+                label="Address"
+                defaultValue={formData.address}
+                onAddressSelected={(address) => {
+                  handleChange('address', `${address.street_number} ${address.street_name}`.trim());
+                  handleChange('city', address.city);
+                  handleChange('state', address.province);
+                  handleChange('zip_code', address.postal_code);
+                }}
               />
             </div>
 
@@ -193,7 +198,7 @@ export default function CustomerDialog({ open, onClose, onSave, customer }) {
             </div>
 
             <div>
-              <Label htmlFor="state">State</Label>
+              <Label htmlFor="state">State/Province</Label>
               <Input
                 id="state"
                 value={formData.state}
@@ -202,7 +207,7 @@ export default function CustomerDialog({ open, onClose, onSave, customer }) {
             </div>
 
             <div className="col-span-2">
-              <Label htmlFor="zip_code">Zip Code</Label>
+              <Label htmlFor="zip_code">Zip/Postal Code</Label>
               <Input
                 id="zip_code"
                 value={formData.zip_code}

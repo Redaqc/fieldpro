@@ -345,6 +345,7 @@ export default function Settings() {
             White Label
           </TabsTrigger>
           <TabsTrigger value="menu">Configuration Menu</TabsTrigger>
+          <TabsTrigger value="address-autocomplete">Address Autocomplete</TabsTrigger>
         </TabsList>
 
         <TabsContent value="security">
