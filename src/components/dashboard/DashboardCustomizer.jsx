@@ -58,16 +58,21 @@ export default function DashboardCustomizer({ open, onClose, selectedWidgets, on
               return (
                 <div
                   key={widget.id}
-                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    isSelected ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all overflow-hidden ${
+                    isSelected ? 'border-blue-500 shadow-lg' : 'border-slate-200 hover:border-slate-300'
                   }`}
                   onClick={() => toggleWidget(widget.id)}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="absolute inset-0 opacity-10">
+                    <div className={`w-full h-full ${widget.color.replace('text-', 'bg-')}`} />
+                  </div>
+                  <div className="relative flex items-start gap-3">
                     <Checkbox checked={isSelected} />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <Icon className={`w-5 h-5 ${widget.color}`} />
+                        <div className={`p-1.5 rounded ${widget.color.replace('text-', 'bg-')} bg-opacity-20`}>
+                          <Icon className={`w-5 h-5 ${widget.color}`} />
+                        </div>
                         <p className="font-semibold text-sm">{widget.name}</p>
                       </div>
                       <p className="text-xs text-slate-500">{widget.description}</p>
