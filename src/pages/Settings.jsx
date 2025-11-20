@@ -909,6 +909,7 @@ export default function Settings() {
             <TabsList>
               <TabsTrigger value="zoho">Zoho Books</TabsTrigger>
               <TabsTrigger value="sage50">Sage 50 Canada</TabsTrigger>
+              <TabsTrigger value="advanced">Configuration Avancée</TabsTrigger>
               <TabsTrigger value="logs">Journal d'activité</TabsTrigger>
             </TabsList>
 
@@ -1241,6 +1242,352 @@ export default function Settings() {
                       <p>Clients: first_name, last_name, email, phone, company, address, city, province, postal_code</p>
                       <p>Items: item_code, item_name, price, description</p>
                       <p>Factures: invoice_number, customer_name, date, subtotal, gst, pst, total</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="advanced">
+              <div className="space-y-6">
+                {/* Date Ranges */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Plages de dates pour import historique</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-slate-600">
+                      Définissez une plage de dates pour limiter l'import des données historiques
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Date de début</Label>
+                        <Input
+                          type="date"
+                          value={zohoSettings?.historical_sync_start_date || ''}
+                          onChange={(e) => {
+                            if (zohoSettings) {
+                              base44.entities.IntegrationSettings.update(zohoSettings.id, { 
+                                historical_sync_start_date: e.target.value 
+                              });
+                              queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Date de fin</Label>
+                        <Input
+                          type="date"
+                          value={zohoSettings?.historical_sync_end_date || ''}
+                          onChange={(e) => {
+                            if (zohoSettings) {
+                              base44.entities.IntegrationSettings.update(zohoSettings.id, { 
+                                historical_sync_end_date: e.target.value 
+                              });
+                              queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Master Rules */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Règles de maîtrise des données</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-slate-600">
+                      Définissez quel système est la source principale pour chaque type de données
+                    </p>
+
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-4 items-center">
+                        <Label>Clients</Label>
+                        <Select
+                          value={zohoSettings?.master_rules?.customers || 'bidirectional'}
+                          onValueChange={(value) => {
+                            if (zohoSettings) {
+                              const rules = { ...(zohoSettings.master_rules || {}), customers: value };
+                              base44.entities.IntegrationSettings.update(zohoSettings.id, { master_rules: rules });
+                              queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="system">Système maître</SelectItem>
+                            <SelectItem value="external">Externe maître (Zoho/Sage)</SelectItem>
+                            <SelectItem value="bidirectional">Bidirectionnel</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 items-center">
+                        <Label>Factures</Label>
+                        <Select
+                          value={zohoSettings?.master_rules?.invoices || 'system'}
+                          onValueChange={(value) => {
+                            if (zohoSettings) {
+                              const rules = { ...(zohoSettings.master_rules || {}), invoices: value };
+                              base44.entities.IntegrationSettings.update(zohoSettings.id, { master_rules: rules });
+                              queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="system">Système maître</SelectItem>
+                            <SelectItem value="external">Externe maître (Zoho/Sage)</SelectItem>
+                            <SelectItem value="bidirectional">Bidirectionnel</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 items-center">
+                        <Label>Items / Matériaux</Label>
+                        <Select
+                          value={zohoSettings?.master_rules?.items || 'external'}
+                          onValueChange={(value) => {
+                            if (zohoSettings) {
+                              const rules = { ...(zohoSettings.master_rules || {}), items: value };
+                              base44.entities.IntegrationSettings.update(zohoSettings.id, { master_rules: rules });
+                              queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="system">Système maître</SelectItem>
+                            <SelectItem value="external">Externe maître (Zoho/Sage)</SelectItem>
+                            <SelectItem value="bidirectional">Bidirectionnel</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 items-center">
+                        <Label>Paiements</Label>
+                        <Select
+                          value={zohoSettings?.master_rules?.payments || 'external'}
+                          onValueChange={(value) => {
+                            if (zohoSettings) {
+                              const rules = { ...(zohoSettings.master_rules || {}), payments: value };
+                              base44.entities.IntegrationSettings.update(zohoSettings.id, { master_rules: rules });
+                              queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="system">Système maître</SelectItem>
+                            <SelectItem value="external">Externe maître (Zoho/Sage)</SelectItem>
+                            <SelectItem value="bidirectional">Bidirectionnel</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4 mt-4">
+                      <div className="grid grid-cols-2 gap-4 items-center">
+                        <Label>Résolution des conflits</Label>
+                        <Select
+                          value={zohoSettings?.conflict_resolution || 'use_latest'}
+                          onValueChange={(value) => {
+                            if (zohoSettings) {
+                              base44.entities.IntegrationSettings.update(zohoSettings.id, { conflict_resolution: value });
+                              queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="use_latest">Utiliser le plus récent</SelectItem>
+                            <SelectItem value="use_external">Toujours externe</SelectItem>
+                            <SelectItem value="use_system">Toujours système</SelectItem>
+                            <SelectItem value="manual">Manuel (avec log)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Customer Filters */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Filtres de synchronisation - Clients</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Statuts à synchroniser</Label>
+                      <div className="flex gap-2">
+                        {['active', 'inactive', 'vip'].map(status => (
+                          <label key={status} className="flex items-center gap-2 border rounded px-3 py-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={(zohoSettings?.customer_filters?.status || ['active']).includes(status)}
+                              onChange={(e) => {
+                                if (zohoSettings) {
+                                  const current = zohoSettings.customer_filters?.status || ['active'];
+                                  const updated = e.target.checked 
+                                    ? [...current, status]
+                                    : current.filter(s => s !== status);
+                                  base44.entities.IntegrationSettings.update(zohoSettings.id, { 
+                                    customer_filters: { ...(zohoSettings.customer_filters || {}), status: updated }
+                                  });
+                                  queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                                }
+                              }}
+                            />
+                            <span className="text-sm capitalize">{status}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Emails à exclure (un par ligne)</Label>
+                      <Textarea
+                        placeholder="test@example.com&#10;spam@example.com"
+                        rows={3}
+                        value={(zohoSettings?.customer_filters?.exclude_emails || []).join('\n')}
+                        onChange={(e) => {
+                          if (zohoSettings) {
+                            const emails = e.target.value.split('\n').filter(e => e.trim());
+                            base44.entities.IntegrationSettings.update(zohoSettings.id, { 
+                              customer_filters: { ...(zohoSettings.customer_filters || {}), exclude_emails: emails }
+                            });
+                            queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                          }
+                        }}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Item Filters */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Filtres de synchronisation - Items</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label>Items actifs uniquement</Label>
+                      <Switch
+                        checked={zohoSettings?.item_filters?.active_only !== false}
+                        onCheckedChange={(checked) => {
+                          if (zohoSettings) {
+                            base44.entities.IntegrationSettings.update(zohoSettings.id, { 
+                              item_filters: { ...(zohoSettings.item_filters || {}), active_only: checked }
+                            });
+                            queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                          }
+                        }}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Prix minimum</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={zohoSettings?.item_filters?.min_price || ''}
+                          onChange={(e) => {
+                            if (zohoSettings) {
+                              base44.entities.IntegrationSettings.update(zohoSettings.id, { 
+                                item_filters: { ...(zohoSettings.item_filters || {}), min_price: parseFloat(e.target.value) || 0 }
+                              });
+                              queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Prix maximum</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="Illimité"
+                          value={zohoSettings?.item_filters?.max_price || ''}
+                          onChange={(e) => {
+                            if (zohoSettings) {
+                              base44.entities.IntegrationSettings.update(zohoSettings.id, { 
+                                item_filters: { ...(zohoSettings.item_filters || {}), max_price: parseFloat(e.target.value) || null }
+                              });
+                              queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Invoice Filters */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Filtres de synchronisation - Factures</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Statuts à synchroniser</Label>
+                      <div className="flex gap-2 flex-wrap">
+                        {['paid', 'pending', 'overdue'].map(status => (
+                          <label key={status} className="flex items-center gap-2 border rounded px-3 py-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={(zohoSettings?.invoice_filters?.statuses || ['paid', 'pending']).includes(status)}
+                              onChange={(e) => {
+                                if (zohoSettings) {
+                                  const current = zohoSettings.invoice_filters?.statuses || ['paid', 'pending'];
+                                  const updated = e.target.checked 
+                                    ? [...current, status]
+                                    : current.filter(s => s !== status);
+                                  base44.entities.IntegrationSettings.update(zohoSettings.id, { 
+                                    invoice_filters: { ...(zohoSettings.invoice_filters || {}), statuses: updated }
+                                  });
+                                  queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                                }
+                              }}
+                            />
+                            <span className="text-sm capitalize">{status}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Montant minimum</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={zohoSettings?.invoice_filters?.min_amount || ''}
+                        onChange={(e) => {
+                          if (zohoSettings) {
+                            base44.entities.IntegrationSettings.update(zohoSettings.id, { 
+                              invoice_filters: { ...(zohoSettings.invoice_filters || {}), min_amount: parseFloat(e.target.value) || 0 }
+                            });
+                            queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+                          }
+                        }}
+                      />
                     </div>
                   </CardContent>
                 </Card>
