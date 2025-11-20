@@ -142,55 +142,58 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-            <LayoutDashboard className="w-8 h-8" />
-            Tableau de Bord
-          </h1>
-          <p className="text-slate-500 mt-1">Vue d'ensemble personnalisée</p>
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <div className="bg-white border-b border-slate-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+            <Badge variant="outline" className="text-xs">Today</Badge>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Select value={selectedView} onValueChange={setSelectedView}>
+              <SelectTrigger className="w-48 h-9 border-slate-200">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="custom">Vue personnalisée</SelectItem>
+                <SelectItem value="admin">Vue Admin</SelectItem>
+                <SelectItem value="manager">Vue Manager</SelectItem>
+                <SelectItem value="technician">Vue Technicien</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {selectedView === 'custom' && (
+              <Button onClick={() => setCustomizerOpen(true)} variant="outline" size="sm" className="h-9">
+                <Settings2 className="w-4 h-4 mr-2" />
+                Customize
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-6 space-y-6">
+        <AlertsPanel />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {activeWidgets.map(widgetType => renderWidget(widgetType))}
         </div>
 
-        <div className="flex items-center gap-3">
-          <Select value={selectedView} onValueChange={setSelectedView}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="custom">Vue personnalisée</SelectItem>
-              <SelectItem value="admin">Vue Admin</SelectItem>
-              <SelectItem value="manager">Vue Manager</SelectItem>
-              <SelectItem value="technician">Vue Technicien</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {selectedView === 'custom' && (
-            <Button onClick={() => setCustomizerOpen(true)} variant="outline">
+        {activeWidgets.length === 0 && (
+          <div className="col-span-full text-center py-16 border-2 border-dashed rounded-lg bg-white">
+            <LayoutDashboard className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+            <h3 className="text-lg font-semibold text-slate-600 mb-2">Aucun widget sélectionné</h3>
+            <p className="text-slate-500 mb-4">Cliquez sur "Customize" pour ajouter des widgets</p>
+            <Button onClick={() => setCustomizerOpen(true)}>
               <Settings2 className="w-4 h-4 mr-2" />
               Personnaliser
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-
-      <AlertsPanel />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min">
-        {activeWidgets.map(widgetType => renderWidget(widgetType))}
-      </div>
-
-      {activeWidgets.length === 0 && (
-        <div className="text-center py-16 border-2 border-dashed rounded-lg">
-          <LayoutDashboard className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-          <h3 className="text-lg font-semibold text-slate-600 mb-2">Aucun widget sélectionné</h3>
-          <p className="text-slate-500 mb-4">Cliquez sur "Personnaliser" pour ajouter des widgets</p>
-          <Button onClick={() => setCustomizerOpen(true)}>
-            <Settings2 className="w-4 h-4 mr-2" />
-            Personnaliser le tableau de bord
-          </Button>
-        </div>
-      )}
 
       <DashboardCustomizer
         open={customizerOpen}
@@ -198,6 +201,7 @@ export default function Dashboard() {
         selectedWidgets={activeWidgets}
         onSave={(widgets) => saveDashboardMutation.mutate(widgets)}
       />
+      </div>
     </div>
   );
 }
