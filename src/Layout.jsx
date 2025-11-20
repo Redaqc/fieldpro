@@ -344,7 +344,7 @@ export default function Layout({ children, currentPageName }) {
   // Determine visible modules based on role permissions
   let visibleModules;
   if (isAdmin) {
-    visibleModules = ['dashboard', 'jobs', 'servicecalls', 'schedule', 'calendar', 'customers', 'team', 'time_tracking', 'documents', 'forms', 'reports', 'quotations', 'invoices', 'assets', 'price_lists', 'materials', 'gpstracking', 'settings', 'rolemanager'];
+    visibleModules = ['dashboard', 'dispatcherdashboard', 'managerdashboard', 'jobs', 'servicecalls', 'schedule', 'calendar', 'customers', 'team', 'time_tracking', 'documents', 'forms', 'reports', 'quotations', 'invoices', 'assets', 'price_lists', 'materials', 'gpstracking', 'settings', 'rolemanager', 'teamchat', 'integrationmarketplace', 'customfields', 'webhookmanager', 'notificationcenter', 'bidashboard'];
   } else if (userRole?.permissions) {
     visibleModules = Object.keys(userRole.permissions).filter(key => userRole.permissions[key]);
   } else {
@@ -372,6 +372,21 @@ export default function Layout({ children, currentPageName }) {
       return isAdmin || currentTech?.role === 'admin';
     }
 
+    // Special visibility rules for dashboards - always visible
+    if (moduleName === 'dispatcherdashboard' || moduleName === 'managerdashboard' || moduleName === 'technicianmobile') {
+      return true;
+    }
+
+    // Team collaboration tools - always visible
+    if (moduleName === 'teamchat' || moduleName === 'notificationcenter') {
+      return true;
+    }
+
+    // Integration/admin tools - always visible
+    if (moduleName === 'integrationmarketplace' || moduleName === 'customfields' || moduleName === 'webhookmanager' || moduleName === 'bidashboard') {
+      return true;
+    }
+
     // Map page names to module names (handle underscore variations)
     const moduleMapping = {
       'timetracking': 'time_tracking',
@@ -385,7 +400,9 @@ export default function Layout({ children, currentPageName }) {
       'formbuilder': 'forms',
       'formsubmissions': 'forms',
       'formautomations': 'forms',
-      'reports': 'reports'
+      'reports': 'reports',
+      'dispatcherdashboard': 'dashboard',
+      'managerdashboard': 'dashboard'
     };
 
     const mappedModule = moduleMapping[moduleName] || moduleName;
