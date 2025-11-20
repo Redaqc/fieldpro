@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock } from "lucide-react";
+import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock, List } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import InvoicingTab from "./InvoicingTab";
@@ -59,6 +59,12 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
   ];
 
   const queryClient = useQueryClient();
+
+  const { data: checklistTemplates = [] } = useQuery({
+    queryKey: ['checklistTemplates'],
+    queryFn: () => base44.entities.ChecklistTemplate.list(),
+    initialData: [],
+  });
 
   useEffect(() => {
     if (job) {
@@ -187,6 +193,43 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
       items: [],
     };
     const updatedChecklist = [...formData.checklist, newGroup];
+    setFormData({ ...formData, checklist: updatedChecklist });
+    
+    if (job) {
+      updateJobMutation.mutate({
+        id: job.id,
+        data: { checklist: updatedChecklist },
+      });
+    }
+  };
+
+  const applyChecklistTemplate = (templateId) => {
+    const template = checklistTemplates.find(t => t.id === templateId);
+    if (!template?.checklist_data) return;
+
+    const newChecklists = template.checklist_data.map(group => ({
+      id: `group_${Date.now()}_${Math.random()}`,
+      name: group.name,
+      items: (group.items || []).map(item => ({
+        id: `item_${Date.now()}_${Math.random()}`,
+        text: item.text,
+        completed: false,
+      })),
+    }));
+
+    const updatedChecklist = [...formData.checklist, ...newChecklists];
+    setFormData({ ...formData, checklist: updatedChecklist });
+    
+    if (job) {
+      updateJobMutation.mutate({
+        id: job.id,
+        data: { checklist: updatedChecklist },
+      });
+    }
+  };
+
+  const deleteChecklistGroup = (groupId) => {
+    const updatedChecklist = formData.checklist.filter(group => group.id !== groupId);
     setFormData({ ...formData, checklist: updatedChecklist });
     
     if (job) {
@@ -736,7 +779,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
 
               {formData.checklist.map(group => (
                 <div key={group.id} className="border rounded-lg p-3">
-                  <div className="flex justify-between items-center mb-2">
+                  <div className="flex justify-between items-center mb-2 gap-2">
                     <Input
                       value={group.name}
                       onChange={(e) => {
@@ -748,12 +791,22 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                           updateJobMutation.mutate({ id: job.id, data: { checklist: updatedChecklist } });
                         }
                       }}
-                      className="font-semibold border-none shadow-none px-0 h-auto focus-visible:ring-0"
+                      className="font-semibold border-none shadow-none px-0 h-auto focus-visible:ring-0 flex-1"
                     />
-                    <Button size="sm" variant="outline" onClick={() => addChecklistItem(group.id)}>
-                      <Plus className="w-3 h-3 mr-1" />
-                      Ajouter
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="outline" onClick={() => addChecklistItem(group.id)}>
+                        <Plus className="w-3 h-3 mr-1" />
+                        Ajouter
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => deleteChecklistGroup(group.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     {(group.items || []).map(item => (
@@ -780,10 +833,29 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                   </div>
                 </div>
               ))}
-              <Button onClick={addChecklistGroup} variant="outline" className="w-full">
-                <Plus className="w-4 h-4 mr-2" />
-                Nouvelle checklist
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={addChecklistGroup} variant="outline" className="flex-1">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nouvelle checklist
+                </Button>
+                {checklistTemplates.length > 0 && (
+                  <Select onValueChange={applyChecklistTemplate}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Modèle de checklist" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {checklistTemplates.filter(t => t.active !== false).map(template => (
+                        <SelectItem key={template.id} value={template.id}>
+                          <div className="flex items-center gap-2">
+                            <List className="w-4 h-4" />
+                            {template.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="invoicing" className="space-y-4">

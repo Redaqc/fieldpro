@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Edit, Save, X, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, Edit, Save, X, Eye, EyeOff, List } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -23,6 +23,12 @@ export default function Settings() {
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians'],
     queryFn: () => base44.entities.Technician.list(),
+    initialData: [],
+  });
+
+  const { data: checklistTemplates = [] } = useQuery({
+    queryKey: ['checklistTemplates'],
+    queryFn: () => base44.entities.ChecklistTemplate.list(),
     initialData: [],
   });
 
@@ -63,6 +69,41 @@ export default function Settings() {
     });
   };
 
+  const createChecklistMutation = useMutation({
+    mutationFn: (data) => base44.entities.ChecklistTemplate.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['checklistTemplates'] });
+    },
+  });
+
+  const deleteChecklistMutation = useMutation({
+    mutationFn: (id) => base44.entities.ChecklistTemplate.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['checklistTemplates'] });
+    },
+  });
+
+  const handleCreateTemplate = () => {
+    const name = prompt('Nom du modèle de checklist:');
+    if (!name) return;
+
+    const template = {
+      name,
+      checklist_data: [
+        {
+          name: 'Nouvelle section',
+          items: [
+            { text: 'Élément 1' },
+            { text: 'Élément 2' },
+          ]
+        }
+      ],
+      active: true
+    };
+
+    createChecklistMutation.mutate(template);
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -74,6 +115,7 @@ export default function Settings() {
         <TabsList>
           <TabsTrigger value="work-types">Types de travaux</TabsTrigger>
           <TabsTrigger value="permissions">Permissions</TabsTrigger>
+          <TabsTrigger value="checklists">Modèles de checklist</TabsTrigger>
         </TabsList>
 
         <TabsContent value="work-types">
@@ -238,7 +280,62 @@ export default function Settings() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
+
+        <TabsContent value="checklists">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Modèles de checklist</CardTitle>
+                <Button onClick={handleCreateTemplate}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nouveau modèle
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {checklistTemplates.map(template => (
+                <div key={template.id} className="border rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <List className="w-5 h-5 text-blue-600" />
+                      <h4 className="font-semibold text-lg">{template.name}</h4>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        if (confirm('Supprimer ce modèle?')) {
+                          deleteChecklistMutation.mutate(template.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </Button>
+                  </div>
+                  <div className="space-y-2 pl-7">
+                    {(template.checklist_data || []).map((group, gIdx) => (
+                      <div key={gIdx} className="text-sm">
+                        <p className="font-medium text-slate-700">{group.name}</p>
+                        <ul className="list-disc list-inside text-slate-600 ml-2">
+                          {(group.items || []).map((item, iIdx) => (
+                            <li key={iIdx}>{item.text}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {checklistTemplates.length === 0 && (
+                <div className="text-center py-8 text-slate-500">
+                  <List className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                  <p>Aucun modèle de checklist</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        </Tabs>
+        </div>
+        );
+        }
