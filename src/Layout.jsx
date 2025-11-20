@@ -579,36 +579,27 @@ export default function Layout({ children, currentPageName }) {
           </SidebarContent>
 
           <SidebarFooter className="border-t border-slate-100 p-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 rounded-lg p-2 -m-2 transition-colors">
-                  <div className="w-9 h-9 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full flex items-center justify-center">
-                    <span className="text-slate-700 font-semibold text-sm">
-                      {user?.full_name?.[0] || 'U'}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 text-sm truncate">
-                      {user?.full_name || 'User'}
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">{user?.email}</p>
-                  </div>
-                </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem asChild>
-                  <Link to={createPageUrl("Settings")} className="cursor-pointer">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Paramètres
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => base44.auth.logout()} className="text-red-600 cursor-pointer">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Déconnexion
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full flex items-center justify-center">
+                <span className="text-slate-700 font-semibold text-sm">
+                  {user?.full_name?.[0] || 'U'}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-slate-900 text-sm truncate">
+                  {user?.full_name || 'User'}
+                </p>
+                <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => base44.auth.logout()}
+                className="h-8 w-8"
+              >
+                <Settings className="w-4 h-4 text-slate-400" />
+              </Button>
+            </div>
           </SidebarFooter>
         </Sidebar>
 
