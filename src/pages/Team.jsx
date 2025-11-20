@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Users, Grid, List } from "lucide-react";
+import { Plus, Search, Users, Grid, List, Download, Upload } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 import TeamList from "../components/team/TeamList";
@@ -16,6 +16,7 @@ export default function Team() {
   const [showDetails, setShowDetails] = useState(false);
   const [selectedTechnician, setSelectedTechnician] = useState(null);
   const [viewMode, setViewMode] = useState("cards");
+  const [importing, setImporting] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: technicians = [], isLoading } = useQuery({
@@ -75,6 +76,37 @@ export default function Team() {
     );
   }, [technicians, searchTerm]);
 
+  const handleExport = async () => {
+    const { data } = await base44.functions.invoke('csvExport', { entity_type: 'technicians' });
+    const blob = new Blob([data.csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = data.filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const { data } = await base44.functions.invoke('csvImport', { 
+        entity_type: 'technicians',
+        csv_data: text 
+      });
+      alert(`Import réussi: ${data.created} créés, ${data.updated} mis à jour, ${data.failed} échecs`);
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+    } catch (error) {
+      alert('Erreur: ' + error.message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const stats = useMemo(() => {
     const available = technicians.filter(t => t.status === 'available').length;
     const busy = technicians.filter(t => t.status === 'busy').length;
@@ -89,16 +121,31 @@ export default function Team() {
           <h1 className="text-3xl font-bold text-slate-900">Équipe</h1>
           <p className="text-slate-500 mt-1">{stats.total} technicien{stats.total > 1 ? 's' : ''}</p>
         </div>
-        <Button 
-          onClick={() => {
-            setSelectedTechnician(null);
-            setShowDialog(true);
-          }}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Ajouter Technicien
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
+          <label>
+            <Button variant="outline" disabled={importing} asChild>
+              <span>
+                <Upload className="w-4 h-4 mr-2" />
+                {importing ? 'Importing...' : 'Import CSV'}
+              </span>
+            </Button>
+            <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
+          </label>
+          <Button 
+            onClick={() => {
+              setSelectedTechnician(null);
+              setShowDialog(true);
+            }}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Ajouter Technicien
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}

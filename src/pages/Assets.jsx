@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Download, Upload } from "lucide-react";
 
 import AssetsList from "../components/assets/AssetsList";
 import AssetDialog from "../components/assets/AssetDialog";
@@ -13,6 +13,7 @@ export default function Assets() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
+  const [importing, setImporting] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: assets = [], isLoading } = useQuery({
@@ -60,6 +61,37 @@ export default function Assets() {
     }
   };
 
+  const handleExport = async () => {
+    const { data } = await base44.functions.invoke('csvExport', { entity_type: 'assets' });
+    const blob = new Blob([data.csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = data.filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const { data } = await base44.functions.invoke('csvImport', { 
+        entity_type: 'assets',
+        csv_data: text 
+      });
+      alert(`Import réussi: ${data.created} créés, ${data.updated} mis à jour, ${data.failed} échecs`);
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+    } catch (error) {
+      alert('Erreur: ' + error.message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const filteredAssets = assets.filter(asset => {
     const search = searchTerm.toLowerCase();
     return (
@@ -79,16 +111,31 @@ export default function Assets() {
           <h1 className="text-3xl font-bold text-slate-900">Équipements</h1>
           <p className="text-slate-500 mt-1">Gérer les outils et équipements de la compagnie</p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedAsset(null);
-            setShowDialog(true);
-          }}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Ajouter Équipement
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
+          <label>
+            <Button variant="outline" disabled={importing} asChild>
+              <span>
+                <Upload className="w-4 h-4 mr-2" />
+                {importing ? 'Importing...' : 'Import CSV'}
+              </span>
+            </Button>
+            <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
+          </label>
+          <Button
+            onClick={() => {
+              setSelectedAsset(null);
+              setShowDialog(true);
+            }}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Ajouter Équipement
+          </Button>
+        </div>
       </div>
 
       <div className="relative">
