@@ -17,6 +17,10 @@ import Calendar from './pages/Calendar';
 import TimeReports from './pages/TimeReports';
 import ProfitabilityReports from './pages/ProfitabilityReports';
 import CostsManagement from './pages/CostsManagement';
+import Documents from './pages/Documents';
+import FormBuilder from './pages/FormBuilder';
+import Forms from './pages/Forms';
+import Reports from './pages/Reports';
 import __Layout from './Layout.jsx';
 
 
@@ -40,6 +44,10 @@ export const PAGES = {
     "TimeReports": TimeReports,
     "ProfitabilityReports": ProfitabilityReports,
     "CostsManagement": CostsManagement,
+    "Documents": Documents,
+    "FormBuilder": FormBuilder,
+    "Forms": Forms,
+    "Reports": Reports,
 }
 
 export const pagesConfig = {
