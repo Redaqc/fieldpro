@@ -44,6 +44,12 @@ const navigationItems = [
     icon: LayoutDashboard,
   },
   {
+    title: "Mobile Tech",
+    url: createPageUrl("TechnicianMobile"),
+    icon: MapPin,
+    mobileOnly: true,
+  },
+  {
     title: "Jobs",
     url: createPageUrl("Jobs"),
     icon: Briefcase,
