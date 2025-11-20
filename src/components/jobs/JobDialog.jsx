@@ -726,24 +726,26 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                                 <p className="text-xs text-slate-500">{assignedTech.time_spent || 0}h</p>
                               </div>
                             </div>
-                            {assignedTech.active_start ? (
-                              <Button
-                                size="sm"
-                                onClick={() => stopTimer(assignedTech.id)}
-                                className="bg-red-500 hover:bg-red-600 text-white"
-                              >
-                                <StopCircle className="w-3 h-3 mr-1" />
-                                Arrêter
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                onClick={() => startTimer(assignedTech.id)}
-                                className="bg-green-500 hover:bg-green-600 text-white"
-                              >
-                                <Play className="w-3 h-3 mr-1" />
-                                Démarrer
-                              </Button>
+                            {(tech.email === currentUser?.email || currentUser?.role === 'admin') && (
+                              assignedTech.active_start ? (
+                                <Button
+                                  size="sm"
+                                  onClick={() => stopTimer(assignedTech.id)}
+                                  className="bg-red-500 hover:bg-red-600 text-white"
+                                >
+                                  <StopCircle className="w-3 h-3 mr-1" />
+                                  Arrêter
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  onClick={() => startTimer(assignedTech.id)}
+                                  className="bg-green-500 hover:bg-green-600 text-white"
+                                >
+                                  <Play className="w-3 h-3 mr-1" />
+                                  Démarrer
+                                </Button>
+                              )
                             )}
                           </div>
                           {assignedTech.time_logs && assignedTech.time_logs.length > 0 && (
@@ -843,7 +845,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                             )}
                           </div>
 
-                          {isAssigned && (
+                          {isAssigned && (tech.email === currentUser?.email || currentUser?.role === 'admin') && (
                             <div className="flex gap-2 pl-11">
                               {isAssigned.active_start ? (
                                 <Button

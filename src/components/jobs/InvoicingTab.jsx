@@ -47,6 +47,7 @@ export default function InvoicingTab({ job, formData, setFormData }) {
 
   const currentTech = technicians.find(t => t.email === currentUser?.email);
   const canViewPrices = currentUser?.role === 'admin' || currentTech?.can_view_prices !== false;
+  const isAdminOrManager = currentUser?.role === 'admin' || currentTech?.role === 'admin' || currentTech?.role === 'manager';
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers'],
@@ -78,7 +79,8 @@ export default function InvoicingTab({ job, formData, setFormData }) {
     formData.status === 'completed' && 
     lineItems.length > 0 && 
     lineItems.some(item => item.type === 'item' && item.total > 0) &&
-    !job.invoice_generated;
+    !job.invoice_generated &&
+    isAdminOrManager;
 
   const handleGenerateInvoice = async () => {
     if (!job) return;
@@ -261,7 +263,7 @@ export default function InvoicingTab({ job, formData, setFormData }) {
   return (
     <div className="space-y-4">
       {/* Auto-Generate Invoice Banner */}
-      {shouldShowInvoicePrompt && canViewPrices && (
+      {shouldShowInvoicePrompt && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
           <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
           <div className="flex-1">
@@ -283,7 +285,7 @@ export default function InvoicingTab({ job, formData, setFormData }) {
       )}
 
       {/* Automatic Generation Settings */}
-      {job && canViewPrices && (
+      {job && isAdminOrManager && (
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
           <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
             <RefreshCw className="w-4 h-4" />
@@ -430,7 +432,7 @@ export default function InvoicingTab({ job, formData, setFormData }) {
 
       {/* Items Table */}
       <div className="border rounded-lg overflow-hidden">
-        {canViewPrices ? (
+        {isAdminOrManager ? (
           <div className="grid grid-cols-12 gap-2 bg-slate-100 p-2 text-xs font-semibold border-b">
             <div className="col-span-1"></div>
             <div className="col-span-5">Description</div>
@@ -512,12 +514,12 @@ export default function InvoicingTab({ job, formData, setFormData }) {
                                   onClick={() => removeLineItem(index)}
                                 >
                                   <Minus className="w-4 h-4 text-red-500" />
-                                </Button>
-                              </div>
-                            </>
-                          ) : canViewPrices ? (
-                            <>
-                              <Input
+                                  </Button>
+                                  </div>
+                                  </>
+                                  ) : isAdminOrManager ? (
+                                  <>
+                                  <Input
                                 value={item.description}
                                 onChange={(e) => updateLineItem(index, 'description', e.target.value)}
                                 className="col-span-5 h-8 text-sm"
@@ -591,7 +593,7 @@ export default function InvoicingTab({ job, formData, setFormData }) {
       </div>
 
       {/* Totals */}
-      {lineItems.length > 0 && canViewPrices && (
+      {lineItems.length > 0 && isAdminOrManager && (
         <div className="bg-slate-50 rounded-lg p-4 space-y-1 max-w-xs ml-auto">
           <div className="flex justify-between text-sm">
             <span>Sous-total:</span>
@@ -612,7 +614,7 @@ export default function InvoicingTab({ job, formData, setFormData }) {
         </div>
       )}
       
-      {lineItems.length > 0 && !canViewPrices && (
+      {lineItems.length > 0 && !isAdminOrManager && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
           <EyeOff className="w-5 h-5 text-amber-600 mx-auto mb-1" />
           <p className="text-sm text-amber-700">Les prix sont masqués pour votre rôle</p>
@@ -655,7 +657,7 @@ export default function InvoicingTab({ job, formData, setFormData }) {
                 <span>Nombre d'éléments:</span>
                 <span className="font-semibold">{lineItems.filter(i => i.type === 'item').length}</span>
               </div>
-              {canViewPrices && (
+              {isAdminOrManager && (
                 <>
                   <div className="flex justify-between text-sm pt-2 border-t">
                     <span>Sous-total:</span>
@@ -676,9 +678,9 @@ export default function InvoicingTab({ job, formData, setFormData }) {
             <p className="text-sm text-slate-600">
               Une facture sera créée en statut "Brouillon" et pourra être modifiée avant l'envoi.
             </p>
-          </div>
+            </div>
 
-          <DialogFooter>
+            <DialogFooter>
             <Button variant="outline" onClick={() => setShowInvoiceDialog(false)}>
               Annuler
             </Button>
