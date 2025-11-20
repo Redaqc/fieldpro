@@ -35,6 +35,9 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
   const [uploadingFile, setUploadingFile] = useState(false);
   const [newLabel, setNewLabel] = useState({ name: '', color: '#3b82f6' });
   const [colorPopoverOpen, setColorPopoverOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState(null);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [newFileName, setNewFileName] = useState('');
   
   const labelColors = [
     { color: '#3b82f6', name: 'Bleu' },
@@ -268,16 +271,31 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
     }
   };
 
-  const handleFileUpload = async (e) => {
+  const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    setPendingFile(file);
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+    setNewFileName(nameWithoutExt);
+    setRenameDialogOpen(true);
+    e.target.value = '';
+  };
+
+  const confirmFileUpload = async () => {
+    if (!pendingFile) return;
+
+    setRenameDialogOpen(false);
     setUploadingFile(true);
+    
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: pendingFile });
+      
+      const fileExt = pendingFile.name.split('.').pop();
+      const finalName = newFileName.trim() ? `${newFileName.trim()}.${fileExt}` : pendingFile.name;
       
       const newAttachment = {
-        name: file.name,
+        name: finalName,
         url: file_url,
         uploaded_at: new Date().toISOString(),
         uploaded_by: currentUser?.email,
@@ -296,6 +314,8 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
       alert('Erreur lors de l\'upload du fichier');
     } finally {
       setUploadingFile(false);
+      setPendingFile(null);
+      setNewFileName('');
     }
   };
 
@@ -602,7 +622,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                     id="file-upload"
                     type="file"
                     className="hidden"
-                    onChange={handleFileUpload}
+                    onChange={handleFileSelect}
                     disabled={uploadingFile}
                   />
                 </Label>
@@ -674,6 +694,44 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
           </div>
         </div>
       </DialogContent>
+
+      {/* Rename File Dialog */}
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Renommer le fichier</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nom du fichier</Label>
+              <Input
+                value={newFileName}
+                onChange={(e) => setNewFileName(e.target.value)}
+                placeholder="Nom du fichier..."
+                className="mt-1"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    confirmFileUpload();
+                  }
+                }}
+              />
+              {pendingFile && (
+                <p className="text-xs text-slate-500 mt-1">
+                  Extension: .{pendingFile.name.split('.').pop()}
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button onClick={confirmFileUpload}>
+                Uploader
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
