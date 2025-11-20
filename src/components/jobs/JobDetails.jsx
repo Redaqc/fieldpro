@@ -17,6 +17,7 @@ import {
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import QuickInvoiceButton from "./QuickInvoiceButton";
+import JobProfitabilityPanel from "../profitability/JobProfitabilityPanel";
 
 const statusColors = {
   scheduled: "bg-blue-100 text-blue-800",
@@ -220,6 +221,11 @@ export default function JobDetails({ job, onClose, onEdit, onUpdate, onDelete, c
               </h3>
               <p className="text-slate-600 bg-green-50 rounded-lg p-4">{job.completion_notes}</p>
             </div>
+          )}
+
+          {/* Profitability */}
+          {(job.status === 'completed' || job.status === 'invoiced') && (
+            <JobProfitabilityPanel job={job} />
           )}
         </div>
       </DialogContent>

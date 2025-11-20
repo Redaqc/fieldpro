@@ -20,6 +20,7 @@ import MilestonesTab from "./MilestonesTab";
 import GanttChart from "./GanttChart";
 import MaterialUsageTab from "./MaterialUsageTab";
 import AssetAssignmentTab from "./AssetAssignmentTab";
+import JobProfitabilityPanel from "../profitability/JobProfitabilityPanel";
 
 export default function JobDialog({ open, onClose, job, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
@@ -1383,6 +1384,13 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
             )}
           </Tabs>
 
+          {/* Profitability Panel (if job completed/invoiced) */}
+          {job?.id && (job.status === 'completed' || job.status === 'invoiced') && (
+            <div className="pt-4 border-t">
+              <JobProfitabilityPanel job={job} />
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
             <Button variant="outline" onClick={onClose} className="h-11 text-base">
               Annuler
@@ -1391,6 +1399,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               {job ? 'Sauvegarder' : 'Créer'}
             </Button>
           </div>
+        </div>
         </div>
       </DialogContent>
 
