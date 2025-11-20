@@ -40,8 +40,39 @@ export default function Team() {
     },
   });
 
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const updateTechnicianMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Technician.update(id, data),
+    mutationFn: async ({ id, data, oldData }) => {
+      const result = await base44.entities.Technician.update(id, data);
+      
+      // Send security notifications if phone or email changed
+      if (oldData) {
+        if (data.phone && data.phone !== oldData.phone) {
+          await base44.functions.invoke('sendSecurityNotification', {
+            userId: id,
+            changeType: 'phone',
+            oldValue: oldData.phone,
+            newValue: data.phone,
+            changedBy: currentUser?.email || 'Unknown'
+          });
+        }
+        if (data.email && data.email !== oldData.email) {
+          await base44.functions.invoke('sendSecurityNotification', {
+            userId: id,
+            changeType: 'email',
+            oldValue: oldData.email,
+            newValue: data.email,
+            changedBy: currentUser?.email || 'Unknown'
+          });
+        }
+      }
+      
+      return result;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['technicians'] });
       setShowDialog(false);
@@ -59,7 +90,11 @@ export default function Team() {
 
   const handleSave = useCallback((data) => {
     if (selectedTechnician?.id) {
-      updateTechnicianMutation.mutate({ id: selectedTechnician.id, data });
+      updateTechnicianMutation.mutate({ 
+        id: selectedTechnician.id, 
+        data,
+        oldData: selectedTechnician
+      });
     } else {
       createTechnicianMutation.mutate(data);
     }
