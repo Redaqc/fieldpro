@@ -54,6 +54,16 @@ export default function InvoicingTab({ job, formData, setFormData }) {
     initialData: [],
   });
 
+  const { data: priceLists = [] } = useQuery({
+    queryKey: ['priceLists'],
+    queryFn: () => base44.entities.PriceList.list(),
+    initialData: [],
+  });
+
+  // Get customer's price list
+  const customer = customers.find(c => c.id === job?.customer_id);
+  const customerPriceList = priceLists.find(pl => pl.id === customer?.price_list_id);
+
   const createInvoiceMutation = useMutation({
     mutationFn: (data) => base44.entities.Invoice.create(data),
     onSuccess: () => {
@@ -146,6 +156,22 @@ export default function InvoicingTab({ job, formData, setFormData }) {
       quantity: 1,
       unit_price: material.unit_price,
       total: material.unit_price,
+      type: "item"
+    };
+    const newItems = [...lineItems, newItem];
+    setLineItems(newItems);
+    updateFormData(newItems);
+  };
+
+  const addPriceListItem = (itemIndex) => {
+    if (!customerPriceList?.items || !customerPriceList.items[itemIndex]) return;
+    
+    const priceItem = customerPriceList.items[itemIndex];
+    const newItem = {
+      description: priceItem.service_name || priceItem.description,
+      quantity: 1,
+      unit_price: priceItem.unit_price || 0,
+      total: priceItem.unit_price || 0,
       type: "item"
     };
     const newItems = [...lineItems, newItem];
@@ -329,7 +355,21 @@ export default function InvoicingTab({ job, formData, setFormData }) {
 
       <div className="flex items-center justify-between">
         <h3 className="text-base font-bold">Éléments de Facturation</h3>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {customerPriceList && (
+            <Select onValueChange={(value) => addPriceListItem(parseInt(value))}>
+              <SelectTrigger className="w-40 h-8 font-semibold bg-blue-50 border-blue-200">
+                <SelectValue placeholder="Liste de prix" />
+              </SelectTrigger>
+              <SelectContent>
+                {(customerPriceList.items || []).map((item, idx) => (
+                  <SelectItem key={idx} value={idx.toString()}>
+                    {item.service_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button
             type="button"
             size="sm"
