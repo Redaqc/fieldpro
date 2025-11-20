@@ -18,6 +18,8 @@ import MilestonesTab from "../jobs/MilestonesTab";
 import GanttChart from "../jobs/GanttChart";
 import CostsTab from "../jobs/CostsTab";
 import InvoicingTab from "../jobs/InvoicingTab";
+import MaterialUsageTab from "../jobs/MaterialUsageTab";
+import AssetAssignmentTab from "../jobs/AssetAssignmentTab";
 
 export default function ServiceCallDialog({ open, onClose, call, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
@@ -1031,6 +1033,22 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
                 <CheckSquare className="w-4 h-4" />
                 <span className="font-medium">Checklist</span>
               </TabsTrigger>
+
+              <TabsTrigger 
+                value="materials" 
+                className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+              >
+                <Package className="w-4 h-4" />
+                <span className="font-medium">Materials</span>
+              </TabsTrigger>
+
+              <TabsTrigger 
+                value="assets" 
+                className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+              >
+                <Wrench className="w-4 h-4" />
+                <span className="font-medium">Assets</span>
+              </TabsTrigger>
               
               {appSettings?.feature_task_dependencies && (
                 <TabsTrigger 
@@ -1122,6 +1140,24 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
                 </TabsTrigger>
               )}
             </TabsList>
+
+            <TabsContent value="materials" className="space-y-4">
+              {call && <MaterialUsageTab job={call} />}
+              {!call && (
+                <div className="text-center py-8 text-slate-500">
+                  Créez l'appel d'abord pour ajouter des matériaux
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="assets" className="space-y-4">
+              {call && <AssetAssignmentTab job={call} />}
+              {!call && (
+                <div className="text-center py-8 text-slate-500">
+                  Créez l'appel d'abord pour assigner des actifs
+                </div>
+              )}
+            </TabsContent>
 
             <TabsContent value="checklist" className="space-y-3">
               {progress.total > 0 && (
