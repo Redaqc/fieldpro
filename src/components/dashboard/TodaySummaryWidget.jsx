@@ -119,16 +119,18 @@ export default function TodaySummaryWidget({ invoices = [], payments = [], jobs 
             return (
               <div 
                 key={idx} 
-                className={`bg-gradient-to-br ${card.gradient} rounded-xl p-6 text-white shadow-lg`}
+                className={`bg-gradient-to-br ${card.gradient} rounded-xl p-6 text-white shadow-lg flex flex-col justify-between`}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-sm opacity-90">{card.title}</p>
-                  <Icon className="w-5 h-5 opacity-70" />
+                <div className="flex items-center justify-between mb-6">
+                  <p className="text-sm font-medium opacity-90">{card.title}</p>
+                  <Icon className="w-5 h-5 opacity-80" />
                 </div>
-                <p className="text-3xl font-bold mb-2">${card.amount.toFixed(2)}</p>
-                <button className="text-xs flex items-center gap-1 hover:underline">
-                  More info <span className="text-lg">→</span>
-                </button>
+                <div>
+                  <p className="text-3xl font-bold mb-4">${card.amount.toFixed(2)}</p>
+                  <button className="text-xs flex items-center gap-1 hover:underline opacity-90">
+                    More info <span className="text-lg">→</span>
+                  </button>
+                </div>
               </div>
             );
           })}
