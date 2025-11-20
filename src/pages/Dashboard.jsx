@@ -100,26 +100,16 @@ export default function Dashboard() {
   const userConfig = dashboardConfigs.find(c => c.is_default) || dashboardConfigs[0];
 
   const saveDashboardMutation = useMutation({
-    mutationFn: (widgets) => {
+    mutationFn: (layout) => {
       if (userConfig) {
-        return base44.entities.DashboardConfig.update(userConfig.id, {
-          layout: widgets.map((w, idx) => ({
-            id: `widget_${idx}`,
-            type: w,
-            position: { x: 0, y: 0, w: 1, h: 1 }
-          }))
-        });
+        return base44.entities.DashboardConfig.update(userConfig.id, { layout });
       } else {
         return base44.entities.DashboardConfig.create({
           user_id: currentUser?.id,
           user_email: currentUser?.email,
           name: 'Mon tableau de bord',
           is_default: true,
-          layout: widgets.map((w, idx) => ({
-            id: `widget_${idx}`,
-            type: w,
-            position: { x: 0, y: 0, w: 1, h: 1 }
-          }))
+          layout
         });
       }
     },
@@ -134,12 +124,20 @@ export default function Dashboard() {
   const getActiveWidgets = () => {
     if (selectedView === 'custom') {
       if (userConfig?.layout && userConfig.layout.length > 0) {
-        return userConfig.layout.map(w => w.type);
+        return userConfig.layout;
       }
       // Si pas de config, utiliser la vue admin par défaut
-      return DEFAULT_VIEWS.admin;
+      return DEFAULT_VIEWS.admin.map((type, idx) => ({
+        id: `widget_${idx}`,
+        type,
+        size: 1
+      }));
     }
-    return DEFAULT_VIEWS[selectedView] || DEFAULT_VIEWS[userRole];
+    return (DEFAULT_VIEWS[selectedView] || DEFAULT_VIEWS[userRole]).map((type, idx) => ({
+      id: `widget_${idx}`,
+      type,
+      size: 1
+    }));
   };
 
   const activeWidgets = getActiveWidgets();
@@ -152,6 +150,13 @@ export default function Dashboard() {
     items.splice(result.destination.index, 0, reorderedItem);
 
     saveDashboardMutation.mutate(items);
+  };
+
+  const handleResize = (widgetId, newSize) => {
+    const updatedWidgets = activeWidgets.map(w => 
+      w.id === widgetId ? { ...w, size: newSize } : w
+    );
+    saveDashboardMutation.mutate(updatedWidgets);
   };
 
   const renderWidget = (widgetType) => {
@@ -244,25 +249,47 @@ export default function Dashboard() {
               ref={provided.innerRef}
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min"
             >
-              {activeWidgets.map((widgetType, index) => (
-                <Draggable key={widgetType} draggableId={widgetType} index={index}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      className={`relative ${snapshot.isDragging ? 'opacity-70' : ''}`}
-                    >
-                      <div 
-                        {...provided.dragHandleProps}
-                        className="absolute top-2 right-2 z-10 cursor-grab active:cursor-grabbing bg-white rounded-lg p-2 shadow-md hover:shadow-lg transition-shadow"
+              {activeWidgets.map((widget, index) => {
+                const widgetSize = widget.size || 1;
+                const sizeClass = 
+                  widgetSize === 3 ? 'md:col-span-2 lg:col-span-3' :
+                  widgetSize === 2 ? 'md:col-span-2 lg:col-span-2' : '';
+
+                return (
+                  <Draggable key={widget.id} draggableId={widget.id} index={index}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`relative ${sizeClass} ${snapshot.isDragging ? 'opacity-70' : ''}`}
                       >
-                        <GripVertical className="w-5 h-5 text-slate-400" />
+                        <div className="absolute top-2 right-2 z-10 flex gap-2">
+                          <div 
+                            {...provided.dragHandleProps}
+                            className="cursor-grab active:cursor-grabbing bg-white rounded-lg p-2 shadow-md hover:shadow-lg transition-shadow"
+                          >
+                            <GripVertical className="w-5 h-5 text-slate-400" />
+                          </div>
+                          <Select 
+                            value={String(widgetSize)} 
+                            onValueChange={(val) => handleResize(widget.id, Number(val))}
+                          >
+                            <SelectTrigger className="w-16 h-9 bg-white shadow-md">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1x</SelectItem>
+                              <SelectItem value="2">2x</SelectItem>
+                              <SelectItem value="3">3x</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {renderWidget(widget.type)}
                       </div>
-                      {renderWidget(widgetType)}
-                    </div>
-                  )}
-                </Draggable>
-              ))}
+                    )}
+                  </Draggable>
+                );
+              })}
               {provided.placeholder}
             </div>
           )}

@@ -35,7 +35,12 @@ export default function DashboardCustomizer({ open, onClose, selectedWidgets, on
   };
 
   const handleSave = () => {
-    onSave(widgets);
+    const layout = widgets.map((widgetId, idx) => ({
+      id: `widget_${idx}`,
+      type: widgetId,
+      size: 1
+    }));
+    onSave(layout);
     onClose();
   };
 
