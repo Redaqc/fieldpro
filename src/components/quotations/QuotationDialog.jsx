@@ -19,6 +19,8 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
     project_name: "",
     issue_date: format(new Date(), 'yyyy-MM-dd'),
     expiry_date: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
+    auto_expire_enabled: true,
+    auto_expire_days: 30,
     work_start_date: "",
     sent_date: "",
     accepted_date: "",
@@ -610,6 +612,46 @@ Merci de votre confiance.
                 className="h-9"
               />
             </div>
+          </div>
+
+          {/* Auto-Expire Options */}
+          <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="col-span-2 flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="auto_expire"
+                checked={formData.auto_expire_enabled}
+                onChange={(e) => {
+                  handleChange('auto_expire_enabled', e.target.checked);
+                  if (e.target.checked && formData.issue_date) {
+                    handleChange('expiry_date', format(addDays(new Date(formData.issue_date), formData.auto_expire_days || 30), 'yyyy-MM-dd'));
+                  }
+                }}
+                className="w-4 h-4"
+              />
+              <Label htmlFor="auto_expire" className="text-sm font-semibold cursor-pointer">
+                Auto-expire estimate after specified days
+              </Label>
+            </div>
+            {formData.auto_expire_enabled && (
+              <div>
+                <Label className="text-xs font-semibold">Days until expiration</Label>
+                <Input
+                  type="number"
+                  value={formData.auto_expire_days}
+                  onChange={(e) => {
+                    const days = parseInt(e.target.value) || 30;
+                    handleChange('auto_expire_days', days);
+                    if (formData.issue_date) {
+                      handleChange('expiry_date', format(addDays(new Date(formData.issue_date), days), 'yyyy-MM-dd'));
+                    }
+                  }}
+                  min="1"
+                  className="h-9"
+                  placeholder="30"
+                />
+              </div>
+            )}
           </div>
 
           {/* Cost Calculator Section */}
