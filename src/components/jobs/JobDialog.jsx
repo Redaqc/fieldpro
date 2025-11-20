@@ -22,6 +22,7 @@ import MaterialUsageTab from "./MaterialUsageTab";
 import AssetAssignmentTab from "./AssetAssignmentTab";
 import JobProfitabilityPanel from "../profitability/JobProfitabilityPanel";
 import JobTemplates from "./JobTemplates";
+import AddressAutocompleteInput from "../shared/AddressAutocompleteInput";
 
 export default function JobDialog({ open, onClose, job, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
@@ -631,15 +632,16 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
             </div>
             {(formData.project_addresses || []).map((address, index) => (
               <div key={index} className="flex gap-2">
-                <Input
-                  value={address}
-                  onChange={(e) => {
+                <AddressAutocompleteInput
+                  label=""
+                  defaultValue={address}
+                  placeholder={`Adresse ${index + 1}...`}
+                  onAddressSelected={(addr) => {
                     const addresses = [...(formData.project_addresses || [])];
-                    addresses[index] = e.target.value;
+                    addresses[index] = addr.full_address;
                     setFormData({ ...formData, project_addresses: addresses });
                   }}
-                  placeholder={`Adresse ${index + 1}...`}
-                  className="h-10 flex-1"
+                  className="flex-1"
                 />
                 <Button
                   type="button"
@@ -649,7 +651,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                     const addresses = formData.project_addresses.filter((_, i) => i !== index);
                     setFormData({ ...formData, project_addresses: addresses });
                   }}
-                  className="h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50"
+                  className="h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50 self-end"
                 >
                   <X className="w-4 h-4" />
                 </Button>
