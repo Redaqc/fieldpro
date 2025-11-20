@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Search, Plus, Filter, AlertTriangle } from "lucide-react";
+import { Calendar, Search, Plus, Filter, AlertTriangle, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 import DayView from "@/components/schedule/DayView";
 import WeekView from "@/components/schedule/WeekView";
@@ -15,6 +16,7 @@ import AgendaView from "@/components/schedule/AgendaView";
 import ResourceView from "@/components/schedule/ResourceView";
 import ScheduleEventDialog from "@/components/schedule/ScheduleEventDialog";
 import ConflictAlert from "@/components/schedule/ConflictAlert";
+import AIOptimizationDialog from "@/components/schedule/AIOptimizationDialog";
 
 export default function Schedule() {
   const [view, setView] = useState("week");
@@ -30,6 +32,7 @@ export default function Schedule() {
     priority: "all"
   });
   const [conflicts, setConflicts] = useState([]);
+  const [showAIDialog, setShowAIDialog] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -291,6 +294,32 @@ export default function Schedule() {
 
   const canEdit = !isTechnicianView || currentUser?.role === 'admin';
 
+  // Get date range for AI optimization
+  const getDateRangeForView = () => {
+    if (view === 'day') {
+      return {
+        start: format(selectedDate, 'yyyy-MM-dd'),
+        end: format(selectedDate, 'yyyy-MM-dd')
+      };
+    } else if (view === 'week') {
+      const weekStart = new Date(selectedDate);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      return {
+        start: format(weekStart, 'yyyy-MM-dd'),
+        end: format(weekEnd, 'yyyy-MM-dd')
+      };
+    } else {
+      const monthStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      const monthEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+      return {
+        start: format(monthStart, 'yyyy-MM-dd'),
+        end: format(monthEnd, 'yyyy-MM-dd')
+      };
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -301,6 +330,14 @@ export default function Schedule() {
         </div>
         {canEdit && (
           <div className="flex gap-2">
+            <Button
+              onClick={() => setShowAIDialog(true)}
+              variant="outline"
+              className="border-purple-300 text-purple-700 hover:bg-purple-50"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              <strong>Smart Schedule</strong>
+            </Button>
             <Button
               onClick={() => {
                 setEventType('job');
@@ -507,6 +544,19 @@ export default function Schedule() {
           onDetectConflicts={detectConflicts}
         />
       )}
-    </div>
-  );
-}
+
+      {/* AI Optimization Dialog */}
+      {showAIDialog && (
+        <AIOptimizationDialog
+          open={showAIDialog}
+          onClose={() => setShowAIDialog(false)}
+          dateRange={getDateRangeForView()}
+          onApply={() => {
+            queryClient.invalidateQueries({ queryKey: ['jobs'] });
+            queryClient.invalidateQueries({ queryKey: ['serviceCalls'] });
+          }}
+        />
+      )}
+      </div>
+      );
+      }
