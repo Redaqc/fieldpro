@@ -78,6 +78,10 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
   React.useEffect(() => {
     console.log('Total service calls:', calls.length);
     console.log('Service calls data:', calls);
+    COLUMNS.forEach(column => {
+      const columnCalls = getCallsByStatus(column.id);
+      console.log(`${column.title} (${column.id}):`, columnCalls.length, 'calls');
+    });
   }, [calls]);
 
   return (
