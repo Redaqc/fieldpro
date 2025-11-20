@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { format, subMonths } from "date-fns";
 
 export default function SalesVsCostWidget({ invoices, jobs }) {
@@ -38,49 +38,29 @@ export default function SalesVsCostWidget({ invoices, jobs }) {
   const profitMargin = totalSales > 0 ? ((totalProfit / totalSales) * 100).toFixed(1) : 0;
 
   return (
-    <Card className="border-l-4 border-l-indigo-500">
-      <CardHeader>
+    <Card className="shadow-sm bg-white">
+      <CardHeader className="border-b">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-indigo-600" />
-            Ventes vs Coûts
+          <CardTitle className="text-base font-semibold text-slate-800">
+            Sales vs Purchases (2022)
           </CardTitle>
-          <div className="text-right">
-            <p className="text-sm text-slate-600">Marge</p>
-            <p className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {profitMargin}%
-            </p>
-          </div>
+          <button className="text-blue-500 text-sm">ⓘ</button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-green-50 p-3 rounded-lg text-center">
-            <p className="text-xs text-green-700 mb-1">Ventes</p>
-            <p className="text-xl font-bold text-green-900">${totalSales.toFixed(0)}</p>
-          </div>
-          <div className="bg-red-50 p-3 rounded-lg text-center">
-            <p className="text-xs text-red-700 mb-1">Coûts</p>
-            <p className="text-xl font-bold text-red-900">${totalCosts.toFixed(0)}</p>
-          </div>
-          <div className={`${totalProfit >= 0 ? 'bg-blue-50' : 'bg-orange-50'} p-3 rounded-lg text-center`}>
-            <p className={`text-xs ${totalProfit >= 0 ? 'text-blue-700' : 'text-orange-700'} mb-1`}>Profit</p>
-            <p className={`text-xl font-bold ${totalProfit >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
-              ${Math.abs(totalProfit).toFixed(0)}
-            </p>
-          </div>
-        </div>
-
-        <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
+      <CardContent className="pt-6">
+        <ResponsiveContainer width="100%" height={280}>
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+            <YAxis tick={{ fontSize: 12 }} />
             <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="ventes" stroke="#10b981" strokeWidth={2} name="Ventes" />
-            <Line type="monotone" dataKey="coûts" stroke="#ef4444" strokeWidth={2} name="Coûts" />
-          </LineChart>
+            <Legend 
+              wrapperStyle={{ paddingTop: '20px' }} 
+              iconType="square"
+            />
+            <Bar dataKey="ventes" fill="#5b68f4" name="Purchases" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="coûts" fill="#4ade80" name="Sales" radius={[4, 4, 0, 0]} />
+          </BarChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>

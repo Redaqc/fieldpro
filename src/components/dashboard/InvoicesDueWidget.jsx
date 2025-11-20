@@ -21,10 +21,9 @@ export default function InvoicesDueWidget({ invoices }) {
   const totalPastDue = pastDueInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
 
   return (
-    <Card className="border-l-4 border-l-orange-500">
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <FileText className="w-5 h-5 text-orange-600" />
+    <Card className="shadow-sm bg-white">
+      <CardHeader className="border-b">
+        <CardTitle className="text-base font-semibold text-slate-800">
           Factures à Recevoir
         </CardTitle>
       </CardHeader>

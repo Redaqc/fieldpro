@@ -13,10 +13,10 @@ export default function OverdueJobsWidget({ jobs }) {
   ).sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
 
   return (
-    <Card className="border-l-4 border-l-red-500">
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-red-600" />
+    <Card className="shadow-sm bg-white">
+      <CardHeader className="border-b">
+        <CardTitle className="text-base font-semibold text-slate-800 flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 text-red-500" />
           Jobs en Retard
         </CardTitle>
       </CardHeader>
