@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, MapPin, Briefcase, Battery, Navigation, LogIn, LogOut } from "lucide-react";
+import { Clock, MapPin, Briefcase, Battery, Navigation, LogIn, LogOut, Phone } from "lucide-react";
 import { format, differenceInMinutes } from "date-fns";
 import { fr } from "date-fns/locale";
 import MobileJobCard from "../components/mobile/MobileJobCard";
@@ -59,13 +59,30 @@ export default function TechnicianMobile() {
     },
   });
 
+  const { data: serviceCalls = [] } = useQuery({
+    queryKey: ['serviceCalls'],
+    queryFn: async () => {
+      if (!isOnline) {
+        return OfflineStorage.getServiceCalls() || [];
+      }
+      const fetchedCalls = await base44.entities.ServiceCall.list();
+      OfflineStorage.saveServiceCalls(fetchedCalls);
+      return fetchedCalls;
+    },
+  });
+
   const activeEntry = timeEntries.find(
     e => e.technician_id === currentTech?.id && e.status === 'in_progress'
   );
 
   const myJobs = jobs.filter(
-    j => j.technician_id === currentTech?.id && 
-    (j.status === 'scheduled' || j.status === 'in_progress')
+    j => (j.technicians || []).some(t => t.id === currentTech?.id) && 
+    (j.status === 'todo' || j.status === 'in_progress')
+  );
+
+  const myCalls = serviceCalls.filter(
+    c => (c.technicians || []).some(t => t.id === currentTech?.id) && 
+    (c.status === 'todo' || c.status === 'in_progress')
   );
 
   // Online/Offline status management
@@ -355,6 +372,29 @@ export default function TechnicianMobile() {
             </Card>
           )}
         </div>
+
+        {/* My Service Calls */}
+        {myCalls.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Phone className="w-5 h-5" />
+                Mes Appels de Service ({myCalls.length})
+              </h2>
+            </div>
+            
+            <div className="space-y-3">
+              {myCalls.map(call => (
+                <MobileJobCard 
+                  key={call.id} 
+                  job={call} 
+                  currentPosition={currentPosition}
+                  isOnline={isOnline}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
