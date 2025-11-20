@@ -2,15 +2,25 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Minus, GripVertical, Type, FileText, Package, CircleDot, EyeOff } from "lucide-react";
+import { Plus, Minus, GripVertical, Type, FileText, Package, CircleDot, EyeOff, Receipt, RefreshCw, CheckCircle } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 
 export default function InvoicingTab({ job, formData, setFormData }) {
   const [lineItems, setLineItems] = useState(formData.invoice_items || []);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [autoGenerateEnabled, setAutoGenerateEnabled] = useState(false);
+  const [recurringSettings, setRecurringSettings] = useState({
+    enabled: false,
+    frequency: 'monthly',
+    day: 1,
+  });
+  const queryClient = useQueryClient();
 
   const { data: bundles = [] } = useQuery({
     queryKey: ['bundles'],
@@ -37,6 +47,62 @@ export default function InvoicingTab({ job, formData, setFormData }) {
 
   const currentTech = technicians.find(t => t.email === currentUser?.email);
   const canViewPrices = currentUser?.role === 'admin' || currentTech?.can_view_prices !== false;
+
+  const { data: customers = [] } = useQuery({
+    queryKey: ['customers'],
+    queryFn: () => base44.entities.Customer.list(),
+    initialData: [],
+  });
+
+  const createInvoiceMutation = useMutation({
+    mutationFn: (data) => base44.entities.Invoice.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      setShowInvoiceDialog(false);
+      alert('Facture créée avec succès!');
+    },
+  });
+
+  // Check if job is completed and has invoice items
+  const shouldShowInvoicePrompt = job && 
+    formData.status === 'completed' && 
+    lineItems.length > 0 && 
+    lineItems.some(item => item.type === 'item' && item.total > 0) &&
+    !job.invoice_generated;
+
+  const handleGenerateInvoice = async () => {
+    if (!job) return;
+
+    const customer = customers.find(c => c.id === job.customer_id);
+    
+    const invoiceData = {
+      invoice_number: `INV-${Date.now()}`,
+      job_id: job.id,
+      customer_id: job.customer_id,
+      customer_name: job.customer_name || customer?.first_name + ' ' + customer?.last_name,
+      issue_date: new Date().toISOString().split('T')[0],
+      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      work_start_date: job.created_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+      status: 'draft',
+      line_items: lineItems,
+      subtotal: formData.invoice_subtotal,
+      tax_rate: 5,
+      tax_rate_2: 9.975,
+      tax_amount: formData.invoice_tps,
+      tax_amount_2: formData.invoice_tvq,
+      total_amount: formData.invoice_total,
+      notes: formData.invoice_notes || '',
+      project_name: job.title,
+    };
+
+    createInvoiceMutation.mutate(invoiceData);
+
+    // Update job to mark invoice as generated
+    if (job.id) {
+      await base44.entities.Job.update(job.id, { invoice_generated: true });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    }
+  };
 
   const addItem = () => {
     const newItem = {
@@ -168,6 +234,99 @@ export default function InvoicingTab({ job, formData, setFormData }) {
 
   return (
     <div className="space-y-4">
+      {/* Auto-Generate Invoice Banner */}
+      {shouldShowInvoicePrompt && canViewPrices && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+          <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="font-semibold text-green-900 mb-1">Job terminé - Générer une facture?</h4>
+            <p className="text-sm text-green-700 mb-3">
+              Ce job est marqué comme terminé et contient des éléments de facturation. 
+              Vous pouvez créer automatiquement une facture maintenant.
+            </p>
+            <Button 
+              size="sm" 
+              onClick={() => setShowInvoiceDialog(true)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Receipt className="w-4 h-4 mr-2" />
+              Générer la facture
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Automatic Generation Settings */}
+      {job && canViewPrices && (
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Options de génération automatique
+          </h4>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Génération automatique au statut "Terminé"</p>
+                <p className="text-xs text-slate-500">Créer automatiquement une facture quand le job est terminé</p>
+              </div>
+              <Switch
+                checked={autoGenerateEnabled}
+                onCheckedChange={setAutoGenerateEnabled}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Facturation récurrente</p>
+                <p className="text-xs text-slate-500">Générer des factures automatiquement selon un calendrier</p>
+              </div>
+              <Switch
+                checked={recurringSettings.enabled}
+                onCheckedChange={(checked) => setRecurringSettings({ ...recurringSettings, enabled: checked })}
+              />
+            </div>
+
+            {recurringSettings.enabled && (
+              <div className="pl-4 space-y-2 border-l-2 border-blue-500">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Fréquence</Label>
+                    <Select 
+                      value={recurringSettings.frequency}
+                      onValueChange={(value) => setRecurringSettings({ ...recurringSettings, frequency: value })}
+                    >
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                        <SelectItem value="monthly">Mensuel</SelectItem>
+                        <SelectItem value="quarterly">Trimestriel</SelectItem>
+                        <SelectItem value="yearly">Annuel</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Jour du mois</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={recurringSettings.day}
+                      onChange={(e) => setRecurringSettings({ ...recurringSettings, day: parseInt(e.target.value) })}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                  💡 Les factures seront générées automatiquement le jour {recurringSettings.day} de chaque période
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h3 className="text-base font-bold">Éléments de Facturation</h3>
         <div className="flex gap-2">
@@ -430,6 +589,65 @@ export default function InvoicingTab({ job, formData, setFormData }) {
           className="mt-1"
         />
       </div>
+
+      {/* Invoice Generation Dialog */}
+      <Dialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Générer une facture</DialogTitle>
+            <DialogDescription>
+              Créer automatiquement une facture à partir des éléments de ce job.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="bg-slate-50 rounded-lg p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Job:</span>
+                <span className="font-semibold">{job?.title}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Client:</span>
+                <span className="font-semibold">{job?.customer_name || 'Non spécifié'}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Nombre d'éléments:</span>
+                <span className="font-semibold">{lineItems.filter(i => i.type === 'item').length}</span>
+              </div>
+              {canViewPrices && (
+                <>
+                  <div className="flex justify-between text-sm pt-2 border-t">
+                    <span>Sous-total:</span>
+                    <span className="font-semibold">${totals.subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Taxes (TPS + TVQ):</span>
+                    <span className="font-semibold">${(totals.tps + totals.tvq).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-base font-bold">
+                    <span>Total:</span>
+                    <span>${totals.total.toFixed(2)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <p className="text-sm text-slate-600">
+              Une facture sera créée en statut "Brouillon" et pourra être modifiée avant l'envoi.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowInvoiceDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleGenerateInvoice}>
+              <Receipt className="w-4 h-4 mr-2" />
+              Créer la facture
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
