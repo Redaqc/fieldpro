@@ -1,130 +1,161 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar, User, CheckSquare, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
-import { Calendar, Clock, User, MapPin, DollarSign } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 
-const statusColors = {
-  scheduled: "bg-blue-100 text-blue-800 border-blue-200",
-  in_progress: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  completed: "bg-green-100 text-green-800 border-green-200",
-  cancelled: "bg-red-100 text-red-800 border-red-200",
-  on_hold: "bg-gray-100 text-gray-800 border-gray-200"
-};
+export default function JobsList({ jobs, onEditJob }) {
+  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterPriority, setFilterPriority] = useState('all');
 
-const priorityColors = {
-  low: "bg-slate-100 text-slate-700",
-  medium: "bg-blue-100 text-blue-700",
-  high: "bg-orange-100 text-orange-700",
-  urgent: "bg-red-100 text-red-700"
-};
+  const filteredJobs = jobs.filter(job => {
+    const matchSearch = !search || 
+      job.title?.toLowerCase().includes(search.toLowerCase()) ||
+      job.description?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = filterStatus === 'all' || job.status === filterStatus;
+    const matchPriority = filterPriority === 'all' || job.priority === filterPriority;
+    return matchSearch && matchStatus && matchPriority;
+  });
 
-export default function JobsList({ jobs, isLoading, onSelectJob }) {
-  if (isLoading) {
-    return (
-      <div className="grid gap-4">
-        {[...Array(5)].map((_, i) => (
-          <Card key={i} className="p-6">
-            <Skeleton className="h-6 w-3/4 mb-4" />
-            <Skeleton className="h-4 w-1/2 mb-2" />
-            <Skeleton className="h-4 w-2/3" />
-          </Card>
-        ))}
-      </div>
-    );
-  }
+  const statusColors = {
+    todo: 'bg-slate-100 text-slate-800',
+    in_progress: 'bg-blue-100 text-blue-800',
+    review: 'bg-purple-100 text-purple-800',
+    completed: 'bg-green-100 text-green-800',
+    archived: 'bg-gray-100 text-gray-800',
+  };
 
-  if (jobs.length === 0) {
-    return (
-      <Card className="p-12 text-center">
-        <p className="text-slate-500">No jobs found. Create your first job to get started!</p>
-      </Card>
-    );
-  }
+  const priorityColors = {
+    low: 'bg-blue-100 text-blue-800',
+    medium: 'bg-yellow-100 text-yellow-800',
+    high: 'bg-orange-100 text-orange-800',
+    urgent: 'bg-red-100 text-red-800',
+  };
+
+  const isOverdue = (job) => {
+    if (!job.due_date || job.status === 'completed') return false;
+    return new Date(job.due_date) < new Date();
+  };
 
   return (
-    <div className="grid gap-4">
-      {jobs.map((job) => (
-        <Card 
-          key={job.id}
-          className="p-6 hover:shadow-md transition-all cursor-pointer border-slate-200"
-          onClick={() => onSelectJob(job)}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0 space-y-3">
-              <div className="flex items-start gap-3 flex-wrap">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    {job.job_number && (
-                      <span className="text-sm font-mono text-slate-500">#{job.job_number}</span>
-                    )}
+    <div className="p-6 space-y-4">
+      <div className="flex gap-4 mb-6">
+        <Input
+          placeholder="Rechercher..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-xs"
+        />
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Statut" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les statuts</SelectItem>
+            <SelectItem value="todo">À faire</SelectItem>
+            <SelectItem value="in_progress">En cours</SelectItem>
+            <SelectItem value="review">En révision</SelectItem>
+            <SelectItem value="completed">Terminé</SelectItem>
+            <SelectItem value="archived">Archivé</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterPriority} onValueChange={setFilterPriority}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Priorité" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes priorités</SelectItem>
+            <SelectItem value="low">Basse</SelectItem>
+            <SelectItem value="medium">Moyenne</SelectItem>
+            <SelectItem value="high">Haute</SelectItem>
+            <SelectItem value="urgent">Urgente</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-3">
+        {filteredJobs.map(job => {
+          const overdue = isOverdue(job);
+          
+          return (
+            <Card 
+              key={job.id} 
+              className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => onEditJob(job)}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold text-lg">{job.title}</h3>
                     <Badge className={statusColors[job.status]}>
-                      {job.status.replace('_', ' ')}
+                      {job.status === 'todo' ? 'À faire' :
+                       job.status === 'in_progress' ? 'En cours' :
+                       job.status === 'review' ? 'En révision' :
+                       job.status === 'completed' ? 'Terminé' : 'Archivé'}
                     </Badge>
-                    {job.priority && (
-                      <Badge variant="outline" className={priorityColors[job.priority]}>
-                        {job.priority}
+                    <Badge className={priorityColors[job.priority]}>
+                      {job.priority}
+                    </Badge>
+                    {overdue && (
+                      <Badge className="bg-red-100 text-red-800">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        En retard
                       </Badge>
                     )}
                   </div>
-                  <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                    {job.title}
-                  </h3>
-                </div>
-                
-                {job.estimated_cost && (
-                  <div className="text-right">
-                    <p className="text-sm text-slate-500">Estimate</p>
-                    <p className="text-lg font-bold text-slate-900">
-                      ${job.estimated_cost.toFixed(2)}
+
+                  {job.description && (
+                    <p className="text-sm text-slate-600 mb-3 line-clamp-2">
+                      {job.description}
                     </p>
+                  )}
+
+                  <div className="flex items-center gap-4 text-sm text-slate-600">
+                    {job.due_date && (
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        <span className={overdue ? 'text-red-600 font-semibold' : ''}>
+                          {format(new Date(job.due_date), 'dd MMM yyyy')}
+                        </span>
+                      </div>
+                    )}
+
+                    {job.assigned_names && job.assigned_names.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        <User className="w-4 h-4" />
+                        <span>{job.assigned_names.join(', ')}</span>
+                      </div>
+                    )}
+
+                    {job.checklist && job.checklist.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        <CheckSquare className="w-4 h-4" />
+                        <span>
+                          {job.checklist.flatMap(g => g.items || []).filter(i => i.completed).length}/
+                          {job.checklist.flatMap(g => g.items || []).length}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-
-              {job.description && (
-                <p className="text-slate-600 line-clamp-2">{job.description}</p>
-              )}
-
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-600">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  <span className="font-medium">{job.customer_name || 'No customer'}</span>
                 </div>
-                
-                {job.technician_name && (
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    <span>{job.technician_name}</span>
-                  </div>
-                )}
-                
-                {job.scheduled_date && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>{format(new Date(job.scheduled_date), 'MMM d, yyyy')}</span>
-                  </div>
-                )}
-                
-                {job.scheduled_time && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    <span>{job.scheduled_time}</span>
-                  </div>
-                )}
-                
-                {job.location && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    <span className="truncate max-w-xs">{job.location}</span>
+
+                {job.labels && job.labels.length > 0 && (
+                  <div className="flex flex-wrap gap-1 ml-4">
+                    {job.labels.map((label, idx) => (
+                      <Badge key={idx} variant="outline" className="text-xs">
+                        {label}
+                      </Badge>
+                    ))}
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        </Card>
-      ))}
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
