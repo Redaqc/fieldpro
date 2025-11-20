@@ -277,7 +277,6 @@ export default function Dashboard() {
         selectedWidgets={activeWidgets}
         onSave={(widgets) => saveDashboardMutation.mutate(widgets)}
       />
-      </div>
     </div>
   );
 }
