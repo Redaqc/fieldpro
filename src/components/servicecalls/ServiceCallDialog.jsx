@@ -23,7 +23,7 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    status: 'todo',
+    status: 'new',
     due_date: '',
     priority: 'medium',
     technicians: [],
@@ -121,7 +121,7 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
       setFormData({
         title: '',
         description: '',
-        status: 'todo',
+        status: 'new',
         due_date: '',
         priority: 'medium',
         technicians: [],
@@ -659,11 +659,11 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todo">À faire</SelectItem>
+                  <SelectItem value="new">À faire</SelectItem>
                   <SelectItem value="in_progress">En cours</SelectItem>
                   <SelectItem value="review">En révision</SelectItem>
                   <SelectItem value="completed">Terminé</SelectItem>
-                  <SelectItem value="archived">Archivé</SelectItem>
+                  <SelectItem value="cancelled">Archivé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
