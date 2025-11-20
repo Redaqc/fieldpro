@@ -2,9 +2,8 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Settings2, LayoutDashboard, GripVertical } from "lucide-react";
+import { Settings2, LayoutDashboard } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import DashboardCustomizer from "@/components/dashboard/DashboardCustomizer";
 import WidgetJobsByStatus from "@/components/dashboard/WidgetJobsByStatus";
 import WidgetMonthlyRevenue from "@/components/dashboard/WidgetMonthlyRevenue";
@@ -144,16 +143,6 @@ export default function Dashboard() {
 
   const activeWidgets = getActiveWidgets();
 
-  const handleDragEnd = (result) => {
-    if (!result.destination) return;
-
-    const items = Array.from(activeWidgets);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    saveDashboardMutation.mutate(items);
-  };
-
   const renderWidget = (widgetType) => {
     switch (widgetType) {
       case 'today_summary':
@@ -236,38 +225,9 @@ export default function Dashboard() {
 
       <AlertsPanel />
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="dashboard-widgets">
-          {(provided) => (
-            <div 
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min"
-            >
-              {activeWidgets.map((widgetType, index) => (
-                <Draggable key={widgetType} draggableId={widgetType} index={index}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      className={`relative ${snapshot.isDragging ? 'opacity-70' : ''}`}
-                    >
-                      <div 
-                        {...provided.dragHandleProps}
-                        className="absolute top-2 right-2 z-10 cursor-grab active:cursor-grabbing bg-white rounded-lg p-2 shadow-md hover:shadow-lg transition-shadow"
-                      >
-                        <GripVertical className="w-5 h-5 text-slate-400" />
-                      </div>
-                      {renderWidget(widgetType)}
-                    </div>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min">
+        {activeWidgets.map(widgetType => renderWidget(widgetType))}
+      </div>
 
       {activeWidgets.length === 0 && (
         <div className="text-center py-16 border-2 border-dashed rounded-lg">
