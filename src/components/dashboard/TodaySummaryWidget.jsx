@@ -58,52 +58,40 @@ export default function TodaySummaryWidget({ invoices = [], payments = [], jobs 
 
   const cards = [
     { 
-      title: "Purchase", 
+      title: "Ventes du Mois", 
       amount: monthlySales, 
       gradient: "from-blue-400 to-blue-600",
       icon: TrendingUp 
     },
     { 
-      title: "Purchase Return", 
+      title: "Factures Dues", 
       amount: invoicesDue, 
       gradient: "from-cyan-400 to-cyan-600",
       icon: FileText 
     },
     { 
-      title: "Sales", 
-      amount: paymentsReceived, 
-      gradient: "from-purple-400 to-purple-600",
-      icon: DollarSign 
-    },
-    { 
-      title: "Sales Return", 
+      title: "Factures Overdue", 
       amount: invoicesOverdue, 
-      gradient: "from-slate-400 to-slate-600",
+      gradient: "from-purple-400 to-purple-600",
       icon: AlertCircle 
     },
     { 
-      title: "Client Payment", 
+      title: "Paiements Reçus", 
+      amount: paymentsReceived, 
+      gradient: "from-slate-400 to-slate-600",
+      icon: DollarSign 
+    },
+    { 
+      title: "Dépenses", 
       amount: monthlyExpenses, 
       gradient: "from-green-400 to-green-600",
-      icon: Users 
-    },
-    { 
-      title: "Supplier Payment", 
-      amount: techCosts, 
-      gradient: "from-violet-400 to-violet-600",
-      icon: Users 
-    },
-    { 
-      title: "Expense", 
-      amount: monthlyExpenses, 
-      gradient: "from-red-400 to-red-600",
       icon: TrendingDown 
     },
     { 
-      title: "Balance Transfer", 
-      amount: 0, 
-      gradient: "from-gray-700 to-gray-900",
-      icon: TrendingUp 
+      title: "Coûts Tech", 
+      amount: techCosts, 
+      gradient: "from-violet-400 to-violet-600",
+      icon: Users 
     },
   ];
 
