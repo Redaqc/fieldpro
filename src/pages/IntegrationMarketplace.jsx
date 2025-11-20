@@ -7,9 +7,30 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, Zap, Calendar, Mail, DollarSign, Webhook } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { CheckCircle2, Zap, Calendar, Mail, DollarSign, Webhook, CheckCircle, XCircle, RefreshCw, Upload, FileText, AlertCircle } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
 
 const INTEGRATIONS = [
+  {
+    type: 'zoho_books',
+    name: 'Zoho Books',
+    description: 'Sync customers, invoices and items with Zoho Books',
+    icon: DollarSign,
+    color: 'text-blue-600',
+    features: ['Customer sync', 'Invoice sync', 'Items sync', 'Auto-sync', 'Advanced filters']
+  },
+  {
+    type: 'sage50',
+    name: 'Sage 50 Canada',
+    description: 'Import/export data via CSV files',
+    icon: FileText,
+    color: 'text-green-600',
+    features: ['CSV import/export', 'Customer sync', 'Items sync', 'Invoice sync']
+  },
   {
     type: 'quickbooks',
     name: 'QuickBooks Online',
@@ -55,11 +76,35 @@ const INTEGRATIONS = [
 export default function IntegrationMarketplace() {
   const [configDialog, setConfigDialog] = useState(null);
   const [configData, setConfigData] = useState({});
+  const [csvFile, setCsvFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: integrations = [] } = useQuery({
     queryKey: ['integrations'],
     queryFn: () => base44.entities.Integration.list(),
+    initialData: [],
+  });
+
+  const { data: zohoSettings } = useQuery({
+    queryKey: ['integrationSettings', 'zoho_books'],
+    queryFn: async () => {
+      const settings = await base44.entities.IntegrationSettings.filter({ integration_type: 'zoho_books' });
+      return settings[0] || null;
+    },
+  });
+
+  const { data: sage50Settings } = useQuery({
+    queryKey: ['integrationSettings', 'sage50'],
+    queryFn: async () => {
+      const settings = await base44.entities.IntegrationSettings.filter({ integration_type: 'sage50' });
+      return settings[0] || null;
+    },
+  });
+
+  const { data: syncLogs = [] } = useQuery({
+    queryKey: ['syncLogs'],
+    queryFn: () => base44.entities.SyncLog.list('-created_date', 50),
     initialData: [],
   });
 
@@ -85,12 +130,69 @@ export default function IntegrationMarketplace() {
     },
   });
 
+  const connectZohoMutation = useMutation({
+    mutationFn: async () => {
+      const { data } = await base44.functions.invoke('zohoAuth', { action: 'authorize' });
+      window.open(data.auth_url, '_blank', 'width=600,height=700');
+    },
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: async ({ integration, operation, csvData }) => {
+      if (integration === 'zoho_books') {
+        return await base44.functions.invoke(`zohoSync${operation.charAt(0).toUpperCase() + operation.slice(1)}`);
+      } else {
+        return await base44.functions.invoke('sage50Sync', { operation, csv_data: csvData });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['syncLogs'] });
+      queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+    },
+  });
+
+  const handleCSVUpload = async (operation) => {
+    if (!csvFile) {
+      alert('Veuillez sélectionner un fichier CSV');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const text = await csvFile.text();
+      await syncMutation.mutateAsync({
+        integration: 'sage50',
+        operation,
+        csvData: text
+      });
+      alert('Synchronisation réussie!');
+      setCsvFile(null);
+    } catch (error) {
+      alert('Erreur: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const zohoConnected = zohoSettings?.is_active && zohoSettings?.zoho_access_token;
+  const sage50Connected = sage50Settings?.is_active;
+
   const getIntegrationStatus = (type) => {
+    if (type === 'zoho_books') {
+      return zohoConnected ? 'active' : 'inactive';
+    }
+    if (type === 'sage50') {
+      return sage50Connected ? 'active' : 'inactive';
+    }
     const integration = integrations.find(i => i.type === type);
     return integration?.status || 'inactive';
   };
 
   const handleConfigure = (integrationType) => {
+    if (integrationType === 'zoho_books' || integrationType === 'sage50') {
+      setConfigDialog(integrationType);
+      return;
+    }
     const existing = integrations.find(i => i.type === integrationType);
     setConfigData(existing || { type: integrationType, name: integrationType });
     setConfigDialog(integrationType);
