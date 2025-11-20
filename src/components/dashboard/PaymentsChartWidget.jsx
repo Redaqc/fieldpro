@@ -28,28 +28,27 @@ export default function PaymentsChartWidget({ payments }) {
     .reduce((sum, p) => sum + (p.amount || 0), 0);
 
   return (
-    <Card className="border-l-4 border-l-green-500">
-      <CardHeader>
+    <Card className="shadow-sm bg-white">
+      <CardHeader className="border-b">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-green-600" />
-            Paiements Reçus
+          <CardTitle className="text-base font-semibold text-slate-800">
+            Payment Sent vs Payment Received (2022)
           </CardTitle>
-          <div className="text-right">
-            <p className="text-sm text-slate-600">Total Reçu</p>
-            <p className="text-2xl font-bold text-green-600">${totalReceived.toFixed(2)}</p>
-          </div>
+          <button className="text-blue-500 text-sm">ⓘ</button>
         </div>
       </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={250}>
+      <CardContent className="pt-6">
+        <ResponsiveContainer width="100%" height={280}>
           <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+            <YAxis tick={{ fontSize: 12 }} />
             <Tooltip />
-            <Legend />
-            <Bar dataKey="montant" fill="#10b981" name="Montant ($)" radius={[8, 8, 0, 0]} />
+            <Legend 
+              wrapperStyle={{ paddingTop: '20px' }} 
+              iconType="circle"
+            />
+            <Bar dataKey="montant" fill="#10b981" name="Payment Received" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

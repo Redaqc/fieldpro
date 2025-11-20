@@ -24,13 +24,13 @@ export default function TopClientsWidget({ customers, invoices }) {
   const remaining = customerRevenue.slice(3, 5);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">
-          Top 5 Clients (2025)
+    <Card className="shadow-sm bg-white">
+      <CardHeader className="border-b">
+        <CardTitle className="text-base font-semibold text-slate-800">
+          Top 5 Clients (2022)
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="pt-6 space-y-4">
         {/* Top 3 - Style podium */}
         <div className="grid grid-cols-3 gap-4">
           {/* 1er place - centre */}

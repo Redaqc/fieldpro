@@ -10,11 +10,11 @@ export default function StockAlertWidget({ materials }) {
   ).sort((a, b) => a.quantity_in_stock - b.quantity_in_stock);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">Stock Alert</CardTitle>
+    <Card className="shadow-sm bg-white">
+      <CardHeader className="border-b">
+        <CardTitle className="text-base font-semibold text-slate-800">Stock Alert</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <Table>
           <TableHeader>
             <TableRow>

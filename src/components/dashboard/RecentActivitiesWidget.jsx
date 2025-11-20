@@ -11,9 +11,9 @@ export default function RecentActivitiesWidget({ invoices, quotations, expenses 
   const recentExpenses = expenses.slice(0, 5);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">Recent Activities</CardTitle>
+    <Card className="shadow-sm bg-white">
+      <CardHeader className="border-b">
+        <CardTitle className="text-base font-semibold text-slate-800">Recent Activities</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="invoices" className="w-full">

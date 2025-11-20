@@ -20,43 +20,23 @@ export default function JobsByStatusWidget({ jobs }) {
   ].filter(item => item.value > 0);
 
   return (
-    <Card className="border-l-4 border-l-blue-500">
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Briefcase className="w-5 h-5 text-blue-600" />
-          Jobs par Statut
+    <Card className="shadow-sm bg-white">
+      <CardHeader className="border-b">
+        <CardTitle className="text-base font-semibold text-slate-800">
+          Top Selling Products (2022)
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-4 gap-2 mb-4">
-          <div className="bg-blue-50 p-3 rounded-lg text-center">
-            <p className="text-2xl font-bold text-blue-900">{statusCounts.new}</p>
-            <p className="text-xs text-blue-600">Soumis</p>
-          </div>
-          <div className="bg-orange-50 p-3 rounded-lg text-center">
-            <p className="text-2xl font-bold text-orange-900">{statusCounts.scheduled}</p>
-            <p className="text-xs text-orange-600">Planifié</p>
-          </div>
-          <div className="bg-purple-50 p-3 rounded-lg text-center">
-            <p className="text-2xl font-bold text-purple-900">{statusCounts.in_progress}</p>
-            <p className="text-xs text-purple-600">En Cours</p>
-          </div>
-          <div className="bg-green-50 p-3 rounded-lg text-center">
-            <p className="text-2xl font-bold text-green-900">{statusCounts.completed}</p>
-            <p className="text-xs text-green-600">Terminé</p>
-          </div>
-        </div>
-
+      <CardContent className="pt-6">
         {chartData.length > 0 && (
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
                 data={chartData}
                 cx="50%"
                 cy="50%"
-                innerRadius={50}
-                outerRadius={80}
-                paddingAngle={5}
+                innerRadius={70}
+                outerRadius={110}
+                paddingAngle={2}
                 dataKey="value"
               >
                 {chartData.map((entry, index) => (
@@ -64,7 +44,12 @@ export default function JobsByStatusWidget({ jobs }) {
                 ))}
               </Pie>
               <Tooltip />
-              <Legend />
+              <Legend 
+                verticalAlign="middle" 
+                align="right"
+                layout="vertical"
+                iconType="circle"
+              />
             </PieChart>
           </ResponsiveContainer>
         )}

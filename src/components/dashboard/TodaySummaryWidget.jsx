@@ -96,10 +96,10 @@ export default function TodaySummaryWidget({ invoices = [], payments = [], jobs 
   ];
 
   return (
-    <Card className="col-span-full">
-      <CardHeader>
+    <Card className="col-span-full shadow-sm bg-white">
+      <CardHeader className="border-b">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">Today Summary</CardTitle>
+          <CardTitle className="text-base font-semibold text-slate-800">Today Summary</CardTitle>
           <Select defaultValue="today">
             <SelectTrigger className="w-32">
               <SelectValue />
