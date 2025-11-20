@@ -19,6 +19,7 @@ import TaskDependenciesTab from "./TaskDependenciesTab";
 import MilestonesTab from "./MilestonesTab";
 import GanttChart from "./GanttChart";
 import MaterialUsageTab from "./MaterialUsageTab";
+import AssetAssignmentTab from "./AssetAssignmentTab";
 
 export default function JobDialog({ open, onClose, job, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
@@ -1040,6 +1041,14 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                 <Package className="w-4 h-4" />
                 <span className="font-medium">Materials</span>
               </TabsTrigger>
+
+              <TabsTrigger 
+                value="assets" 
+                className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+              >
+                <Package className="w-4 h-4" />
+                <span className="font-medium">Assets</span>
+              </TabsTrigger>
               
               {appSettings?.feature_task_dependencies && (
                 <TabsTrigger 
@@ -1235,6 +1244,10 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
 
             <TabsContent value="materials" className="space-y-4">
               <MaterialUsageTab job={job} />
+            </TabsContent>
+
+            <TabsContent value="assets" className="space-y-4">
+              <AssetAssignmentTab job={job} />
             </TabsContent>
 
             {appSettings?.feature_task_dependencies && (
