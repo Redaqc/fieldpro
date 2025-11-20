@@ -62,6 +62,9 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
 
   const queryClient = useQueryClient();
 
+  const currentTech = technicians.find(t => t.email === currentUser?.email);
+  const isAdminOrManager = currentUser?.role === 'admin' || currentTech?.role === 'admin' || currentTech?.role === 'manager';
+
   const { data: checklistTemplates = [] } = useQuery({
     queryKey: ['checklistTemplates'],
     queryFn: () => base44.entities.ChecklistTemplate.list(),
