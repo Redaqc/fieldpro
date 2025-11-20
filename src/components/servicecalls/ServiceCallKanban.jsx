@@ -60,15 +60,7 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
     );
   };
 
-  console.log('Service Calls:', calls);
-  console.log('Calls by status:', {
-    new: calls.filter(c => (c.status || 'new') === 'new').length,
-    scheduled: calls.filter(c => c.status === 'scheduled').length,
-    in_progress: calls.filter(c => c.status === 'in_progress').length,
-    on_hold: calls.filter(c => c.status === 'on_hold').length,
-    review: calls.filter(c => c.status === 'review').length,
-    completed: calls.filter(c => c.status === 'completed').length,
-  });
+
 
   const priorityColors = {
     low: 'bg-blue-100 text-blue-800',
@@ -81,6 +73,12 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
     if (!call.due_date || call.status === 'completed') return false;
     return new Date(call.due_date) < new Date();
   };
+
+  // Debug: Afficher les appels dans la console
+  React.useEffect(() => {
+    console.log('Total service calls:', calls.length);
+    console.log('Service calls data:', calls);
+  }, [calls]);
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
@@ -162,20 +160,7 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
                                  </div>
                                )}
 
-                               {/* Status */}
-                               <div>
-                                 <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wide mb-1">STATUS</p>
-                                 <Badge className={`${
-                                   call.status === 'in_progress' ? 'bg-orange-500' :
-                                   call.status === 'completed' ? 'bg-green-500' :
-                                   call.status === 'review' ? 'bg-purple-500' : 'bg-slate-400'
-                                 } text-white text-xs font-medium`}>
-                                   {call.status === 'todo' ? 'À faire' :
-                                    call.status === 'in_progress' ? 'En cours' :
-                                    call.status === 'review' ? 'En révision' : 
-                                    call.status === 'completed' ? 'Terminé' : 'Archivé'}
-                                 </Badge>
-                               </div>
+
 
                                {/* Title */}
                                <h4 className="font-bold text-base text-slate-900 line-clamp-2 leading-tight">
