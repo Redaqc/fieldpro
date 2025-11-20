@@ -15,6 +15,7 @@ export default function Team() {
   const [showDialog, setShowDialog] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [selectedTechnician, setSelectedTechnician] = useState(null);
+  const [viewMode, setViewMode] = useState("cards");
   const queryClient = useQueryClient();
 
   const { data: technicians = [], isLoading } = useQuery({
