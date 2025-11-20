@@ -33,6 +33,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
     comments: [],
     activity_log: [],
     attachments: [],
+    project_addresses: [],
   });
 
   const [newComment, setNewComment] = useState('');
@@ -78,6 +79,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
         attachments: job.attachments || [],
         estimated_hours: job.estimated_hours || 0,
         total_time_spent: job.total_time_spent || 0,
+        project_addresses: job.project_addresses || [],
       });
     } else {
       setFormData({
@@ -97,6 +99,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
         comments: [],
         activity_log: [],
         attachments: [],
+        project_addresses: [],
       });
     }
     setNewLabel({ name: '', color: '#3b82f6' });
@@ -509,31 +512,47 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
 
           {/* Project Addresses */}
           <div className="space-y-3 border rounded-lg p-4 bg-slate-50">
-            <Label className="text-sm font-medium">Adresses du projet</Label>
-            <Input
-              value={formData.project_address_1 || ''}
-              onChange={(e) => setFormData({ ...formData, project_address_1: e.target.value })}
-              placeholder="Adresse 1..."
-              className="h-10"
-            />
-            <Input
-              value={formData.project_address_2 || ''}
-              onChange={(e) => setFormData({ ...formData, project_address_2: e.target.value })}
-              placeholder="Adresse 2..."
-              className="h-10"
-            />
-            <Input
-              value={formData.project_address_3 || ''}
-              onChange={(e) => setFormData({ ...formData, project_address_3: e.target.value })}
-              placeholder="Adresse 3..."
-              className="h-10"
-            />
-            <Input
-              value={formData.project_address_4 || ''}
-              onChange={(e) => setFormData({ ...formData, project_address_4: e.target.value })}
-              placeholder="Adresse 4..."
-              className="h-10"
-            />
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Adresses du projet</Label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const addresses = [...(formData.project_addresses || []), ''];
+                  setFormData({ ...formData, project_addresses: addresses });
+                }}
+                className="h-8"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            {(formData.project_addresses || []).map((address, index) => (
+              <div key={index} className="flex gap-2">
+                <Input
+                  value={address}
+                  onChange={(e) => {
+                    const addresses = [...(formData.project_addresses || [])];
+                    addresses[index] = e.target.value;
+                    setFormData({ ...formData, project_addresses: addresses });
+                  }}
+                  placeholder={`Adresse ${index + 1}...`}
+                  className="h-10 flex-1"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    const addresses = formData.project_addresses.filter((_, i) => i !== index);
+                    setFormData({ ...formData, project_addresses: addresses });
+                  }}
+                  className="h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
