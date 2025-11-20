@@ -44,18 +44,26 @@ export default function AddressAutocompleteInput({
 
     setIsLoading(true);
     try {
-      const { data } = await base44.functions.invoke('addressAutocomplete', {
+      const response = await base44.functions.invoke('addressAutocomplete', {
         query: searchQuery,
         sessionToken
       });
 
-      if (data.suggestions) {
-        setSuggestions(data.suggestions);
-        setProvider(data.provider);
-        setShowDropdown(data.suggestions.length > 0);
+      console.log('Address autocomplete response:', response);
+
+      if (response?.data?.suggestions) {
+        setSuggestions(response.data.suggestions);
+        setProvider(response.data.provider);
+        setShowDropdown(response.data.suggestions.length > 0);
+      } else if (response?.data?.error) {
+        console.error('API Error:', response.data.error);
+        alert('Erreur: ' + response.data.error);
+        setSuggestions([]);
+        setShowDropdown(false);
       }
     } catch (error) {
       console.error('Address autocomplete error:', error);
+      alert('Erreur de connexion: ' + error.message);
       setSuggestions([]);
       setShowDropdown(false);
     } finally {
@@ -84,16 +92,22 @@ export default function AddressAutocompleteInput({
     setIsLoading(true);
 
     try {
-      const { data } = await base44.functions.invoke('addressDetails', {
+      const response = await base44.functions.invoke('addressDetails', {
         placeId: suggestion.place_id,
         provider
       });
 
-      if (data.address && onAddressSelected) {
-        onAddressSelected(data.address);
+      console.log('Address details response:', response);
+
+      if (response?.data?.address && onAddressSelected) {
+        onAddressSelected(response.data.address);
+      } else if (response?.data?.error) {
+        console.error('API Error:', response.data.error);
+        alert('Erreur: ' + response.data.error);
       }
     } catch (error) {
       console.error('Address details error:', error);
+      alert('Erreur: ' + error.message);
     } finally {
       setIsLoading(false);
     }
