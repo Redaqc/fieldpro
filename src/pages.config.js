@@ -16,6 +16,7 @@ import NotificationSettings from './pages/NotificationSettings';
 import Calendar from './pages/Calendar';
 import TimeReports from './pages/TimeReports';
 import ProfitabilityReports from './pages/ProfitabilityReports';
+import CostsManagement from './pages/CostsManagement';
 import __Layout from './Layout.jsx';
 
 
@@ -38,6 +39,7 @@ export const PAGES = {
     "Calendar": Calendar,
     "TimeReports": TimeReports,
     "ProfitabilityReports": ProfitabilityReports,
+    "CostsManagement": CostsManagement,
 }
 
 export const pagesConfig = {

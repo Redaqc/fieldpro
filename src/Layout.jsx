@@ -93,6 +93,11 @@ const navigationItems = [
     icon: TrendingUp,
   },
   {
+    title: "Gestion Coûts",
+    url: createPageUrl("CostsManagement"),
+    icon: DollarSign,
+  },
+  {
     title: "GPS Tracking",
     url: createPageUrl("GPSTracking"),
     icon: MapPin,

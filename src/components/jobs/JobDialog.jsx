@@ -987,7 +987,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
           </div>
 
           <Tabs defaultValue="checklist" className="w-full">
-            <TabsList className="grid grid-cols-2 sm:grid-cols-6 w-full h-auto">
+            <TabsList className={`grid w-full h-auto ${isAdminOrManager ? 'grid-cols-2 sm:grid-cols-6' : 'grid-cols-2 sm:grid-cols-5'}`}>
               <TabsTrigger value="checklist" className="flex items-center gap-1 sm:gap-2 py-2.5">
                 <CheckSquare className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Checklist</span>
@@ -996,10 +996,12 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                 <FileText className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Facturation</span>
               </TabsTrigger>
-              <TabsTrigger value="costs" className="flex items-center gap-1 sm:gap-2 py-2.5">
-                <TrendingDown className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Coûts</span>
-              </TabsTrigger>
+              {isAdminOrManager && (
+                <TabsTrigger value="costs" className="flex items-center gap-1 sm:gap-2 py-2.5">
+                  <TrendingDown className="w-4 h-4" />
+                  <span className="text-xs sm:text-sm">Coûts</span>
+                </TabsTrigger>
+              )}
               <TabsTrigger value="attachments" className="flex items-center gap-1 sm:gap-2 py-2.5">
                 <Paperclip className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Fichiers ({formData.attachments?.length || 0})</span>
@@ -1123,13 +1125,15 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               />
             </TabsContent>
 
-            <TabsContent value="costs" className="space-y-4">
-              <CostsTab 
-                job={job}
-                formData={formData}
-                setFormData={setFormData}
-              />
-            </TabsContent>
+            {isAdminOrManager && (
+              <TabsContent value="costs" className="space-y-4">
+                <CostsTab 
+                  job={job}
+                  formData={formData}
+                  setFormData={setFormData}
+                />
+              </TabsContent>
+            )}
 
             <TabsContent value="attachments" className="space-y-3">
               <div>
