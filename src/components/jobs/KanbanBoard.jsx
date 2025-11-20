@@ -126,6 +126,18 @@ export default function KanbanBoard({ jobs, onEditJob, currentUser }) {
                               }`}
                               onClick={() => onEditJob(job)}
                             >
+                              {/* Work Type Badge */}
+                              {job.work_type_name && (
+                                <div className="mb-2">
+                                  <Badge 
+                                    className="text-white text-xs"
+                                    style={{ backgroundColor: job.work_type_color || '#0074D9' }}
+                                  >
+                                    {job.work_type_name}
+                                  </Badge>
+                                </div>
+                              )}
+
                               {/* Labels */}
                               {job.labels && job.labels.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mb-2">
@@ -190,8 +202,14 @@ export default function KanbanBoard({ jobs, onEditJob, currentUser }) {
                                   </div>
                                 )}
 
-                                {/* Assigned Technician */}
-                                {job.technician_name && (
+                                {/* Assigned Technicians */}
+                                {job.technicians && job.technicians.length > 0 && (
+                                  <div className="flex items-center gap-1 text-slate-600">
+                                    <User className="w-3 h-3" />
+                                    <span className="text-xs">{job.technicians.length} tech{job.technicians.length > 1 ? 's' : ''}</span>
+                                  </div>
+                                )}
+                                {!job.technicians && job.technician_name && (
                                   <div className="flex items-center gap-1 text-slate-600">
                                     <User className="w-3 h-3" />
                                     <span className="text-xs">{job.technician_name}</span>
