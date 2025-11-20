@@ -2,12 +2,27 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Minus, GripVertical, Type, FileText } from "lucide-react";
+import { Plus, Minus, GripVertical, Type, FileText, Package, CircleDot } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 
 export default function InvoicingTab({ job, formData, setFormData }) {
   const [lineItems, setLineItems] = useState(formData.invoice_items || []);
+
+  const { data: bundles = [] } = useQuery({
+    queryKey: ['bundles'],
+    queryFn: () => base44.entities.Bundle.list(),
+    initialData: [],
+  });
+
+  const { data: materials = [] } = useQuery({
+    queryKey: ['materials'],
+    queryFn: () => base44.entities.Material.list(),
+    initialData: [],
+  });
 
   const addItem = () => {
     const newItem = {
@@ -38,6 +53,39 @@ export default function InvoicingTab({ job, formData, setFormData }) {
       type: "description"
     };
     const newItems = [...lineItems, newItem];
+    setLineItems(newItems);
+    updateFormData(newItems);
+  };
+
+  const addMaterial = (materialId) => {
+    const material = materials.find(m => m.id === materialId);
+    if (!material) return;
+
+    const newItem = {
+      description: material.name,
+      quantity: 1,
+      unit_price: material.unit_price,
+      total: material.unit_price,
+      type: "item"
+    };
+    const newItems = [...lineItems, newItem];
+    setLineItems(newItems);
+    updateFormData(newItems);
+  };
+
+  const addBundleItems = (bundleId) => {
+    const bundle = bundles.find(b => b.id === bundleId);
+    if (!bundle) return;
+
+    const bundleItemsToAdd = bundle.items?.map(item => ({
+      description: item.service_name || item.description,
+      quantity: item.quantity || 1,
+      unit_price: item.unit_price || 0,
+      total: (item.quantity || 1) * (item.unit_price || 0),
+      type: "item"
+    })) || [];
+
+    const newItems = [...lineItems, ...bundleItemsToAdd];
     setLineItems(newItems);
     updateFormData(newItems);
   };
@@ -139,6 +187,30 @@ export default function InvoicingTab({ job, formData, setFormData }) {
             <FileText className="w-3 h-3 mr-1" />
             Description
           </Button>
+          <Select onValueChange={addBundleItems}>
+            <SelectTrigger className="w-32 h-8 font-semibold">
+              <SelectValue placeholder="Bundle" />
+            </SelectTrigger>
+            <SelectContent>
+              {bundles.filter(b => b.status === 'active').map(bundle => (
+                <SelectItem key={bundle.id} value={bundle.id}>
+                  {bundle.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select onValueChange={addMaterial}>
+            <SelectTrigger className="w-32 h-8 font-semibold">
+              <SelectValue placeholder="Matériaux" />
+            </SelectTrigger>
+            <SelectContent>
+              {materials.filter(m => m.status === 'active').map(material => (
+                <SelectItem key={material.id} value={material.id}>
+                  {material.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
