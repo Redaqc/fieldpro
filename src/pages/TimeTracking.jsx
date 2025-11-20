@@ -37,43 +37,185 @@ export default function TimeTracking() {
     retry: false,
   });
 
+  const { data: gpsZones = [] } = useQuery({
+    queryKey: ['gpsZones'],
+    queryFn: () => base44.entities.GPSZone.list(),
+    initialData: [],
+  });
+
+  const checkGPSZone = (position, zones) => {
+    for (const zone of zones) {
+      if (!zone.active) continue;
+      
+      const distance = getDistanceFromLatLonInMeters(
+        position.latitude,
+        position.longitude,
+        zone.latitude,
+        zone.longitude
+      );
+      
+      if (distance <= zone.radius) {
+        return { inZone: true, zone };
+      }
+    }
+    return { inZone: false, zone: null };
+  };
+
+  const getDistanceFromLatLonInMeters = (lat1, lon1, lat2, lon2) => {
+    const R = 6371000; // Radius of earth in meters
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  const deg2rad = (deg) => deg * (Math.PI/180);
+
   const clockInMutation = useMutation({
     mutationFn: async (technicianId) => {
       const tech = technicians.find(t => t.id === technicianId);
       
-      // Check if technician can punch outside GPS zone
-      if (!tech.gps_punch_outside_zone) {
-        // In a real app, you would check GPS location here
-        // For now, we'll allow it but could add validation
-      }
-      
-      return base44.entities.TimeEntry.create({
-        technician_id: technicianId,
-        technician_name: `${tech.first_name} ${tech.last_name}`,
-        clock_in: new Date().toISOString(),
-        status: "in_progress"
+      return new Promise((resolve, reject) => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            async (position) => {
+              const coords = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+              };
+
+              const { inZone, zone } = checkGPSZone(coords, gpsZones);
+
+              if (!tech.gps_punch_outside_zone && !inZone) {
+                reject(new Error('Vous devez être dans une zone GPS autorisée pour poinçonner'));
+                return;
+              }
+
+              // Create time entry
+              const timeEntry = await base44.entities.TimeEntry.create({
+                technician_id: technicianId,
+                technician_name: `${tech.first_name} ${tech.last_name}`,
+                clock_in: new Date().toISOString(),
+                status: "in_progress",
+                location_in: inZone ? zone.name : "Hors zone",
+              });
+
+              // Log GPS tracking
+              await base44.entities.GPSTracking.create({
+                technician_id: technicianId,
+                technician_name: `${tech.first_name} ${tech.last_name}`,
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+                accuracy: position.coords.accuracy,
+                timestamp: new Date().toISOString(),
+                activity_type: "punch_in",
+              });
+
+              resolve(timeEntry);
+            },
+            (error) => {
+              if (!tech.gps_punch_outside_zone) {
+                reject(new Error('Impossible d\'obtenir votre localisation GPS'));
+              } else {
+                // Allow punch without GPS if permitted
+                base44.entities.TimeEntry.create({
+                  technician_id: technicianId,
+                  technician_name: `${tech.first_name} ${tech.last_name}`,
+                  clock_in: new Date().toISOString(),
+                  status: "in_progress",
+                }).then(resolve).catch(reject);
+              }
+            }
+          );
+        } else {
+          if (!tech.gps_punch_outside_zone) {
+            reject(new Error('GPS non disponible sur cet appareil'));
+          } else {
+            base44.entities.TimeEntry.create({
+              technician_id: technicianId,
+              technician_name: `${tech.first_name} ${tech.last_name}`,
+              clock_in: new Date().toISOString(),
+              status: "in_progress",
+            }).then(resolve).catch(reject);
+          }
+        }
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      queryClient.invalidateQueries({ queryKey: ['gpsTracking'] });
+    },
+    onError: (error) => {
+      alert(error.message);
     },
   });
 
   const clockOutMutation = useMutation({
     mutationFn: async (entryId) => {
       const entry = timeEntries.find(e => e.id === entryId);
-      const clockOut = new Date().toISOString();
-      const totalMinutes = differenceInMinutes(new Date(clockOut), new Date(entry.clock_in));
-      const totalHours = ((totalMinutes - (entry.break_minutes || 0)) / 60).toFixed(2);
       
-      return base44.entities.TimeEntry.update(entryId, {
-        clock_out: clockOut,
-        total_hours: parseFloat(totalHours),
-        status: "completed"
+      return new Promise((resolve, reject) => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            async (position) => {
+              const clockOut = new Date().toISOString();
+              const totalMinutes = differenceInMinutes(new Date(clockOut), new Date(entry.clock_in));
+              const totalHours = ((totalMinutes - (entry.break_minutes || 0)) / 60).toFixed(2);
+              
+              // Update time entry
+              const updated = await base44.entities.TimeEntry.update(entryId, {
+                clock_out: clockOut,
+                total_hours: parseFloat(totalHours),
+                status: "completed",
+                location_out: "GPS enregistré",
+              });
+
+              // Log GPS tracking
+              await base44.entities.GPSTracking.create({
+                technician_id: entry.technician_id,
+                technician_name: entry.technician_name,
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+                timestamp: clockOut,
+                activity_type: "punch_out",
+              });
+
+              resolve(updated);
+            },
+            (error) => {
+              // Allow punch out even without GPS
+              const clockOut = new Date().toISOString();
+              const totalMinutes = differenceInMinutes(new Date(clockOut), new Date(entry.clock_in));
+              const totalHours = ((totalMinutes - (entry.break_minutes || 0)) / 60).toFixed(2);
+              
+              base44.entities.TimeEntry.update(entryId, {
+                clock_out: clockOut,
+                total_hours: parseFloat(totalHours),
+                status: "completed",
+              }).then(resolve).catch(reject);
+            }
+          );
+        } else {
+          const clockOut = new Date().toISOString();
+          const totalMinutes = differenceInMinutes(new Date(clockOut), new Date(entry.clock_in));
+          const totalHours = ((totalMinutes - (entry.break_minutes || 0)) / 60).toFixed(2);
+          
+          base44.entities.TimeEntry.update(entryId, {
+            clock_out: clockOut,
+            total_hours: parseFloat(totalHours),
+            status: "completed",
+          }).then(resolve).catch(reject);
+        }
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      queryClient.invalidateQueries({ queryKey: ['gpsTracking'] });
     },
   });
 

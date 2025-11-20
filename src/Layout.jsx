@@ -16,7 +16,8 @@ import {
   Package,
   FileCheck,
   DollarSign,
-  Clock
+  Clock,
+  MapPin
 } from "lucide-react";
 import {
   Sidebar,
@@ -66,6 +67,11 @@ const navigationItems = [
     title: "Time Tracking",
     url: createPageUrl("TimeTracking"),
     icon: Clock,
+  },
+  {
+    title: "GPS Tracking",
+    url: createPageUrl("GPSTracking"),
+    icon: MapPin,
   },
   {
     title: "Quotations",
@@ -122,8 +128,12 @@ export default function Layout({ children, currentPageName }) {
   // Filter navigation items based on user permissions
   const filteredNavigation = navigationItems.filter(item => {
     const moduleName = item.url.split('?')[0].split('/').pop().toLowerCase();
+    // GPS Tracking visibility - only for managers and admins
+    if (moduleName === 'gpstracking') {
+      return currentTech?.role === 'admin' || currentTech?.role === 'manager';
+    }
     return visibleModules.includes(moduleName);
-  });
+    });
 
   return (
     <SidebarProvider>

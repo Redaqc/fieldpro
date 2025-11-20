@@ -10,6 +10,7 @@ import PriceLists from './pages/PriceLists';
 import Materials from './pages/Materials';
 import TimeTracking from './pages/TimeTracking';
 import Settings from './pages/Settings';
+import GPSTracking from './pages/GPSTracking';
 import __Layout from './Layout.jsx';
 
 
@@ -26,6 +27,7 @@ export const PAGES = {
     "Materials": Materials,
     "TimeTracking": TimeTracking,
     "Settings": Settings,
+    "GPSTracking": GPSTracking,
 }
 
 export const pagesConfig = {
