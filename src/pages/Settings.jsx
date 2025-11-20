@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Edit, Save, X, Eye, EyeOff, List } from "lucide-react";
+import { Plus, Trash2, Edit, Save, X, Eye, EyeOff, List, Settings as SettingsIcon, GitBranch, Flag, BarChart, FileText, TrendingDown, Paperclip, MessageSquare, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -30,6 +30,14 @@ export default function Settings() {
     queryKey: ['checklistTemplates'],
     queryFn: () => base44.entities.ChecklistTemplate.list(),
     initialData: [],
+  });
+
+  const { data: appSettings } = useQuery({
+    queryKey: ['appSettings'],
+    queryFn: async () => {
+      const settings = await base44.entities.AppSettings.list();
+      return settings[0] || null;
+    },
   });
 
   const createMutation = useMutation({
@@ -83,6 +91,25 @@ export default function Settings() {
     },
   });
 
+  const updateAppSettingsMutation = useMutation({
+    mutationFn: (data) => {
+      if (appSettings?.id) {
+        return base44.entities.AppSettings.update(appSettings.id, data);
+      } else {
+        return base44.entities.AppSettings.create(data);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appSettings'] });
+    },
+  });
+
+  const toggleFeature = (feature, currentValue) => {
+    updateAppSettingsMutation.mutate({
+      [feature]: !currentValue
+    });
+  };
+
   const handleCreateTemplate = () => {
     const name = prompt('Nom du modèle de checklist:');
     if (!name) return;
@@ -115,6 +142,7 @@ export default function Settings() {
         <TabsList>
           <TabsTrigger value="work-types">Types de travaux</TabsTrigger>
           <TabsTrigger value="permissions">Permissions</TabsTrigger>
+          <TabsTrigger value="features">Fonctionnalités Jobs</TabsTrigger>
           <TabsTrigger value="checklists">Modèles de checklist</TabsTrigger>
         </TabsList>
 
@@ -276,6 +304,132 @@ export default function Settings() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="features">
+          <Card>
+            <CardHeader>
+              <CardTitle>Fonctionnalités des Jobs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-500 mb-6">
+                Activez ou désactivez les fonctionnalités avancées dans les jobs
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+                  <div className="flex items-center gap-3">
+                    <GitBranch className="w-5 h-5 text-blue-600" />
+                    <div>
+                      <p className="font-medium">Dépendances de tâches</p>
+                      <p className="text-xs text-slate-500">Gérer les dépendances entre les tâches</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={appSettings?.feature_task_dependencies !== false}
+                    onCheckedChange={() => toggleFeature('feature_task_dependencies', appSettings?.feature_task_dependencies !== false)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+                  <div className="flex items-center gap-3">
+                    <Flag className="w-5 h-5 text-purple-600" />
+                    <div>
+                      <p className="font-medium">Jalons</p>
+                      <p className="text-xs text-slate-500">Définir des étapes clés du projet</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={appSettings?.feature_milestones !== false}
+                    onCheckedChange={() => toggleFeature('feature_milestones', appSettings?.feature_milestones !== false)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+                  <div className="flex items-center gap-3">
+                    <BarChart className="w-5 h-5 text-green-600" />
+                    <div>
+                      <p className="font-medium">Diagramme de Gantt</p>
+                      <p className="text-xs text-slate-500">Visualisation chronologique du projet</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={appSettings?.feature_gantt_chart !== false}
+                    onCheckedChange={() => toggleFeature('feature_gantt_chart', appSettings?.feature_gantt_chart !== false)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-indigo-600" />
+                    <div>
+                      <p className="font-medium">Facturation</p>
+                      <p className="text-xs text-slate-500">Gérer la facturation dans les jobs</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={appSettings?.feature_job_invoicing !== false}
+                    onCheckedChange={() => toggleFeature('feature_job_invoicing', appSettings?.feature_job_invoicing !== false)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+                  <div className="flex items-center gap-3">
+                    <TrendingDown className="w-5 h-5 text-orange-600" />
+                    <div>
+                      <p className="font-medium">Gestion des coûts</p>
+                      <p className="text-xs text-slate-500">Suivre les coûts détaillés du projet</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={appSettings?.feature_job_costs !== false}
+                    onCheckedChange={() => toggleFeature('feature_job_costs', appSettings?.feature_job_costs !== false)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+                  <div className="flex items-center gap-3">
+                    <Paperclip className="w-5 h-5 text-teal-600" />
+                    <div>
+                      <p className="font-medium">Fichiers joints</p>
+                      <p className="text-xs text-slate-500">Attacher des documents aux jobs</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={appSettings?.feature_job_attachments !== false}
+                    onCheckedChange={() => toggleFeature('feature_job_attachments', appSettings?.feature_job_attachments !== false)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+                  <div className="flex items-center gap-3">
+                    <MessageSquare className="w-5 h-5 text-pink-600" />
+                    <div>
+                      <p className="font-medium">Commentaires</p>
+                      <p className="text-xs text-slate-500">Permettre les commentaires sur les jobs</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={appSettings?.feature_job_comments !== false}
+                    onCheckedChange={() => toggleFeature('feature_job_comments', appSettings?.feature_job_comments !== false)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+                  <div className="flex items-center gap-3">
+                    <Activity className="w-5 h-5 text-cyan-600" />
+                    <div>
+                      <p className="font-medium">Journal d'activité</p>
+                      <p className="text-xs text-slate-500">Suivre l'historique des modifications</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={appSettings?.feature_job_activity !== false}
+                    onCheckedChange={() => toggleFeature('feature_job_activity', appSettings?.feature_job_activity !== false)}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

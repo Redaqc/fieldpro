@@ -75,6 +75,33 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
     initialData: [],
   });
 
+  const { data: appSettings } = useQuery({
+    queryKey: ['appSettings'],
+    queryFn: async () => {
+      const settings = await base44.entities.AppSettings.list();
+      return settings[0] || {
+        feature_task_dependencies: true,
+        feature_milestones: true,
+        feature_gantt_chart: true,
+        feature_job_invoicing: true,
+        feature_job_costs: true,
+        feature_job_attachments: true,
+        feature_job_comments: true,
+        feature_job_activity: true,
+      };
+    },
+    initialData: {
+      feature_task_dependencies: true,
+      feature_milestones: true,
+      feature_gantt_chart: true,
+      feature_job_invoicing: true,
+      feature_job_costs: true,
+      feature_job_attachments: true,
+      feature_job_comments: true,
+      feature_job_activity: true,
+    },
+  });
+
   useEffect(() => {
     if (job) {
       setFormData({
@@ -996,45 +1023,104 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
           </div>
 
           <Tabs defaultValue="checklist" className="w-full">
-            <TabsList className={`grid w-full h-auto ${isAdminOrManager ? 'grid-cols-3 sm:grid-cols-9' : 'grid-cols-3 sm:grid-cols-8'}`}>
-              <TabsTrigger value="checklist" className="flex items-center gap-1 sm:gap-2 py-2.5">
+            <TabsList className="w-full h-auto flex flex-wrap justify-start gap-1 bg-slate-50 p-2 rounded-lg">
+              <TabsTrigger 
+                value="checklist" 
+                className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+              >
                 <CheckSquare className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Checklist</span>
+                <span className="font-medium">Checklist</span>
               </TabsTrigger>
-              <TabsTrigger value="dependencies" className="flex items-center gap-1 sm:gap-2 py-2.5">
-                <GitBranch className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Dépendances</span>
-              </TabsTrigger>
-              <TabsTrigger value="milestones" className="flex items-center gap-1 sm:gap-2 py-2.5">
-                <Flag className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Jalons</span>
-              </TabsTrigger>
-              <TabsTrigger value="gantt" className="flex items-center gap-1 sm:gap-2 py-2.5">
-                <BarChart className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Gantt</span>
-              </TabsTrigger>
-              <TabsTrigger value="invoicing" className="flex items-center gap-1 sm:gap-2 py-2.5">
-                <FileText className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Facturation</span>
-              </TabsTrigger>
-              {isAdminOrManager && (
-                <TabsTrigger value="costs" className="flex items-center gap-1 sm:gap-2 py-2.5">
-                  <TrendingDown className="w-4 h-4" />
-                  <span className="text-xs sm:text-sm">Coûts</span>
+              
+              {appSettings?.feature_task_dependencies && (
+                <TabsTrigger 
+                  value="dependencies" 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                >
+                  <GitBranch className="w-4 h-4" />
+                  <span className="font-medium">Dépendances</span>
                 </TabsTrigger>
               )}
-              <TabsTrigger value="attachments" className="flex items-center gap-1 sm:gap-2 py-2.5">
-                <Paperclip className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Fichiers ({formData.attachments?.length || 0})</span>
-              </TabsTrigger>
-              <TabsTrigger value="comments" className="flex items-center gap-1 sm:gap-2 py-2.5">
-                <MessageSquare className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Commentaires ({formData.comments?.length || 0})</span>
-              </TabsTrigger>
-              <TabsTrigger value="activity" className="flex items-center gap-1 sm:gap-2 py-2.5">
-                <Activity className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Activité</span>
-              </TabsTrigger>
+              
+              {appSettings?.feature_milestones && (
+                <TabsTrigger 
+                  value="milestones" 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                >
+                  <Flag className="w-4 h-4" />
+                  <span className="font-medium">Jalons</span>
+                </TabsTrigger>
+              )}
+              
+              {appSettings?.feature_gantt_chart && (
+                <TabsTrigger 
+                  value="gantt" 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                >
+                  <BarChart className="w-4 h-4" />
+                  <span className="font-medium">Gantt</span>
+                </TabsTrigger>
+              )}
+              
+              {appSettings?.feature_job_invoicing && (
+                <TabsTrigger 
+                  value="invoicing" 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="font-medium">Facturation</span>
+                </TabsTrigger>
+              )}
+              
+              {isAdminOrManager && appSettings?.feature_job_costs && (
+                <TabsTrigger 
+                  value="costs" 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                >
+                  <TrendingDown className="w-4 h-4" />
+                  <span className="font-medium">Coûts</span>
+                </TabsTrigger>
+              )}
+              
+              {appSettings?.feature_job_attachments && (
+                <TabsTrigger 
+                  value="attachments" 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                >
+                  <Paperclip className="w-4 h-4" />
+                  <span className="font-medium">Fichiers</span>
+                  {formData.attachments?.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      {formData.attachments.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+              )}
+              
+              {appSettings?.feature_job_comments && (
+                <TabsTrigger 
+                  value="comments" 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span className="font-medium">Commentaires</span>
+                  {formData.comments?.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      {formData.comments.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+              )}
+              
+              {appSettings?.feature_job_activity && (
+                <TabsTrigger 
+                  value="activity" 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                >
+                  <Activity className="w-4 h-4" />
+                  <span className="font-medium">Activité</span>
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="checklist" className="space-y-3">
@@ -1138,41 +1224,49 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               </div>
             </TabsContent>
 
-            <TabsContent value="dependencies" className="space-y-4">
-              <TaskDependenciesTab 
-                formData={formData}
-                setFormData={setFormData}
-                job={job}
-                updateJobMutation={updateJobMutation}
-                technicians={technicians}
-              />
-            </TabsContent>
+            {appSettings?.feature_task_dependencies && (
+              <TabsContent value="dependencies" className="space-y-4">
+                <TaskDependenciesTab 
+                  formData={formData}
+                  setFormData={setFormData}
+                  job={job}
+                  updateJobMutation={updateJobMutation}
+                  technicians={technicians}
+                />
+              </TabsContent>
+            )}
 
-            <TabsContent value="milestones" className="space-y-4">
-              <MilestonesTab 
-                formData={formData}
-                setFormData={setFormData}
-                job={job}
-                updateJobMutation={updateJobMutation}
-              />
-            </TabsContent>
+            {appSettings?.feature_milestones && (
+              <TabsContent value="milestones" className="space-y-4">
+                <MilestonesTab 
+                  formData={formData}
+                  setFormData={setFormData}
+                  job={job}
+                  updateJobMutation={updateJobMutation}
+                />
+              </TabsContent>
+            )}
 
-            <TabsContent value="gantt" className="space-y-4">
-              <GanttChart 
-                job={formData}
-                technicians={technicians}
-              />
-            </TabsContent>
+            {appSettings?.feature_gantt_chart && (
+              <TabsContent value="gantt" className="space-y-4">
+                <GanttChart 
+                  job={formData}
+                  technicians={technicians}
+                />
+              </TabsContent>
+            )}
 
-            <TabsContent value="invoicing" className="space-y-4">
-              <InvoicingTab 
-                job={job}
-                formData={formData}
-                setFormData={setFormData}
-              />
-            </TabsContent>
+            {appSettings?.feature_job_invoicing && (
+              <TabsContent value="invoicing" className="space-y-4">
+                <InvoicingTab 
+                  job={job}
+                  formData={formData}
+                  setFormData={setFormData}
+                />
+              </TabsContent>
+            )}
 
-            {isAdminOrManager && (
+            {isAdminOrManager && appSettings?.feature_job_costs && (
               <TabsContent value="costs" className="space-y-4">
                 <CostsTab 
                   job={job}
@@ -1182,7 +1276,8 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               </TabsContent>
             )}
 
-            <TabsContent value="attachments" className="space-y-3">
+            {appSettings?.feature_job_attachments && (
+              <TabsContent value="attachments" className="space-y-3">
               <div>
                 <Label htmlFor="file-upload" className="cursor-pointer">
                   <div className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-slate-50">
@@ -1241,10 +1336,12 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                   </div>
                   <p className="text-sm text-slate-700">{comment.text}</p>
                 </div>
-              ))}
-            </TabsContent>
+                ))}
+                </TabsContent>
+                )}
 
-            <TabsContent value="activity" className="space-y-2">
+                {appSettings?.feature_job_activity && (
+                <TabsContent value="activity" className="space-y-2">
               {formData.activity_log?.map((activity, idx) => (
                 <div key={idx} className="flex gap-3 text-sm">
                   <span className="text-slate-500">
@@ -1253,9 +1350,10 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                   <span className="font-medium">{activity.user}</span>
                   <span className="text-slate-600">{activity.details}</span>
                 </div>
-              ))}
-            </TabsContent>
-          </Tabs>
+                ))}
+                </TabsContent>
+                )}
+                </Tabs>
 
           <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
             <Button variant="outline" onClick={onClose} className="h-11 text-base">
