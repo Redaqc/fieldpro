@@ -3,9 +3,11 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Edit, Save, X } from "lucide-react";
+import { Plus, Trash2, Edit, Save, X, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 
 export default function Settings() {
   const [editingType, setEditingType] = useState(null);
@@ -15,6 +17,12 @@ export default function Settings() {
   const { data: workTypes = [] } = useQuery({
     queryKey: ['workTypes'],
     queryFn: () => base44.entities.WorkType.list(),
+    initialData: [],
+  });
+
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['technicians'],
+    queryFn: () => base44.entities.Technician.list(),
     initialData: [],
   });
 
@@ -41,6 +49,20 @@ export default function Settings() {
     },
   });
 
+  const updateTechnicianMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Technician.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+    },
+  });
+
+  const togglePriceVisibility = (techId, currentValue) => {
+    updateTechnicianMutation.mutate({
+      id: techId,
+      data: { can_view_prices: !currentValue }
+    });
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -48,7 +70,14 @@ export default function Settings() {
         <p className="text-slate-500 mt-1">Configuration du système</p>
       </div>
 
-      <Card>
+      <Tabs defaultValue="work-types" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="work-types">Types de travaux</TabsTrigger>
+          <TabsTrigger value="permissions">Permissions</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="work-types">
+          <Card>
         <CardHeader>
           <CardTitle>Types de travaux</CardTitle>
         </CardHeader>
@@ -166,6 +195,50 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="permissions">
+          <Card>
+            <CardHeader>
+              <CardTitle>Visibilité des prix</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-500 mb-4">
+                Contrôlez quels techniciens peuvent voir les prix dans les factures, soumissions et jobs.
+              </p>
+              <div className="space-y-3">
+                {technicians.map(tech => (
+                  <div key={tech.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                        style={{ backgroundColor: tech.color || '#64748b' }}
+                      >
+                        {tech.first_name[0]}{tech.last_name[0]}
+                      </div>
+                      <div>
+                        <p className="font-medium">{tech.first_name} {tech.last_name}</p>
+                        <p className="text-xs text-slate-500">{tech.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {tech.can_view_prices ? (
+                        <Eye className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <EyeOff className="w-4 h-4 text-slate-400" />
+                      )}
+                      <Switch
+                        checked={tech.can_view_prices !== false}
+                        onCheckedChange={() => togglePriceVisibility(tech.id, tech.can_view_prices !== false)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

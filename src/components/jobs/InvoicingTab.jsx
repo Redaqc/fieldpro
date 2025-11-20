@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Minus, GripVertical, Type, FileText, Package, CircleDot } from "lucide-react";
+import { Plus, Minus, GripVertical, Type, FileText, Package, CircleDot, EyeOff } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,6 +23,20 @@ export default function InvoicingTab({ job, formData, setFormData }) {
     queryFn: () => base44.entities.Material.list(),
     initialData: [],
   });
+
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['technicians'],
+    queryFn: () => base44.entities.Technician.list(),
+    initialData: [],
+  });
+
+  const currentTech = technicians.find(t => t.email === currentUser?.email);
+  const canViewPrices = currentUser?.role === 'admin' || currentTech?.can_view_prices !== false;
 
   const addItem = () => {
     const newItem = {
@@ -216,13 +230,21 @@ export default function InvoicingTab({ job, formData, setFormData }) {
 
       {/* Items Table */}
       <div className="border rounded-lg overflow-hidden">
-        <div className="grid grid-cols-12 gap-2 bg-slate-100 p-2 text-xs font-semibold border-b">
-          <div className="col-span-1"></div>
-          <div className="col-span-5">Description</div>
-          <div className="col-span-2 text-center">Qté</div>
-          <div className="col-span-2 text-center">Prix Unit.</div>
-          <div className="col-span-2 text-right">Total</div>
-        </div>
+        {canViewPrices ? (
+          <div className="grid grid-cols-12 gap-2 bg-slate-100 p-2 text-xs font-semibold border-b">
+            <div className="col-span-1"></div>
+            <div className="col-span-5">Description</div>
+            <div className="col-span-2 text-center">Qté</div>
+            <div className="col-span-2 text-center">Prix Unit.</div>
+            <div className="col-span-2 text-right">Total</div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-12 gap-2 bg-slate-100 p-2 text-xs font-semibold border-b">
+            <div className="col-span-1"></div>
+            <div className="col-span-9">Description</div>
+            <div className="col-span-2 text-center">Qté</div>
+          </div>
+        )}
 
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="invoice-items">
@@ -293,7 +315,7 @@ export default function InvoicingTab({ job, formData, setFormData }) {
                                 </Button>
                               </div>
                             </>
-                          ) : (
+                          ) : canViewPrices ? (
                             <>
                               <Input
                                 value={item.description}
@@ -329,6 +351,32 @@ export default function InvoicingTab({ job, formData, setFormData }) {
                                 </Button>
                               </div>
                             </>
+                          ) : (
+                            <>
+                              <Input
+                                value={item.description}
+                                onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                                className="col-span-9 h-8 text-sm"
+                                placeholder="Description..."
+                              />
+                              <Input
+                                type="number"
+                                value={item.quantity || ''}
+                                onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                                className="col-span-2 h-8 text-sm text-center"
+                              />
+                              <div className="col-span-1 flex justify-end">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => removeLineItem(index)}
+                                >
+                                  <Minus className="w-4 h-4 text-red-500" />
+                                </Button>
+                              </div>
+                            </>
                           )}
                         </div>
                       )}
@@ -343,7 +391,7 @@ export default function InvoicingTab({ job, formData, setFormData }) {
       </div>
 
       {/* Totals */}
-      {lineItems.length > 0 && (
+      {lineItems.length > 0 && canViewPrices && (
         <div className="bg-slate-50 rounded-lg p-4 space-y-1 max-w-xs ml-auto">
           <div className="flex justify-between text-sm">
             <span>Sous-total:</span>
@@ -361,6 +409,13 @@ export default function InvoicingTab({ job, formData, setFormData }) {
             <span>Total:</span>
             <span>${totals.total.toFixed(2)}</span>
           </div>
+        </div>
+      )}
+      
+      {lineItems.length > 0 && !canViewPrices && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+          <EyeOff className="w-5 h-5 text-amber-600 mx-auto mb-1" />
+          <p className="text-sm text-amber-700">Les prix sont masqués pour votre rôle</p>
         </div>
       )}
 
