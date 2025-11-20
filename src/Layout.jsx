@@ -223,6 +223,7 @@ export default function Layout({ children, currentPageName }) {
       'documents': 'documents',
       'forms': 'forms',
       'formbuilder': 'forms',
+      'formsubmissions': 'forms',
       'reports': 'reports'
     };
 
