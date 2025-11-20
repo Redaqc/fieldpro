@@ -18,7 +18,18 @@ export default function FormFillDialog({ open, onClose, formTemplate }) {
   });
 
   const submitFormMutation = useMutation({
-    mutationFn: (data) => base44.entities.FormSubmission.create(data),
+    mutationFn: async (data) => {
+      const submission = await base44.entities.FormSubmission.create(data);
+      
+      // Trigger automations
+      try {
+        await base44.functions.invoke('executeFormAutomations', { submission_id: submission.id });
+      } catch (error) {
+        console.error('Automation error:', error);
+      }
+      
+      return submission;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['formSubmissions'] });
       alert('Formulaire soumis avec succès!');
