@@ -1167,24 +1167,51 @@ Merci de votre confiance.
                   type="button" 
                   className="bg-blue-600 hover:bg-blue-700"
                   onClick={async () => {
+                    if (!formData.customer_id) {
+                      alert('Please select a customer first');
+                      return;
+                    }
+
                     const jobData = {
-                      title: `Job for ${formData.customer_name}`,
+                      title: formData.project_name || `Job for ${formData.customer_name}`,
                       customer_id: formData.customer_id,
                       customer_name: formData.customer_name,
                       description: `Created from quotation ${formData.quote_number}`,
-                      service_type: "general",
                       status: "scheduled",
-                      estimated_cost: formData.total_amount
+                      start_date: formData.work_start_date || null,
+                      priority: "medium",
+                      quotation_id: quotation?.id || null,
+                      invoice_items: formData.submission_items || [],
+                      invoice_subtotal: formData.submission_subtotal || 0,
+                      invoice_tps: formData.tax_amount || 0,
+                      invoice_tvq: formData.tax_amount_2 || 0,
+                      invoice_total: formData.total_amount || 0,
+                      activity_log: [{
+                        timestamp: new Date().toISOString(),
+                        user: 'System',
+                        action: 'created_from_quotation',
+                        details: `Job created from approved quotation #${formData.quote_number}`
+                      }]
                     };
+                    
                     try {
-                      await base44.entities.Job.create(jobData);
-                      alert('Job created!');
+                      const newJob = await base44.entities.Job.create(jobData);
+                      
+                      if (quotation?.id) {
+                        await base44.entities.Quotation.update(quotation.id, {
+                          job_id: newJob.id,
+                          status: 'approved'
+                        });
+                      }
+                      
+                      alert('Job created successfully from quotation!');
+                      onClose();
                     } catch (error) {
-                      alert('Failed to create job');
+                      alert('Failed to create job: ' + error.message);
                     }
                   }}
                 >
-                  Créer un Job
+                  Accept & Create Job
                 </Button>
                 <Button 
                   type="button" 
@@ -1193,19 +1220,22 @@ Merci de votre confiance.
                     const invoiceData = {
                       customer_id: formData.customer_id,
                       customer_name: formData.customer_name,
-                      issue_date: new Date().toISOString().split('T')[0],
+                      invoice_date: new Date().toISOString(),
                       status: "draft",
-                      line_items: formData.submission_items || [],
+                      line_items: (formData.submission_items || []).map(item => ({
+                        ...item,
+                        source: 'quoted'
+                      })),
                       subtotal: formData.submission_subtotal || 0,
-                      tax_rate: formData.tax_rate || 0,
-                      tax_amount: formData.tax_amount || 0,
-                      total_amount: formData.total_amount || 0
+                      tps: formData.tax_amount || 0,
+                      tvq: formData.tax_amount_2 || 0,
+                      total: formData.total_amount || 0
                     };
                     try {
                       await base44.entities.Invoice.create(invoiceData);
                       alert('Invoice created!');
                     } catch (error) {
-                      alert('Failed to create invoice');
+                      alert('Failed to create invoice: ' + error.message);
                     }
                   }}
                 >

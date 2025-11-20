@@ -195,7 +195,18 @@ export default function QuickInvoiceButton({ job }) {
               Cancel
             </Button>
             <Button
-              onClick={() => generateInvoiceMutation.mutate(job)}
+              onClick={async () => {
+                await generateInvoiceMutation.mutateAsync(job);
+                
+                // Auto-calculate profitability
+                try {
+                  await base44.functions.invoke('calculateProfitability', {
+                    job_id: job.id
+                  });
+                } catch (err) {
+                  console.error('Failed to calculate profitability:', err);
+                }
+              }}
               disabled={generateInvoiceMutation.isPending}
               className="bg-green-600 hover:bg-green-700"
             >
