@@ -108,6 +108,11 @@ const getNavigationItems = (t) => [
     icon: Zap,
   },
   {
+    title: "Manager",
+    url: createPageUrl("ManagerDashboard"),
+    icon: BarChart3,
+  },
+  {
     title: "Mobile Tech",
     url: createPageUrl("TechnicianMobile"),
     icon: MapPin,

@@ -16,10 +16,11 @@ import WidgetTasksByTechnician from "@/components/dashboard/WidgetTasksByTechnic
 import WidgetProjectProgress from "@/components/dashboard/WidgetProjectProgress";
 import WidgetFinancialIndicators from "@/components/dashboard/WidgetFinancialIndicators";
 import AlertsPanel from "@/components/shared/AlertsPanel";
+import WidgetAlerts from "@/components/dashboard/WidgetAlerts";
 
 const DEFAULT_VIEWS = {
-  admin: ['urgent_jobs', 'financial_indicators', 'project_progress', 'tasks_by_technician', 'jobs_by_status', 'monthly_revenue', 'technician_performance', 'invoice_summary'],
-  manager: ['urgent_jobs', 'project_progress', 'tasks_by_technician', 'jobs_by_status', 'financial_indicators', 'technician_performance'],
+  admin: ['alerts', 'urgent_jobs', 'financial_indicators', 'project_progress', 'tasks_by_technician', 'jobs_by_status', 'monthly_revenue', 'technician_performance', 'invoice_summary'],
+  manager: ['alerts', 'urgent_jobs', 'project_progress', 'tasks_by_technician', 'jobs_by_status', 'financial_indicators', 'technician_performance'],
   technician: ['urgent_jobs', 'tasks_by_technician', 'jobs_by_status', 'project_progress'],
 };
 
@@ -113,6 +114,8 @@ export default function Dashboard() {
 
   const renderWidget = (widgetType) => {
     switch (widgetType) {
+      case 'alerts':
+        return <WidgetAlerts key={widgetType} />;
       case 'urgent_jobs':
         return <WidgetUrgentJobs key={widgetType} jobs={jobs} />;
       case 'tasks_by_technician':
