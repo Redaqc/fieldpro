@@ -1279,6 +1279,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
             {appSettings?.feature_job_attachments && (
               <TabsContent value="attachments" className="space-y-3">
               <div>
+              <div>
                 <Label htmlFor="file-upload" className="cursor-pointer">
                   <div className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-slate-50">
                     <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
@@ -1312,8 +1313,10 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                 </div>
               ))}
             </TabsContent>
+            )}
 
-            <TabsContent value="comments" className="space-y-3">
+            {appSettings?.feature_job_comments && (
+              <TabsContent value="comments" className="space-y-3">
               <div className="flex gap-2">
                 <Textarea
                   value={newComment}
