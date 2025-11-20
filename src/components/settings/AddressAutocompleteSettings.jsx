@@ -25,18 +25,31 @@ export default function AddressAutocompleteSettings() {
 
   const updateMutation = useMutation({
     mutationFn: async (updates) => {
+      const currentData = addressSettings || {};
+      const fullData = {
+        integration_type: 'address_autocomplete',
+        provider_type: currentData.provider_type || 'google',
+        country_bias: currentData.country_bias || 'ca',
+        language: currentData.language || 'fr',
+        is_active: currentData.is_active || false,
+        api_key: currentData.api_key || '',
+        ...updates
+      };
+
       if (addressSettings?.id) {
-        return await base44.entities.IntegrationSettings.update(addressSettings.id, updates);
+        return await base44.entities.IntegrationSettings.update(addressSettings.id, fullData);
       } else {
-        return await base44.entities.IntegrationSettings.create({
-          integration_type: 'address_autocomplete',
-          ...updates
-        });
+        return await base44.entities.IntegrationSettings.create(fullData);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+      alert('Paramètres sauvegardés avec succès!');
     },
+    onError: (error) => {
+      console.error('Erreur de sauvegarde:', error);
+      alert('Erreur lors de la sauvegarde: ' + error.message);
+    }
   });
 
   return (
