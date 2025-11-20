@@ -19,6 +19,7 @@ import {
   Clock,
   MapPin
 } from "lucide-react";
+import NotificationCenter from "@/components/notifications/NotificationCenter";
 import {
   Sidebar,
   SidebarContent,
@@ -114,6 +115,7 @@ const navigationItems = [
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -125,6 +127,17 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['technicians'],
     queryFn: () => base44.entities.Technician.list(),
     initialData: [],
+  });
+
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['unreadNotifications', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return 0;
+      const notifications = await base44.entities.Notification.filter({ user_email: user.email, read: false });
+      return notifications.length;
+    },
+    enabled: !!user,
+    refetchInterval: 30000,
   });
 
   // Find current user's technician profile to check permissions
@@ -245,9 +258,18 @@ export default function Layout({ children, currentPageName }) {
                     className="pl-9 w-64 border-slate-200"
                   />
                 </div>
-                <Button variant="ghost" size="icon" className="relative">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="relative"
+                  onClick={() => setNotificationOpen(true)}
+                >
                   <Bell className="w-5 h-5 text-slate-600" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center font-semibold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </Button>
               </div>
             </div>
@@ -257,7 +279,13 @@ export default function Layout({ children, currentPageName }) {
             {children}
           </div>
         </main>
-      </div>
-    </SidebarProvider>
-  );
-}
+        </div>
+
+        <NotificationCenter 
+        open={notificationOpen} 
+        onClose={() => setNotificationOpen(false)}
+        currentUser={user}
+        />
+        </SidebarProvider>
+        );
+        }
