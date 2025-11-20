@@ -32,7 +32,6 @@ export default function AssetDialog({ open, onClose, onSave, asset }) {
 
   const [uploading, setUploading] = useState(false);
   const [scanningOCR, setScanningOCR] = useState(false);
-  const [previewPhoto, setPreviewPhoto] = useState(null);
 
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians'],
@@ -132,15 +131,11 @@ export default function AssetDialog({ open, onClose, onSave, asset }) {
                   <img 
                     src={photo} 
                     alt={`Photo ${index + 1}`} 
-                    className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => setPreviewPhoto(photo)}
+                    className="w-20 h-20 object-cover rounded border"
                   />
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removePhoto(index);
-                    }}
+                    onClick={() => removePhoto(index)}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     ×
@@ -372,24 +367,6 @@ export default function AssetDialog({ open, onClose, onSave, asset }) {
           </DialogFooter>
         </form>
       </DialogContent>
-
-      {/* Photo Preview Dialog */}
-      {previewPhoto && (
-        <Dialog open={!!previewPhoto} onOpenChange={() => setPreviewPhoto(null)}>
-          <DialogContent className="max-w-4xl">
-            <DialogHeader>
-              <DialogTitle>Aperçu de la photo</DialogTitle>
-            </DialogHeader>
-            <div className="flex justify-center">
-              <img 
-                src={previewPhoto} 
-                alt="Preview" 
-                className="max-w-full max-h-[70vh] object-contain rounded"
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </Dialog>
   );
 }
