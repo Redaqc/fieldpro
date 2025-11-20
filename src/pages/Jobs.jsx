@@ -61,7 +61,7 @@ export default function Jobs() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Jobs Board</h1>
-            <p className="text-slate-500 mt-1">Gérez vos jobs comme dans Trello</p>
+            <p className="text-slate-500 mt-1">Gérez vos jobs.</p>
           </div>
           <Button onClick={handleCreateJob} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="w-4 h-4 mr-2" />
