@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -32,10 +33,21 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
   const [newComment, setNewComment] = useState('');
   const [uploadingFile, setUploadingFile] = useState(false);
   const [newLabel, setNewLabel] = useState({ name: '', color: '#3b82f6' });
+  const [colorPopoverOpen, setColorPopoverOpen] = useState(false);
   
   const labelColors = [
-    '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
-    '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'
+    { color: '#3b82f6', name: 'Bleu' },
+    { color: '#ef4444', name: 'Rouge' },
+    { color: '#10b981', name: 'Vert' },
+    { color: '#f59e0b', name: 'Orange' },
+    { color: '#8b5cf6', name: 'Violet' },
+    { color: '#ec4899', name: 'Rose' },
+    { color: '#14b8a6', name: 'Turquoise' },
+    { color: '#f97316', name: 'Orange foncé' },
+    { color: '#06b6d4', name: 'Cyan' },
+    { color: '#84cc16', name: 'Lime' },
+    { color: '#6366f1', name: 'Indigo' },
+    { color: '#f43f5e', name: 'Rose foncé' }
   ];
 
   const queryClient = useQueryClient();
@@ -408,12 +420,12 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                 {formData.labels.map((label, idx) => (
                   <Badge 
                     key={idx} 
-                    className="gap-2 pr-1 text-white"
+                    className="gap-2 pr-1 text-white shadow-sm"
                     style={{ backgroundColor: label.color }}
                   >
                     {label.name}
                     <X 
-                      className="w-3 h-3 cursor-pointer hover:bg-white/20 rounded" 
+                      className="w-3 h-3 cursor-pointer hover:bg-white/20 rounded transition-colors" 
                       onClick={() => removeLabel(idx)} 
                     />
                   </Badge>
@@ -424,26 +436,66 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               <Input
                 value={newLabel.name}
                 onChange={(e) => setNewLabel({ ...newLabel, name: e.target.value })}
-                placeholder="Nouveau label..."
-                className="flex-1 h-10 text-sm"
-                onKeyDown={(e) => e.key === 'Enter' && addLabel()}
+                placeholder="Nom du label..."
+                className="flex-1 h-11 text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addLabel();
+                  }
+                }}
               />
-              <div className="flex gap-1 flex-wrap">
-                {labelColors.map(color => (
-                  <button
-                    key={color}
+              <Popover open={colorPopoverOpen} onOpenChange={setColorPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="h-11 px-4 gap-2"
                     type="button"
-                    className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 ${
-                      newLabel.color === color ? 'border-slate-900 ring-2 ring-slate-300' : 'border-transparent'
-                    }`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setNewLabel({ ...newLabel, color })}
-                    title={color}
-                  />
-                ))}
-              </div>
-              <Button onClick={addLabel} size="sm" className="h-10 px-3" disabled={!newLabel.name.trim()}>
-                <Plus className="w-4 h-4" />
+                  >
+                    <div 
+                      className="w-5 h-5 rounded-full border-2 border-white shadow-sm" 
+                      style={{ backgroundColor: newLabel.color }}
+                    />
+                    <Palette className="w-4 h-4 text-slate-600" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-3">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-slate-700 mb-3">Choisir une couleur</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {labelColors.map((item) => (
+                        <button
+                          key={item.color}
+                          type="button"
+                          className={`h-10 rounded-lg border-2 transition-all hover:scale-105 flex items-center justify-center ${
+                            newLabel.color === item.color 
+                              ? 'border-slate-900 ring-2 ring-slate-300 scale-105' 
+                              : 'border-slate-200 hover:border-slate-400'
+                          }`}
+                          style={{ backgroundColor: item.color }}
+                          onClick={() => {
+                            setNewLabel({ ...newLabel, color: item.color });
+                            setColorPopoverOpen(false);
+                          }}
+                          title={item.name}
+                        >
+                          {newLabel.color === item.color && (
+                            <CheckSquare className="w-4 h-4 text-white" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Button 
+                onClick={addLabel} 
+                size="sm" 
+                className="h-11 px-4 bg-blue-600 hover:bg-blue-700" 
+                disabled={!newLabel.name.trim()}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Ajouter
               </Button>
             </div>
           </div>
