@@ -1,17 +1,21 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Sparkles } from "lucide-react";
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay } from "date-fns";
 
 import WeekView from "../components/schedule/WeekView";
 import DayView from "../components/schedule/DayView";
+import AISchedulingAssistant from "../components/schedule/AISchedulingAssistant";
+import AutoAssignButton from "../components/schedule/AutoAssignButton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Schedule() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState("week");
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: jobs = [] } = useQuery({
     queryKey: ['jobs'],
@@ -45,6 +49,27 @@ export default function Schedule() {
     setCurrentDate(new Date());
   };
 
+  const handleApplySuggestion = async (suggestion) => {
+    try {
+      const job = jobs.find(j => j.id === suggestion.job_id);
+      const tech = technicians.find(t => t.id === suggestion.technician_id);
+      
+      if (job && tech) {
+        await base44.entities.Job.update(job.id, {
+          technician_id: tech.id,
+          technician_name: `${tech.first_name} ${tech.last_name}`,
+          scheduled_time: suggestion.scheduled_time,
+          duration_minutes: suggestion.estimated_duration,
+        });
+        queryClient.invalidateQueries({ queryKey: ['jobs'] });
+        alert(`Job "${job.title}" assigné à ${tech.first_name} ${tech.last_name}`);
+      }
+    } catch (error) {
+      console.error('Error applying suggestion:', error);
+      alert('Erreur lors de l\'application de la suggestion');
+    }
+  };
+
   // Filter jobs for current view
   const filteredJobs = jobs.filter(job => {
     if (!job.scheduled_date) return false;
@@ -69,6 +94,20 @@ export default function Schedule() {
         </div>
 
         <div className="flex items-center gap-3">
+          <AutoAssignButton
+            jobs={jobs}
+            technicians={technicians}
+            selectedDate={format(currentDate, 'yyyy-MM-dd')}
+            onComplete={() => queryClient.invalidateQueries({ queryKey: ['jobs'] })}
+          />
+          <Button 
+            onClick={() => setShowAIAssistant(!showAIAssistant)}
+            variant={showAIAssistant ? "default" : "outline"}
+            className={showAIAssistant ? "bg-purple-600 hover:bg-purple-700" : ""}
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Assistant IA
+          </Button>
           <Tabs value={view} onValueChange={setView}>
             <TabsList className="bg-white border border-slate-200">
               <TabsTrigger value="day">Day</TabsTrigger>
@@ -101,6 +140,16 @@ export default function Schedule() {
 
         <div className="w-32" />
       </div>
+
+      {/* AI Assistant */}
+      {showAIAssistant && (
+        <AISchedulingAssistant
+          selectedDate={format(currentDate, 'yyyy-MM-dd')}
+          jobs={jobs}
+          technicians={technicians}
+          onApplySuggestion={handleApplySuggestion}
+        />
+      )}
 
       {/* Calendar View */}
       <div className="flex-1 overflow-auto">
