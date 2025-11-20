@@ -152,8 +152,8 @@ export default function Layout({ children, currentPageName }) {
   // If user is admin or has no tech profile, show all
   const isAdmin = user?.role === 'admin' || !currentTech;
   const visibleModules = isAdmin 
-    ? ['dashboard', 'jobs', 'schedule', 'customers', 'team', 'time_tracking', 'quotations', 'invoices', 'assets', 'price_lists', 'materials', 'gpstracking', 'settings']
-    : (currentTech?.visible_modules || ['dashboard', 'jobs', 'schedule', 'time_tracking']);
+    ? ['dashboard', 'jobs', 'schedule', 'calendar', 'customers', 'team', 'time_tracking', 'quotations', 'invoices', 'assets', 'price_lists', 'materials', 'gpstracking', 'settings']
+    : (currentTech?.visible_modules || ['dashboard', 'jobs', 'schedule', 'calendar', 'time_tracking']);
 
   // Filter navigation items based on user permissions
   const filteredNavigation = navigationItems.filter(item => {
