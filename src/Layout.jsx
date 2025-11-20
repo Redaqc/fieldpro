@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { useTranslation } from "@/components/shared/LanguageProvider";
+import { useTranslation } from "../components/shared/LanguageProvider";
 import { 
                   LayoutDashboard, 
                   Briefcase, 
