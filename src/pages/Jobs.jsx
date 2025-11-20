@@ -33,6 +33,12 @@ export default function Jobs() {
     initialData: [],
   });
 
+  const { data: workTypes = [] } = useQuery({
+    queryKey: ['workTypes'],
+    queryFn: () => base44.entities.WorkType.list(),
+    initialData: [],
+  });
+
   const handleCreateJob = () => {
     setSelectedJob(null);
     setDialogOpen(true);
@@ -103,6 +109,7 @@ export default function Jobs() {
         job={selectedJob}
         technicians={technicians}
         currentUser={currentUser}
+        workTypes={workTypes}
       />
     </div>
   );
