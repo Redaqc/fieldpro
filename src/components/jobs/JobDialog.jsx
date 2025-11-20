@@ -1278,85 +1278,84 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
 
             {appSettings?.feature_job_attachments && (
               <TabsContent value="attachments" className="space-y-3">
-              <div>
-              <div>
-                <Label htmlFor="file-upload" className="cursor-pointer">
-                  <div className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-slate-50">
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
-                    <p className="text-sm text-slate-600">
-                      {uploadingFile ? 'Upload en cours...' : 'Cliquez pour uploader un fichier'}
-                    </p>
-                  </div>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    className="hidden"
-                    onChange={handleFileSelect}
-                    disabled={uploadingFile}
-                  />
-                </Label>
-              </div>
-
-              {formData.attachments?.map((attachment, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium text-sm">{attachment.name}</p>
-                    <p className="text-xs text-slate-500">
-                      {format(new Date(attachment.uploaded_at), 'PPp', { locale: fr })}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => window.open(attachment.url, '_blank')}>
-                      Voir
-                    </Button>
-                  </div>
+                <div>
+                  <Label htmlFor="file-upload" className="cursor-pointer">
+                    <div className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-slate-50">
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                      <p className="text-sm text-slate-600">
+                        {uploadingFile ? 'Upload en cours...' : 'Cliquez pour uploader un fichier'}
+                      </p>
+                    </div>
+                    <input
+                      id="file-upload"
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileSelect}
+                      disabled={uploadingFile}
+                    />
+                  </Label>
                 </div>
-              ))}
-            </TabsContent>
+
+                {formData.attachments?.map((attachment, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium text-sm">{attachment.name}</p>
+                      <p className="text-xs text-slate-500">
+                        {format(new Date(attachment.uploaded_at), 'PPp', { locale: fr })}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => window.open(attachment.url, '_blank')}>
+                        Voir
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </TabsContent>
             )}
 
             {appSettings?.feature_job_comments && (
               <TabsContent value="comments" className="space-y-3">
-              <div className="flex gap-2">
-                <Textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Écrire un commentaire..."
-                  rows={2}
-                />
-                <Button onClick={addComment}>
-                  Envoyer
-                </Button>
-              </div>
+                <div className="flex gap-2">
+                  <Textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Écrire un commentaire..."
+                    rows={2}
+                  />
+                  <Button onClick={addComment}>
+                    Envoyer
+                  </Button>
+                </div>
 
-              {formData.comments?.map(comment => (
-                <div key={comment.id} className="border-l-2 border-blue-500 pl-3">
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="font-semibold text-sm">{comment.user_name}</span>
-                    <span className="text-xs text-slate-500">
-                      {format(new Date(comment.created_at), 'PPp', { locale: fr })}
-                    </span>
+                {formData.comments?.map(comment => (
+                  <div key={comment.id} className="border-l-2 border-blue-500 pl-3">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-semibold text-sm">{comment.user_name}</span>
+                      <span className="text-xs text-slate-500">
+                        {format(new Date(comment.created_at), 'PPp', { locale: fr })}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-700">{comment.text}</p>
                   </div>
-                  <p className="text-sm text-slate-700">{comment.text}</p>
-                </div>
                 ))}
-                </TabsContent>
-                )}
+              </TabsContent>
+            )}
 
-                {appSettings?.feature_job_activity && (
-                <TabsContent value="activity" className="space-y-2">
-              {formData.activity_log?.map((activity, idx) => (
-                <div key={idx} className="flex gap-3 text-sm">
-                  <span className="text-slate-500">
-                    {format(new Date(activity.timestamp), 'PPp', { locale: fr })}
-                  </span>
-                  <span className="font-medium">{activity.user}</span>
-                  <span className="text-slate-600">{activity.details}</span>
-                </div>
+            {appSettings?.feature_job_activity && (
+              <TabsContent value="activity" className="space-y-2">
+                {formData.activity_log?.map((activity, idx) => (
+                  <div key={idx} className="flex gap-3 text-sm">
+                    <span className="text-slate-500">
+                      {format(new Date(activity.timestamp), 'PPp', { locale: fr })}
+                    </span>
+                    <span className="font-medium">{activity.user}</span>
+                    <span className="text-slate-600">{activity.details}</span>
+                  </div>
                 ))}
-                </TabsContent>
-                )}
-                </Tabs>
+              </TabsContent>
+            )}
+          </Tabs>
 
           <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
             <Button variant="outline" onClick={onClose} className="h-11 text-base">
