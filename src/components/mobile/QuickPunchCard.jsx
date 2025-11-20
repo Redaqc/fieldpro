@@ -5,8 +5,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut, Loader2, MapPin, AlertCircle } from "lucide-react";
 import { differenceInMinutes } from "date-fns";
+import OfflineStorage from "./OfflineStorage";
 
-export default function QuickPunchCard({ technician, activeEntry, currentPosition }) {
+export default function QuickPunchCard({ technician, activeEntry, currentPosition, isOnline }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const queryClient = useQueryClient();
@@ -60,16 +61,16 @@ export default function QuickPunchCard({ technician, activeEntry, currentPositio
         throw new Error('Vous devez être dans une zone GPS autorisée');
       }
 
-      await base44.entities.TimeEntry.create({
+      const entryData = {
         technician_id: technician.id,
         technician_name: `${technician.first_name} ${technician.last_name}`,
         clock_in: new Date().toISOString(),
         status: "in_progress",
         location_in: inZone ? zone.name : "Hors zone",
         gps_verified: inZone,
-      });
+      };
 
-      await base44.entities.GPSTracking.create({
+      const gpsData = {
         technician_id: technician.id,
         technician_name: `${technician.first_name} ${technician.last_name}`,
         latitude: currentPosition.latitude,
@@ -77,7 +78,27 @@ export default function QuickPunchCard({ technician, activeEntry, currentPositio
         accuracy: currentPosition.accuracy,
         timestamp: new Date().toISOString(),
         activity_type: "punch_in",
-      });
+      };
+
+      if (isOnline) {
+        await base44.entities.TimeEntry.create(entryData);
+        await base44.entities.GPSTracking.create(gpsData);
+      } else {
+        // Offline mode - save locally
+        const localEntry = { ...entryData, id: `offline_${Date.now()}` };
+        OfflineStorage.addTimeEntry(localEntry);
+        OfflineStorage.saveGPSTracking(gpsData);
+        OfflineStorage.addPendingSync({
+          method: 'create',
+          entity: 'TimeEntry',
+          data: entryData,
+        });
+        OfflineStorage.addPendingSync({
+          method: 'create',
+          entity: 'GPSTracking',
+          data: gpsData,
+        });
+      }
 
       queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
     } catch (err) {
@@ -98,15 +119,27 @@ export default function QuickPunchCard({ technician, activeEntry, currentPositio
       const totalMinutes = differenceInMinutes(new Date(clockOut), new Date(activeEntry.clock_in));
       const totalHours = ((totalMinutes - (activeEntry.break_minutes || 0)) / 60).toFixed(2);
 
-      await base44.entities.TimeEntry.update(activeEntry.id, {
+      const updateData = {
         clock_out: clockOut,
         total_hours: parseFloat(totalHours),
         status: "completed",
         location_out: currentPosition ? "GPS enregistré" : "Sans GPS",
-      });
+      };
+
+      if (isOnline && !activeEntry.id.startsWith('offline_')) {
+        await base44.entities.TimeEntry.update(activeEntry.id, updateData);
+      } else {
+        // Offline or local entry
+        OfflineStorage.updateTimeEntry(activeEntry.id, updateData);
+        OfflineStorage.addPendingSync({
+          method: activeEntry.id.startsWith('offline_') ? 'create' : 'update',
+          entity: 'TimeEntry',
+          data: { ...activeEntry, ...updateData },
+        });
+      }
 
       if (currentPosition) {
-        await base44.entities.GPSTracking.create({
+        const gpsData = {
           technician_id: technician.id,
           technician_name: `${technician.first_name} ${technician.last_name}`,
           latitude: currentPosition.latitude,
@@ -114,7 +147,13 @@ export default function QuickPunchCard({ technician, activeEntry, currentPositio
           accuracy: currentPosition.accuracy,
           timestamp: clockOut,
           activity_type: "punch_out",
-        });
+        };
+
+        if (isOnline) {
+          await base44.entities.GPSTracking.create(gpsData);
+        } else {
+          OfflineStorage.saveGPSTracking(gpsData);
+        }
       }
 
       queryClient.invalidateQueries({ queryKey: ['timeEntries'] });

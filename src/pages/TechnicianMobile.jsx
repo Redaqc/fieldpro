@@ -10,11 +10,17 @@ import { fr } from "date-fns/locale";
 import MobileJobCard from "../components/mobile/MobileJobCard";
 import QuickPunchCard from "../components/mobile/QuickPunchCard";
 import GPSStatusCard from "../components/mobile/GPSStatusCard";
+import OfflineIndicator from "../components/mobile/OfflineIndicator";
+import OfflineStorage from "../components/mobile/OfflineStorage";
+import syncManager from "../components/mobile/SyncManager";
 
 export default function TechnicianMobile() {
   const [currentPosition, setCurrentPosition] = useState(null);
   const [gpsStatus, setGpsStatus] = useState('inactive');
   const [batteryLevel, setBatteryLevel] = useState(100);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [syncStatus, setSyncStatus] = useState('synced');
+  const [pendingCount, setPendingCount] = useState(0);
   const queryClient = useQueryClient();
 
   const { data: currentUser } = useQuery({
@@ -31,12 +37,26 @@ export default function TechnicianMobile() {
 
   const { data: timeEntries = [] } = useQuery({
     queryKey: ['timeEntries'],
-    queryFn: () => base44.entities.TimeEntry.list('-clock_in', 10),
+    queryFn: async () => {
+      if (!isOnline) {
+        return OfflineStorage.getTimeEntries();
+      }
+      const entries = await base44.entities.TimeEntry.list('-clock_in', 10);
+      OfflineStorage.saveTimeEntries(entries);
+      return entries;
+    },
   });
 
   const { data: jobs = [] } = useQuery({
     queryKey: ['jobs'],
-    queryFn: () => base44.entities.Job.list(),
+    queryFn: async () => {
+      if (!isOnline) {
+        return OfflineStorage.getJobs();
+      }
+      const fetchedJobs = await base44.entities.Job.list();
+      OfflineStorage.saveJobs(fetchedJobs);
+      return fetchedJobs;
+    },
   });
 
   const activeEntry = timeEntries.find(
@@ -47,6 +67,41 @@ export default function TechnicianMobile() {
     j => j.technician_id === currentTech?.id && 
     (j.status === 'scheduled' || j.status === 'in_progress')
   );
+
+  // Online/Offline status management
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      syncManager.syncPendingOperations();
+      syncManager.refreshData(currentUser);
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Sync status updates
+    syncManager.onSyncStatusChange((status, pending) => {
+      setSyncStatus(status);
+      setPendingCount(pending);
+    });
+
+    // Check for pending operations on mount
+    setPendingCount(OfflineStorage.getPendingSync().length);
+
+    // Initial sync if online
+    if (navigator.onLine) {
+      syncManager.syncPendingOperations();
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [currentUser]);
 
   // GPS Background tracking with battery optimization
   useEffect(() => {
@@ -113,9 +168,9 @@ export default function TechnicianMobile() {
 
       setCurrentPosition(pos);
 
-      // Only save to server if moving or every 5 minutes
+      // Save GPS data (online or offline)
       if (saveToServer || pos.speed > 1) {
-        base44.entities.GPSTracking.create({
+        const gpsData = {
           technician_id: currentTech.id,
           technician_name: `${currentTech.first_name} ${currentTech.last_name}`,
           latitude: pos.latitude,
@@ -125,8 +180,17 @@ export default function TechnicianMobile() {
           heading: pos.heading,
           timestamp: new Date().toISOString(),
           activity_type: 'location_update',
-          job_id: activeEntry.job_id,
-        }).catch(err => console.error('GPS tracking error:', err));
+          job_id: activeEntry?.job_id,
+        };
+
+        if (navigator.onLine) {
+          base44.entities.GPSTracking.create(gpsData).catch(err => {
+            console.error('GPS tracking error:', err);
+            OfflineStorage.saveGPSTracking(gpsData);
+          });
+        } else {
+          OfflineStorage.saveGPSTracking(gpsData);
+        }
       }
     };
 
@@ -189,6 +253,9 @@ export default function TechnicianMobile() {
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Offline Indicator */}
+        <OfflineIndicator syncStatus={syncStatus} pendingCount={pendingCount} />
+
         {/* GPS Status */}
         <GPSStatusCard status={gpsStatus} position={currentPosition} />
 
@@ -197,6 +264,7 @@ export default function TechnicianMobile() {
           technician={currentTech}
           activeEntry={activeEntry}
           currentPosition={currentPosition}
+          isOnline={isOnline}
         />
 
         {/* Active Time */}
@@ -240,7 +308,12 @@ export default function TechnicianMobile() {
           {myJobs.length > 0 ? (
             <div className="space-y-3">
               {myJobs.map(job => (
-                <MobileJobCard key={job.id} job={job} currentPosition={currentPosition} />
+                <MobileJobCard 
+                  key={job.id} 
+                  job={job} 
+                  currentPosition={currentPosition}
+                  isOnline={isOnline}
+                />
               ))}
             </div>
           ) : (

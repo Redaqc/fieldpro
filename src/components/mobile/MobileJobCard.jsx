@@ -2,12 +2,16 @@ import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, User, Phone, ChevronDown, ChevronUp, Navigation } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MapPin, Clock, User, Phone, ChevronDown, ChevronUp, Navigation, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { base44 } from "@/api/base44Client";
+import OfflineStorage from "./OfflineStorage";
 
-export default function MobileJobCard({ job, currentPosition }) {
+export default function MobileJobCard({ job, currentPosition, isOnline }) {
   const [expanded, setExpanded] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
   const statusColors = {
     scheduled: 'bg-blue-100 text-blue-800',
@@ -32,6 +36,27 @@ export default function MobileJobCard({ job, currentPosition }) {
   const callCustomer = () => {
     // In a real app, this would extract phone from customer
     window.location.href = 'tel:+1234567890';
+  };
+
+  const updateJobStatus = async (newStatus) => {
+    setUpdating(true);
+    try {
+      if (isOnline) {
+        await base44.entities.Job.update(job.id, { status: newStatus });
+      } else {
+        OfflineStorage.updateJobStatus(job.id, newStatus);
+        OfflineStorage.addPendingSync({
+          method: 'update',
+          entity: 'Job',
+          data: { ...job, status: newStatus },
+        });
+      }
+      job.status = newStatus;
+    } catch (error) {
+      console.error('Error updating job status:', error);
+    } finally {
+      setUpdating(false);
+    }
   };
 
   return (
@@ -76,9 +101,24 @@ export default function MobileJobCard({ job, currentPosition }) {
           )}
         </div>
 
-        {expanded && job.description && (
-          <div className="mt-3 pt-3 border-t border-slate-200">
-            <p className="text-sm text-slate-700">{job.description}</p>
+        {expanded && (
+          <div className="mt-3 pt-3 border-t border-slate-200 space-y-3">
+            {job.description && (
+              <p className="text-sm text-slate-700">{job.description}</p>
+            )}
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Changer le statut</label>
+              <Select value={job.status} onValueChange={updateJobStatus} disabled={updating}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scheduled">Planifié</SelectItem>
+                  <SelectItem value="in_progress">En cours</SelectItem>
+                  <SelectItem value="completed">Complété</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         )}
 
