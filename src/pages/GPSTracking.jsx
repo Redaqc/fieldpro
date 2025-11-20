@@ -9,6 +9,7 @@ import { MapPin, Navigation, Clock, Users } from "lucide-react";
 import LiveTrackingMap from "../components/gps/LiveTrackingMap";
 import GPSZoneManager from "../components/gps/GPSZoneManager";
 import TechnicianHistory from "../components/gps/TechnicianHistory";
+import GeofenceAlerts from "../components/gps/GeofenceAlerts";
 
 export default function GPSTracking() {
   const [selectedTechnician, setSelectedTechnician] = useState(null);
@@ -101,6 +102,7 @@ export default function GPSTracking() {
           <TabsTrigger value="live">Carte en direct</TabsTrigger>
           <TabsTrigger value="zones">Zones GPS</TabsTrigger>
           <TabsTrigger value="history">Historique</TabsTrigger>
+          <TabsTrigger value="alerts">Alertes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="live" className="mt-6">
@@ -121,6 +123,10 @@ export default function GPSTracking() {
             selectedTechnician={selectedTechnician}
             onSelectTechnician={setSelectedTechnician}
           />
+        </TabsContent>
+
+        <TabsContent value="alerts" className="mt-6">
+          <GeofenceAlerts />
         </TabsContent>
       </Tabs>
     </div>

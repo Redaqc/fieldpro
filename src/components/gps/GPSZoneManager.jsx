@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@antml/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, MapPin, Edit } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Trash2, MapPin, Edit, Bell } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function GPSZoneManager({ zones, jobs }) {
@@ -20,6 +21,8 @@ export default function GPSZoneManager({ zones, jobs }) {
     longitude: "",
     radius: 100,
     address: "",
+    enable_entry_alerts: false,
+    enable_exit_alerts: false,
   });
   const queryClient = useQueryClient();
 
@@ -62,6 +65,8 @@ export default function GPSZoneManager({ zones, jobs }) {
       longitude: "",
       radius: 100,
       address: "",
+      enable_entry_alerts: false,
+      enable_exit_alerts: false,
     });
     setEditingZone(null);
   };
@@ -75,6 +80,8 @@ export default function GPSZoneManager({ zones, jobs }) {
       longitude: zone.longitude,
       radius: zone.radius,
       address: zone.address || "",
+      enable_entry_alerts: zone.enable_entry_alerts || false,
+      enable_exit_alerts: zone.enable_exit_alerts || false,
     });
     setShowDialog(true);
   };
@@ -140,10 +147,24 @@ export default function GPSZoneManager({ zones, jobs }) {
             {zone.address && (
               <p className="text-xs text-slate-500 mb-2">{zone.address}</p>
             )}
-            <div className="text-xs text-slate-500 space-y-1">
+            <div className="text-xs text-slate-500 space-y-1 mb-2">
               <p>Lat: {zone.latitude.toFixed(6)}</p>
               <p>Long: {zone.longitude.toFixed(6)}</p>
               <p>Rayon: {zone.radius}m</p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {zone.enable_entry_alerts && (
+                <Badge variant="outline" className="text-xs">
+                  <Bell className="w-3 h-3 mr-1" />
+                  Alerte entrée
+                </Badge>
+              )}
+              {zone.enable_exit_alerts && (
+                <Badge variant="outline" className="text-xs">
+                  <Bell className="w-3 h-3 mr-1" />
+                  Alerte sortie
+                </Badge>
+              )}
             </div>
             <div className="flex gap-2 mt-3">
               <Button
@@ -251,6 +272,29 @@ export default function GPSZoneManager({ zones, jobs }) {
                   required
                   min="10"
                 />
+              </div>
+
+              <div className="space-y-3 pt-3 border-t">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <Bell className="w-4 h-4" />
+                  Alertes Geofencing
+                </h4>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="entry-alerts">Alertes d'entrée dans la zone</Label>
+                  <Switch
+                    id="entry-alerts"
+                    checked={formData.enable_entry_alerts}
+                    onCheckedChange={(checked) => setFormData({ ...formData, enable_entry_alerts: checked })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="exit-alerts">Alertes de sortie de la zone</Label>
+                  <Switch
+                    id="exit-alerts"
+                    checked={formData.enable_exit_alerts}
+                    onCheckedChange={(checked) => setFormData({ ...formData, enable_exit_alerts: checked })}
+                  />
+                </div>
               </div>
 
               <div className="flex gap-2 pt-4">
