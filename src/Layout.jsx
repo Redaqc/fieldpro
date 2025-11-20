@@ -602,6 +602,12 @@ export default function Layout({ children, currentPageName }) {
                   <Settings className="w-4 h-4 mr-2" />
                   Paramètres
                 </DropdownMenuItem>
+                {user?.role === 'admin' && (
+                  <DropdownMenuItem onClick={() => window.open('https://base44.app/dashboard', '_blank')} className="cursor-pointer">
+                    <Shield className="w-4 h-4 mr-2" />
+                    Admin Backend
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => base44.auth.logout()} className="text-red-600 cursor-pointer">
                   <X className="w-4 h-4 mr-2" />
@@ -708,6 +714,12 @@ export default function Layout({ children, currentPageName }) {
                       <Settings className="w-4 h-4 mr-2" />
                       Paramètres
                     </DropdownMenuItem>
+                    {user?.role === 'admin' && (
+                      <DropdownMenuItem onClick={() => window.open('https://base44.app/dashboard', '_blank')} className="cursor-pointer">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Admin Backend
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => base44.auth.logout()} className="text-red-600 cursor-pointer">
                       <X className="w-4 h-4 mr-2" />
