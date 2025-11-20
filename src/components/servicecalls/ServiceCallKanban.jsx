@@ -11,6 +11,7 @@ const COLUMNS = [
   { id: 'new', title: 'Nouveau', color: 'bg-slate-100' },
   { id: 'scheduled', title: 'Planifié', color: 'bg-blue-100' },
   { id: 'in_progress', title: 'En cours', color: 'bg-orange-100' },
+  { id: 'on_hold', title: 'En Attente', color: 'bg-yellow-100' },
   { id: 'review', title: 'En révision', color: 'bg-purple-100' },
   { id: 'completed', title: 'Terminé', color: 'bg-green-100' },
 ];
