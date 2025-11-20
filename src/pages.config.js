@@ -23,6 +23,7 @@ import Reports from './pages/Reports';
 import FormAutomations from './pages/FormAutomations';
 import RoleManager from './pages/RoleManager';
 import ServiceCalls from './pages/ServiceCalls';
+import ScheduleAnalytics from './pages/ScheduleAnalytics';
 import __Layout from './Layout.jsx';
 
 
@@ -52,6 +53,7 @@ export const PAGES = {
     "FormAutomations": FormAutomations,
     "RoleManager": RoleManager,
     "ServiceCalls": ServiceCalls,
+    "ScheduleAnalytics": ScheduleAnalytics,
 }
 
 export const pagesConfig = {

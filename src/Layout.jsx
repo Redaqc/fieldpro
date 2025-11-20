@@ -121,6 +121,11 @@ const getNavigationItems = (t) => [
     icon: Calendar,
   },
   {
+    title: 'Analytics',
+    url: createPageUrl("ScheduleAnalytics"),
+    icon: BarChart3,
+  },
+  {
     title: t('calendar'),
     url: createPageUrl("Calendar"),
     icon: Calendar,
