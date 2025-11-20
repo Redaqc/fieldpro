@@ -193,9 +193,28 @@ export default function Schedule() {
     
     if (detectedConflicts.length > 0) {
       setConflicts(detectedConflicts);
+      
+      // Send conflict notifications
+      for (const conflict of detectedConflicts) {
+        try {
+          await base44.functions.invoke('sendNotification', {
+            type: 'conflict',
+            event_id: event.id,
+            event_type: event.type,
+            conflict_data: {
+              message: conflict.message,
+              technician_id: conflict.technician?.id
+            }
+          });
+        } catch (err) {
+          console.error('Failed to send conflict notification:', err);
+        }
+      }
+      
       return false; // Prevent change
     }
 
+    const oldTechIds = event.technicians.map(t => t.id);
     const updateData = {
       start_date: newStart.toISOString(),
       due_date: newEnd.toISOString(),
@@ -209,6 +228,21 @@ export default function Schedule() {
         time_logs: []
       }));
       updateData.technicians = newTechs;
+
+      // Send assignment notifications for new technicians
+      const addedTechIds = newTechnicianIds.filter(id => !oldTechIds.includes(id));
+      if (addedTechIds.length > 0) {
+        try {
+          await base44.functions.invoke('sendNotification', {
+            type: 'assignment',
+            event_id: event.id,
+            event_type: event.type,
+            technician_ids: addedTechIds
+          });
+        } catch (err) {
+          console.error('Failed to send assignment notification:', err);
+        }
+      }
     }
 
     if (event.type === 'job') {

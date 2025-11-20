@@ -120,19 +120,68 @@ export default function ScheduleEventDialog({
       technicians: technicianObjects,
     };
 
+    const oldStatus = event?.status;
+    const isStatusChanged = event?.id && oldStatus !== formData.status;
+    const oldTechIds = event?.technicians?.map(t => t.id) || [];
+    const newTechIds = formData.technician_ids;
+    const addedTechIds = newTechIds.filter(id => !oldTechIds.includes(id));
+
+    let savedEvent;
     if (event?.id) {
       // Update existing
       if (type === 'job') {
-        await updateJobMutation.mutateAsync({ id: event.id, data: saveData });
+        savedEvent = await updateJobMutation.mutateAsync({ id: event.id, data: saveData });
       } else {
-        await updateServiceCallMutation.mutateAsync({ id: event.id, data: saveData });
+        savedEvent = await updateServiceCallMutation.mutateAsync({ id: event.id, data: saveData });
+      }
+
+      // Send status change notification
+      if (isStatusChanged) {
+        try {
+          await base44.functions.invoke('sendNotification', {
+            type: 'status_change',
+            event_id: event.id,
+            event_type: type,
+            status_change: { old_status: oldStatus, new_status: formData.status }
+          });
+        } catch (err) {
+          console.error('Failed to send status notification:', err);
+        }
+      }
+
+      // Send assignment notifications for new technicians
+      if (addedTechIds.length > 0) {
+        try {
+          await base44.functions.invoke('sendNotification', {
+            type: 'assignment',
+            event_id: event.id,
+            event_type: type,
+            technician_ids: addedTechIds
+          });
+        } catch (err) {
+          console.error('Failed to send assignment notification:', err);
+        }
       }
     } else {
       // Create new
       if (type === 'job') {
-        await createJobMutation.mutateAsync(saveData);
+        savedEvent = await createJobMutation.mutateAsync(saveData);
       } else {
-        await createServiceCallMutation.mutateAsync(saveData);
+        savedEvent = await createServiceCallMutation.mutateAsync(saveData);
+      }
+
+      // Send assignment notifications for new event
+      if (newTechIds.length > 0 && savedEvent) {
+        try {
+          await base44.functions.invoke('sendNotification', {
+            type: 'assignment',
+            event_id: savedEvent.data?.id || event.id,
+            event_type: type,
+            technician_ids: newTechIds
+          });
+        } catch (err) {
+          console.error('Failed to send assignment notification:', err);
+        }
       }
     }
   };
