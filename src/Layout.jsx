@@ -179,6 +179,11 @@ const getNavigationItems = (t) => [
     icon: RefreshCw,
   },
   {
+    title: "Automation Rules",
+    url: createPageUrl("AutomationRules"),
+    icon: Zap,
+  },
+  {
     title: t('reports'),
     url: createPageUrl("Reports"),
     icon: BarChart3,

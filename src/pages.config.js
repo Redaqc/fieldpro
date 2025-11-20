@@ -27,6 +27,7 @@ import ScheduleAnalytics from './pages/ScheduleAnalytics';
 import DispatcherDashboard from './pages/DispatcherDashboard';
 import RecurringJobs from './pages/RecurringJobs';
 import ManagerDashboard from './pages/ManagerDashboard';
+import AutomationRules from './pages/AutomationRules';
 import __Layout from './Layout.jsx';
 
 
@@ -60,6 +61,7 @@ export const PAGES = {
     "DispatcherDashboard": DispatcherDashboard,
     "RecurringJobs": RecurringJobs,
     "ManagerDashboard": ManagerDashboard,
+    "AutomationRules": AutomationRules,
 }
 
 export const pagesConfig = {
