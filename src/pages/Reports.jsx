@@ -14,6 +14,7 @@ import { format, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
 const REPORTS = [
+  { id: 'time_tracking', name: 'Rapports de Temps', description: 'Analyse du temps passé par technicien et projet', icon: Clock, color: 'bg-blue-500', isTab: true },
   { id: 'profitability', name: 'Rentabilité', description: 'Analyse de rentabilité des projets', icon: TrendingUp, color: 'bg-green-500', page: 'ProfitabilityReports' },
   { id: 'costs', name: 'Gestion des Coûts', description: 'Suivi des dépenses et factures fournisseurs', icon: DollarSign, color: 'bg-orange-500', page: 'CostsManagement' },
   { id: 'team_performance', name: 'Performance Équipe', description: 'Statistiques de performance des techniciens', icon: Users, color: 'bg-purple-500', page: 'Team' },
@@ -39,6 +40,18 @@ export default function Reports() {
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians'],
     queryFn: () => base44.entities.Technician.list(),
+    initialData: [],
+  });
+
+  const { data: invoices = [] } = useQuery({
+    queryKey: ['invoices'],
+    queryFn: () => base44.entities.Invoice.list(),
+    initialData: [],
+  });
+
+  const { data: customers = [] } = useQuery({
+    queryKey: ['customers'],
+    queryFn: () => base44.entities.Customer.list(),
     initialData: [],
   });
 
@@ -151,7 +164,25 @@ export default function Reports() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {REPORTS.map(report => {
               const Icon = report.icon;
-              return (
+              const handleClick = () => {
+                if (report.isTab) {
+                  setActiveTab('time');
+                }
+              };
+              
+              return report.isTab ? (
+                <Card key={report.id} onClick={handleClick} className="hover:shadow-xl transition-all duration-200 cursor-pointer group h-full">
+                  <CardContent className="p-6 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`${report.color} w-12 h-12 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                        <Icon className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-lg font-semibold">{report.name}</h3>
+                    </div>
+                    <p className="text-sm text-slate-600">{report.description}</p>
+                  </CardContent>
+                </Card>
+              ) : (
                 <Link key={report.id} to={createPageUrl(report.page)}>
                   <Card className="hover:shadow-xl transition-all duration-200 cursor-pointer group h-full">
                     <CardContent className="p-6 space-y-3">
@@ -175,18 +206,22 @@ export default function Reports() {
               <p className="text-blue-700 mb-4">
                 Tous les rapports peuvent être exportés au format CSV pour une analyse approfondie dans Excel ou d'autres outils.
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white rounded-lg p-4 border border-blue-200">
-                  <p className="font-semibold text-blue-900 mb-1">Filtres Avancés</p>
-                  <p className="text-sm text-blue-600">Filtrez par date, statut, technicien, etc.</p>
+                  <p className="font-semibold text-blue-900 mb-1">Temps</p>
+                  <p className="text-sm text-blue-600">Filtrez par date, technicien, job</p>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  <p className="font-semibold text-blue-900 mb-1">Factures</p>
+                  <p className="text-sm text-blue-600">Export par client, payé/non payé</p>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-blue-200">
                   <p className="font-semibold text-blue-900 mb-1">Visualisations</p>
-                  <p className="text-sm text-blue-600">Graphiques interactifs pour mieux comprendre</p>
+                  <p className="text-sm text-blue-600">Graphiques interactifs</p>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-blue-200">
                   <p className="font-semibold text-blue-900 mb-1">Export CSV</p>
-                  <p className="text-sm text-blue-600">Téléchargez vos données facilement</p>
+                  <p className="text-sm text-blue-600">Téléchargement instantané</p>
                 </div>
               </div>
             </CardContent>
