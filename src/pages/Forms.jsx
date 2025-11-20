@@ -21,6 +21,24 @@ export default function Forms() {
     initialData: [],
   });
 
+  const { data: submissions = [] } = useQuery({
+    queryKey: ['formSubmissions'],
+    queryFn: () => base44.entities.FormSubmission.list('-submission_date'),
+    initialData: [],
+  });
+
+  const { data: jobs = [] } = useQuery({
+    queryKey: ['jobs'],
+    queryFn: () => base44.entities.Job.list(),
+    initialData: [],
+  });
+
+  const { data: customers = [] } = useQuery({
+    queryKey: ['customers'],
+    queryFn: () => base44.entities.Customer.list(),
+    initialData: [],
+  });
+
   const { data: formSubmissions = [] } = useQuery({
     queryKey: ['formSubmissions'],
     queryFn: () => base44.entities.FormSubmission.list(),

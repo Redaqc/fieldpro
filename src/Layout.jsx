@@ -94,11 +94,6 @@ const navigationItems = [
     icon: FileCheck,
   },
   {
-    title: "Soumissions",
-    url: createPageUrl("FormSubmissions"),
-    icon: FileText,
-  },
-  {
     title: "Automatisations",
     url: createPageUrl("FormAutomations"),
     icon: Zap,
@@ -106,11 +101,6 @@ const navigationItems = [
   {
     title: "Rapports",
     url: createPageUrl("Reports"),
-    icon: BarChart3,
-  },
-  {
-    title: "Rapports Temps",
-    url: createPageUrl("TimeReports"),
     icon: BarChart3,
   },
   {

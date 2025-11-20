@@ -129,6 +129,193 @@ export default function Reports() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="time" className="space-y-6 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="border-l-4 border-blue-500">
+              <CardContent className="p-4">
+                <p className="text-sm text-slate-500">Total Heures</p>
+                <p className="text-2xl font-bold text-slate-900">{totalHours.toFixed(2)}h</p>
+              </CardContent>
+            </Card>
+            <Card className="border-l-4 border-green-500">
+              <CardContent className="p-4">
+                <p className="text-sm text-slate-500">Moyenne/Jour</p>
+                <p className="text-2xl font-bold text-slate-900">{avgHoursPerDay.toFixed(2)}h</p>
+              </CardContent>
+            </Card>
+            <Card className="border-l-4 border-purple-500">
+              <CardContent className="p-4">
+                <p className="text-sm text-slate-500">Entrées</p>
+                <p className="text-2xl font-bold text-slate-900">{filteredLogs.length}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Filtres</h3>
+                <Button size="sm" onClick={exportToCSV}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Exporter CSV
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Date début</label>
+                  <Input
+                    type="date"
+                    value={dateRange.start}
+                    onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Date fin</label>
+                  <Input
+                    type="date"
+                    value={dateRange.end}
+                    onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setQuickRange('week')}>7 jours</Button>
+                <Button size="sm" variant="outline" onClick={() => setQuickRange('month')}>30 jours</Button>
+                <Button size="sm" variant="outline" onClick={() => setQuickRange('lastMonth')}>Mois dernier</Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Select value={selectedTech} onValueChange={setSelectedTech}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Technicien" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les techniciens</SelectItem>
+                    {technicians.map(tech => (
+                      <SelectItem key={tech.id} value={tech.id}>
+                        {tech.first_name} {tech.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={selectedJob} onValueChange={setSelectedJob}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Job" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les jobs</SelectItem>
+                    {jobs.map(job => (
+                      <SelectItem key={job.id} value={job.id}>{job.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={groupBy} onValueChange={setGroupBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Grouper par" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="technician">Par technicien</SelectItem>
+                    <SelectItem value="job">Par job</SelectItem>
+                    <SelectItem value="day">Par jour</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {groupBy === 'technician' && aggregatedByTech.length > 0 && (
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Heures par technicien</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={aggregatedByTech}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="hours" fill="#3b82f6" name="Heures" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {groupBy === 'job' && aggregatedByJob.length > 0 && (
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Top 10 jobs par heures</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={aggregatedByJob} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" width={150} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="hours" fill="#10b981" name="Heures" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {groupBy === 'day' && dailyData.length > 0 && (
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Évolution quotidienne</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={dailyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="day" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="hours" stroke="#8b5cf6" name="Heures" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Détail des entrées de temps</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="text-left p-3 text-sm font-medium">Date</th>
+                      <th className="text-left p-3 text-sm font-medium">Technicien</th>
+                      <th className="text-left p-3 text-sm font-medium">Job</th>
+                      <th className="text-left p-3 text-sm font-medium">Début</th>
+                      <th className="text-left p-3 text-sm font-medium">Fin</th>
+                      <th className="text-right p-3 text-sm font-medium">Durée</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredLogs.slice(0, 50).map((log, idx) => (
+                      <tr key={idx} className="border-t hover:bg-slate-50">
+                        <td className="p-3 text-sm">{format(new Date(log.start), 'dd/MM/yyyy')}</td>
+                        <td className="p-3 text-sm">{log.technician_name}</td>
+                        <td className="p-3 text-sm">{log.job_title}</td>
+                        <td className="p-3 text-sm">{format(new Date(log.start), 'HH:mm')}</td>
+                        <td className="p-3 text-sm">{format(new Date(log.end), 'HH:mm')}</td>
+                        <td className="p-3 text-sm text-right font-medium">{log.duration?.toFixed(2)}h</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

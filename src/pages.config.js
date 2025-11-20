@@ -14,14 +14,12 @@ import GPSTracking from './pages/GPSTracking';
 import TechnicianMobile from './pages/TechnicianMobile';
 import NotificationSettings from './pages/NotificationSettings';
 import Calendar from './pages/Calendar';
-import TimeReports from './pages/TimeReports';
 import ProfitabilityReports from './pages/ProfitabilityReports';
 import CostsManagement from './pages/CostsManagement';
 import Documents from './pages/Documents';
 import FormBuilder from './pages/FormBuilder';
 import Forms from './pages/Forms';
 import Reports from './pages/Reports';
-import FormSubmissions from './pages/FormSubmissions';
 import FormAutomations from './pages/FormAutomations';
 import __Layout from './Layout.jsx';
 
@@ -43,14 +41,12 @@ export const PAGES = {
     "TechnicianMobile": TechnicianMobile,
     "NotificationSettings": NotificationSettings,
     "Calendar": Calendar,
-    "TimeReports": TimeReports,
     "ProfitabilityReports": ProfitabilityReports,
     "CostsManagement": CostsManagement,
     "Documents": Documents,
     "FormBuilder": FormBuilder,
     "Forms": Forms,
     "Reports": Reports,
-    "FormSubmissions": FormSubmissions,
     "FormAutomations": FormAutomations,
 }
 
