@@ -11,11 +11,15 @@ import WidgetOverdueJobs from "@/components/dashboard/WidgetOverdueJobs";
 import WidgetTechnicianPerformance from "@/components/dashboard/WidgetTechnicianPerformance";
 import WidgetCustomerStats from "@/components/dashboard/WidgetCustomerStats";
 import WidgetInvoiceSummary from "@/components/dashboard/WidgetInvoiceSummary";
+import WidgetUrgentJobs from "@/components/dashboard/WidgetUrgentJobs";
+import WidgetTasksByTechnician from "@/components/dashboard/WidgetTasksByTechnician";
+import WidgetProjectProgress from "@/components/dashboard/WidgetProjectProgress";
+import WidgetFinancialIndicators from "@/components/dashboard/WidgetFinancialIndicators";
 
 const DEFAULT_VIEWS = {
-  admin: ['jobs_by_status', 'monthly_revenue', 'overdue_jobs', 'technician_performance', 'customer_stats', 'invoice_summary'],
-  manager: ['jobs_by_status', 'overdue_jobs', 'technician_performance', 'invoice_summary'],
-  technician: ['jobs_by_status', 'overdue_jobs'],
+  admin: ['urgent_jobs', 'financial_indicators', 'project_progress', 'tasks_by_technician', 'jobs_by_status', 'monthly_revenue', 'technician_performance', 'invoice_summary'],
+  manager: ['urgent_jobs', 'project_progress', 'tasks_by_technician', 'jobs_by_status', 'financial_indicators', 'technician_performance'],
+  technician: ['urgent_jobs', 'tasks_by_technician', 'jobs_by_status', 'project_progress'],
 };
 
 export default function Dashboard() {
@@ -47,6 +51,12 @@ export default function Dashboard() {
   const { data: invoices = [] } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list(),
+    initialData: [],
+  });
+
+  const { data: supplierInvoices = [] } = useQuery({
+    queryKey: ['supplierInvoices'],
+    queryFn: () => base44.entities.SupplierInvoice.list(),
     initialData: [],
   });
 
@@ -102,6 +112,14 @@ export default function Dashboard() {
 
   const renderWidget = (widgetType) => {
     switch (widgetType) {
+      case 'urgent_jobs':
+        return <WidgetUrgentJobs key={widgetType} jobs={jobs} />;
+      case 'tasks_by_technician':
+        return <WidgetTasksByTechnician key={widgetType} jobs={jobs} technicians={technicians} />;
+      case 'project_progress':
+        return <WidgetProjectProgress key={widgetType} jobs={jobs} />;
+      case 'financial_indicators':
+        return <WidgetFinancialIndicators key={widgetType} jobs={jobs} invoices={invoices} />;
       case 'jobs_by_status':
         return <WidgetJobsByStatus key={widgetType} jobs={jobs} />;
       case 'monthly_revenue':
@@ -152,9 +170,21 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min">
         {activeWidgets.map(widgetType => renderWidget(widgetType))}
       </div>
+
+      {activeWidgets.length === 0 && (
+        <div className="text-center py-16 border-2 border-dashed rounded-lg">
+          <LayoutDashboard className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+          <h3 className="text-lg font-semibold text-slate-600 mb-2">Aucun widget sélectionné</h3>
+          <p className="text-slate-500 mb-4">Cliquez sur "Personnaliser" pour ajouter des widgets</p>
+          <Button onClick={() => setCustomizerOpen(true)}>
+            <Settings2 className="w-4 h-4 mr-2" />
+            Personnaliser le tableau de bord
+          </Button>
+        </div>
+      )}
 
       <DashboardCustomizer
         open={customizerOpen}
