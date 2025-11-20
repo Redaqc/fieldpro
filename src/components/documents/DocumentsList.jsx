@@ -78,6 +78,27 @@ export default function DocumentsList({ documents, onPreview, onDelete, jobs, cu
                   <Badge className={getCategoryColor(doc.category)}>
                     {doc.category}
                   </Badge>
+                  {doc.status && (
+                    <Badge variant="outline" className={
+                      doc.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' :
+                      doc.status === 'expired' ? 'bg-red-50 text-red-700 border-red-200' :
+                      doc.status === 'archived' ? 'bg-slate-50 text-slate-700 border-slate-200' :
+                      'bg-blue-50 text-blue-700 border-blue-200'
+                    }>
+                      {doc.status === 'draft' ? 'Brouillon' : 
+                       doc.status === 'active' ? 'Actif' : 
+                       doc.status === 'expired' ? 'Expiré' : 
+                       doc.status === 'archived' ? 'Archivé' : doc.status}
+                    </Badge>
+                  )}
+                  {doc.tags && doc.tags.length > 0 && (
+                    doc.tags.map((tag, idx) => (
+                      <Badge key={idx} variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1">
+                        <Tag className="w-3 h-3" />
+                        {tag}
+                      </Badge>
+                    ))
+                  )}
                   {doc.file_size && (
                     <Badge variant="outline">{formatFileSize(doc.file_size)}</Badge>
                   )}
@@ -88,8 +109,15 @@ export default function DocumentsList({ documents, onPreview, onDelete, jobs, cu
                     </span>
                   )}
                   {doc.expiry_date && (
-                    <Badge variant="outline" className="text-orange-600 border-orange-600">
-                      Expire: {format(new Date(doc.expiry_date), 'dd MMM yyyy', { locale: fr })}
+                    <Badge variant="outline" className={
+                      new Date(doc.expiry_date) < new Date() 
+                        ? 'bg-red-100 text-red-700 border-red-300'
+                        : (new Date(doc.expiry_date) - new Date()) / (1000 * 60 * 60 * 24) <= 30
+                          ? 'bg-amber-100 text-amber-700 border-amber-300'
+                          : 'bg-green-100 text-green-700 border-green-300'
+                    }>
+                      {new Date(doc.expiry_date) < new Date() ? '⚠️ Expiré: ' : 'Expire: '}
+                      {format(new Date(doc.expiry_date), 'dd MMM yyyy', { locale: fr })}
                     </Badge>
                   )}
                 </div>

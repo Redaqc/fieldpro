@@ -18,7 +18,9 @@ export default function DocumentUploadDialog({ open, onClose, jobs, customers })
     customer_id: '',
     tags: [],
     expiry_date: '',
+    status: 'active',
   });
+  const [tagInput, setTagInput] = useState('');
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const queryClient = useQueryClient();
@@ -36,8 +38,10 @@ export default function DocumentUploadDialog({ open, onClose, jobs, customers })
         customer_id: '',
         tags: [],
         expiry_date: '',
+        status: 'active',
       });
       setFile(null);
+      setTagInput('');
     },
   });
 
@@ -66,7 +70,7 @@ export default function DocumentUploadDialog({ open, onClose, jobs, customers })
         file_url,
         file_size: file.size,
         file_type: file.type,
-        tags: formData.tags.filter(t => t.trim()),
+        tags: formData.tags,
       };
 
       createDocMutation.mutate(docData);
@@ -141,12 +145,71 @@ export default function DocumentUploadDialog({ open, onClose, jobs, customers })
             </div>
 
             <div>
-              <Label>Date d'expiration</Label>
+              <Label>Statut</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Brouillon</SelectItem>
+                  <SelectItem value="active">Actif</SelectItem>
+                  <SelectItem value="expired">Expiré</SelectItem>
+                  <SelectItem value="archived">Archivé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <Label>Date d'expiration</Label>
+            <Input
+              type="date"
+              value={formData.expiry_date}
+              onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <Label>Tags</Label>
+            <div className="flex gap-2 mb-2 flex-wrap">
+              {formData.tags.map((tag, idx) => (
+                <span key={idx} className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-sm flex items-center gap-1">
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, tags: formData.tags.filter((_, i) => i !== idx) })}
+                    className="hover:text-purple-900"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
               <Input
-                type="date"
-                value={formData.expiry_date}
-                onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                placeholder="Ajouter un tag..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && tagInput.trim()) {
+                    e.preventDefault();
+                    setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] });
+                    setTagInput('');
+                  }
+                }}
               />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (tagInput.trim()) {
+                    setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] });
+                    setTagInput('');
+                  }
+                }}
+              >
+                Ajouter
+              </Button>
             </div>
           </div>
 
