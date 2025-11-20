@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import GPSTracking from './pages/GPSTracking';
 import TechnicianMobile from './pages/TechnicianMobile';
 import NotificationSettings from './pages/NotificationSettings';
+import Calendar from './pages/Calendar';
 import __Layout from './Layout.jsx';
 
 
@@ -32,6 +33,7 @@ export const PAGES = {
     "GPSTracking": GPSTracking,
     "TechnicianMobile": TechnicianMobile,
     "NotificationSettings": NotificationSettings,
+    "Calendar": Calendar,
 }
 
 export const pagesConfig = {

@@ -61,6 +61,11 @@ const navigationItems = [
     icon: Calendar,
   },
   {
+    title: "Calendrier",
+    url: createPageUrl("Calendar"),
+    icon: Calendar,
+  },
+  {
     title: "Customers",
     url: createPageUrl("Customers"),
     icon: Users,
