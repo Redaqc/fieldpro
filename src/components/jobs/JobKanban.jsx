@@ -3,8 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, User, Paperclip, CheckSquare, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
-import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors } from "@hello-pangea/dnd";
-import { Droppable, Draggable } from "@hello-pangea/dnd";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 const columns = [
   { id: 'to_do', title: 'To Do', color: 'bg-slate-100' },
@@ -21,22 +20,14 @@ const priorityColors = {
 };
 
 export default function JobKanban({ jobs, isLoading, onJobClick, onUpdate }) {
-  const [activeId, setActiveId] = React.useState(null);
-
-  const handleDragStart = (event) => {
-    setActiveId(event.active.id);
-  };
-
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
+  const handleDragEnd = (result) => {
+    const { destination, source, draggableId } = result;
     
-    if (!over) {
-      setActiveId(null);
-      return;
-    }
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
-    const jobId = active.id;
-    const newStatus = over.id;
+    const jobId = draggableId;
+    const newStatus = destination.droppableId;
     
     const job = jobs.find(j => j.id === jobId);
     if (job && job.status !== newStatus) {
@@ -60,27 +51,18 @@ export default function JobKanban({ jobs, isLoading, onJobClick, onUpdate }) {
       
       onUpdate({ id: jobId, data: updates });
     }
-    
-    setActiveId(null);
   };
 
   const getJobsByStatus = (status) => {
     return jobs.filter(job => job.status === status);
   };
 
-  const activeJob = activeId ? jobs.find(j => j.id === activeId) : null;
-
   if (isLoading) {
     return <div className="text-center py-12">Loading...</div>;
   }
 
   return (
-    <DndContext
-      sensors={useSensors(useSensor(PointerSensor))}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
+    <DragDropContext onDragEnd={handleDragEnd}>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {columns.map(column => (
           <Droppable key={column.id} droppableId={column.id}>
@@ -122,15 +104,7 @@ export default function JobKanban({ jobs, isLoading, onJobClick, onUpdate }) {
           </Droppable>
         ))}
       </div>
-
-      <DragOverlay>
-        {activeJob ? (
-          <Card className="p-3 bg-white shadow-xl rotate-3">
-            <JobCard job={activeJob} />
-          </Card>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+    </DragDropContext>
   );
 }
 
