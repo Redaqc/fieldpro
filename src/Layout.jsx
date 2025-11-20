@@ -579,42 +579,19 @@ export default function Layout({ children, currentPageName }) {
           </SidebarContent>
 
           <SidebarFooter className="border-t border-slate-100 p-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start h-auto p-2 hover:bg-slate-50">
-                  <div className="flex items-center gap-3 w-full">
-                    <div className="w-9 h-9 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full flex items-center justify-center">
-                      <span className="text-slate-700 font-semibold text-sm">
-                        {user?.full_name?.[0] || 'U'}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className="font-medium text-slate-900 text-sm truncate">
-                        {user?.full_name || 'User'}
-                      </p>
-                      <p className="text-xs text-slate-500 truncate">{user?.email}</p>
-                    </div>
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={() => window.location.href = createPageUrl("Settings")} className="cursor-pointer">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Paramètres
-                </DropdownMenuItem>
-                {user?.role === 'admin' && (
-                  <DropdownMenuItem onClick={() => window.open('https://base44.app/dashboard', '_blank')} className="cursor-pointer">
-                    <Shield className="w-4 h-4 mr-2" />
-                    Admin Backend
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => base44.auth.logout()} className="text-red-600 cursor-pointer">
-                  <X className="w-4 h-4 mr-2" />
-                  Déconnexion
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full flex items-center justify-center">
+                <span className="text-slate-700 font-semibold text-sm">
+                  {user?.full_name?.[0] || 'U'}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-slate-900 text-sm truncate">
+                  {user?.full_name || 'User'}
+                </p>
+                <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+              </div>
+            </div>
           </SidebarFooter>
         </Sidebar>
 
