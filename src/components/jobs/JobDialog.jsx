@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import InvoicingTab from "./InvoicingTab";
 
 export default function JobDialog({ open, onClose, job, technicians, currentUser }) {
   const [formData, setFormData] = useState({
