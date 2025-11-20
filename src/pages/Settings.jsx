@@ -3,7 +3,8 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Edit, Save, X, Eye, EyeOff, List, Settings as SettingsIcon, GitBranch, Flag, BarChart, FileText, TrendingDown, Paperclip, MessageSquare, Activity } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Trash2, Edit, Save, X, Eye, EyeOff, List, Settings as SettingsIcon, GitBranch, Flag, BarChart, FileText, TrendingDown, Paperclip, MessageSquare, Activity, Building2, Image as ImageIcon, Receipt, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -39,6 +40,24 @@ export default function Settings() {
       return settings[0] || null;
     },
   });
+
+  const { data: companyInfo } = useQuery({
+    queryKey: ['companyInfo'],
+    queryFn: async () => {
+      const info = await base44.entities.CompanyInfo.list();
+      return info[0] || null;
+    },
+  });
+
+  const { data: taxSettings } = useQuery({
+    queryKey: ['taxSettings'],
+    queryFn: async () => {
+      const settings = await base44.entities.TaxSettings.list();
+      return settings[0] || { taxes: [] };
+    },
+  });
+
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.WorkType.create(data),
@@ -110,6 +129,64 @@ export default function Settings() {
     });
   };
 
+  const updateCompanyInfoMutation = useMutation({
+    mutationFn: (data) => {
+      if (companyInfo?.id) {
+        return base44.entities.CompanyInfo.update(companyInfo.id, data);
+      } else {
+        return base44.entities.CompanyInfo.create(data);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companyInfo'] });
+    },
+  });
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      updateCompanyInfoMutation.mutate({ logo_url: file_url });
+    } catch (error) {
+      alert('Erreur lors de l\'upload du logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const updateTaxSettingsMutation = useMutation({
+    mutationFn: (data) => {
+      if (taxSettings?.id) {
+        return base44.entities.TaxSettings.update(taxSettings.id, data);
+      } else {
+        return base44.entities.TaxSettings.create(data);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['taxSettings'] });
+    },
+  });
+
+  const addTax = () => {
+    const taxes = taxSettings?.taxes || [];
+    const newTaxes = [...taxes, { province: '', tax_name: '', rate: '', tax_number: '' }];
+    updateTaxSettingsMutation.mutate({ ...taxSettings, taxes: newTaxes });
+  };
+
+  const updateTax = (index, field, value) => {
+    const taxes = [...(taxSettings?.taxes || [])];
+    taxes[index] = { ...taxes[index], [field]: value };
+    updateTaxSettingsMutation.mutate({ ...taxSettings, taxes });
+  };
+
+  const deleteTax = (index) => {
+    const taxes = taxSettings?.taxes?.filter((_, i) => i !== index) || [];
+    updateTaxSettingsMutation.mutate({ ...taxSettings, taxes });
+  };
+
   const handleCreateTemplate = () => {
     const name = prompt('Nom du modèle de checklist:');
     if (!name) return;
@@ -141,7 +218,18 @@ export default function Settings() {
       <Tabs defaultValue="work-types" className="space-y-4">
         <TabsList>
           <TabsTrigger value="work-types">Types de travaux</TabsTrigger>
-          <TabsTrigger value="permissions">Permissions</TabsTrigger>
+          <TabsTrigger value="company" className="flex items-center gap-2">
+            <Building2 className="w-4 h-4" />
+            Compagnie
+          </TabsTrigger>
+          <TabsTrigger value="logo" className="flex items-center gap-2">
+            <ImageIcon className="w-4 h-4" />
+            Logo
+          </TabsTrigger>
+          <TabsTrigger value="taxes" className="flex items-center gap-2">
+            <Receipt className="w-4 h-4" />
+            Taxes
+          </TabsTrigger>
           <TabsTrigger value="features">Fonctionnalités Jobs</TabsTrigger>
           <TabsTrigger value="checklists">Modèles de checklist</TabsTrigger>
         </TabsList>
@@ -267,43 +355,218 @@ export default function Settings() {
       </Card>
         </TabsContent>
 
-        <TabsContent value="permissions">
+        <TabsContent value="company">
           <Card>
             <CardHeader>
-              <CardTitle>Visibilité des prix</CardTitle>
+              <CardTitle>Information de la compagnie</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-500 mb-4">
-                Contrôlez quels techniciens peuvent voir les prix dans les factures, soumissions et jobs.
-              </p>
-              <div className="space-y-3">
-                {technicians.map(tech => (
-                  <div key={tech.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div 
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                        style={{ backgroundColor: tech.color || '#64748b' }}
-                      >
-                        {tech.first_name[0]}{tech.last_name[0]}
-                      </div>
-                      <div>
-                        <p className="font-medium">{tech.first_name} {tech.last_name}</p>
-                        <p className="text-xs text-slate-500">{tech.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {tech.can_view_prices ? (
-                        <Eye className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <EyeOff className="w-4 h-4 text-slate-400" />
-                      )}
-                      <Switch
-                        checked={tech.can_view_prices !== false}
-                        onCheckedChange={() => togglePriceVisibility(tech.id, tech.can_view_prices !== false)}
-                      />
-                    </div>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Nom de l'entreprise</Label>
+                <Input
+                  value={companyInfo?.company_name || ''}
+                  onChange={(e) => updateCompanyInfoMutation.mutate({ company_name: e.target.value })}
+                  placeholder="Nom de l'entreprise"
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label>Adresse</Label>
+                <Textarea
+                  value={companyInfo?.address || ''}
+                  onChange={(e) => updateCompanyInfoMutation.mutate({ address: e.target.value })}
+                  placeholder="Adresse complète"
+                  rows={3}
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Téléphone</Label>
+                  <Input
+                    value={companyInfo?.phone || ''}
+                    onChange={(e) => updateCompanyInfoMutation.mutate({ phone: e.target.value })}
+                    placeholder="(123) 456-7890"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={companyInfo?.email || ''}
+                    onChange={(e) => updateCompanyInfoMutation.mutate({ email: e.target.value })}
+                    placeholder="info@entreprise.com"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Site web</Label>
+                  <Input
+                    value={companyInfo?.website || ''}
+                    onChange={(e) => updateCompanyInfoMutation.mutate({ website: e.target.value })}
+                    placeholder="https://www.entreprise.com"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label>Licence</Label>
+                  <Input
+                    value={companyInfo?.license || ''}
+                    onChange={(e) => updateCompanyInfoMutation.mutate({ license: e.target.value })}
+                    placeholder="Numéro de licence"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="logo">
+          <Card>
+            <CardHeader>
+              <CardTitle>Logo de l'entreprise</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {companyInfo?.logo_url && (
+                <div className="flex justify-center p-6 border rounded-lg bg-slate-50">
+                  <img 
+                    src={companyInfo.logo_url} 
+                    alt="Logo" 
+                    className="max-h-32 object-contain"
+                  />
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="logo-upload" className="cursor-pointer">
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-slate-50 transition-colors">
+                    <Upload className="w-12 h-12 mx-auto mb-3 text-slate-400" />
+                    <p className="text-sm font-medium text-slate-700 mb-1">
+                      {uploadingLogo ? 'Upload en cours...' : 'Cliquez pour uploader un logo'}
+                    </p>
+                    <p className="text-xs text-slate-500">PNG, JPG ou SVG (max 2MB)</p>
                   </div>
-                ))}
+                  <input
+                    id="logo-upload"
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={uploadingLogo}
+                  />
+                </Label>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="taxes">
+          <Card>
+            <CardHeader>
+              <CardTitle>Taxes de ventes</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <p className="font-medium">Afficher les taxes de vente dans les soumissions</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant={taxSettings?.show_taxes_in_quotes === true ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateTaxSettingsMutation.mutate({ ...taxSettings, show_taxes_in_quotes: true })}
+                  >
+                    Oui
+                  </Button>
+                  <Button
+                    variant={taxSettings?.show_taxes_in_quotes === false ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateTaxSettingsMutation.mutate({ ...taxSettings, show_taxes_in_quotes: false })}
+                  >
+                    Non
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <p className="font-medium">Je fais des achats ou des ventes dans plusieurs provinces</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant={taxSettings?.multi_province === true ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateTaxSettingsMutation.mutate({ ...taxSettings, multi_province: true })}
+                  >
+                    Oui
+                  </Button>
+                  <Button
+                    variant={taxSettings?.multi_province === false ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateTaxSettingsMutation.mutate({ ...taxSettings, multi_province: false })}
+                  >
+                    Non
+                  </Button>
+                </div>
+              </div>
+
+              <div className="border-t pt-6">
+                <p className="text-sm text-slate-600 mb-4">
+                  Entrez toutes les taxes que vous facturez. Vous pourrez ensuite les modifier pour chaque projet si vous avez des clients dans d'autres juridictions.
+                </p>
+
+                <div className="space-y-3">
+                  {(taxSettings?.taxes || []).map((tax, index) => (
+                    <div key={index} className="grid grid-cols-5 gap-3 items-center p-3 border rounded-lg">
+                      <Input
+                        placeholder="Province"
+                        value={tax.province || ''}
+                        onChange={(e) => updateTax(index, 'province', e.target.value)}
+                      />
+                      <Input
+                        placeholder="Taxe"
+                        value={tax.tax_name || ''}
+                        onChange={(e) => updateTax(index, 'tax_name', e.target.value)}
+                      />
+                      <Input
+                        placeholder="Taux"
+                        value={tax.rate || ''}
+                        onChange={(e) => updateTax(index, 'rate', e.target.value)}
+                      />
+                      <Input
+                        placeholder="Numéro de taxe"
+                        value={tax.tax_number || ''}
+                        onChange={(e) => updateTax(index, 'tax_number', e.target.value)}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteTax(index)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  onClick={addTax}
+                  variant="outline"
+                  className="w-full mt-4"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Ajouter une autre taxe
+                </Button>
               </div>
             </CardContent>
           </Card>
