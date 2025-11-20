@@ -146,6 +146,41 @@ export const OfflineStorage = {
     }
   },
 
+  // Update entire job locally
+  updateJob: (jobId, updates) => {
+    try {
+      const jobs = OfflineStorage.getJobs();
+      const updatedJobs = jobs.map(job =>
+        job.id === jobId ? { ...job, ...updates } : job
+      );
+      OfflineStorage.saveJobs(updatedJobs);
+    } catch (error) {
+      console.error('Error updating job offline:', error);
+    }
+  },
+
+  // Add job notes offline
+  addJobNote: (jobId, note) => {
+    try {
+      const jobs = OfflineStorage.getJobs();
+      const updatedJobs = jobs.map(job => {
+        if (job.id === jobId) {
+          const logs = job.technician_logs || [];
+          logs.push({
+            note,
+            timestamp: new Date().toISOString(),
+            technician_name: job.technician_name,
+          });
+          return { ...job, technician_logs: logs };
+        }
+        return job;
+      });
+      OfflineStorage.saveJobs(updatedJobs);
+    } catch (error) {
+      console.error('Error adding job note offline:', error);
+    }
+  },
+
   // Add local time entry
   addTimeEntry: (entry) => {
     try {

@@ -70,12 +70,17 @@ export default function TechnicianMobile() {
 
   // Online/Offline status management
   useEffect(() => {
-    const handleOnline = () => {
+    const handleOnline = async () => {
       setIsOnline(true);
-      syncManager.syncPendingOperations();
-      syncManager.refreshData(currentUser);
+      setSyncStatus('syncing');
+      try {
+        await syncManager.syncPendingOperations();
+      } catch (error) {
+        console.error('Sync error:', error);
+        setSyncStatus('error');
+      }
     };
-    
+
     const handleOffline = () => {
       setIsOnline(false);
     };
@@ -90,18 +95,41 @@ export default function TechnicianMobile() {
     });
 
     // Check for pending operations on mount
-    setPendingCount(OfflineStorage.getPendingSync().length);
+    const stats = syncManager.getSyncStats();
+    setPendingCount(stats.totalPending);
 
     // Initial sync if online
     if (navigator.onLine) {
       syncManager.syncPendingOperations();
     }
 
+    // Periodic sync check (every 2 minutes if online)
+    const syncInterval = setInterval(() => {
+      if (navigator.onLine && OfflineStorage.getPendingSync().length > 0) {
+        syncManager.syncPendingOperations();
+      }
+    }, 120000);
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearInterval(syncInterval);
     };
   }, [currentUser]);
+
+  const handleRetrySync = async () => {
+    if (!navigator.onLine) {
+      alert('Pas de connexion internet disponible');
+      return;
+    }
+    setSyncStatus('syncing');
+    try {
+      await syncManager.retryFailedOperations();
+    } catch (error) {
+      console.error('Retry sync error:', error);
+      setSyncStatus('error');
+    }
+  };
 
   // GPS Background tracking with battery optimization
   useEffect(() => {
@@ -254,7 +282,11 @@ export default function TechnicianMobile() {
 
       <div className="p-4 space-y-4">
         {/* Offline Indicator */}
-        <OfflineIndicator syncStatus={syncStatus} pendingCount={pendingCount} />
+        <OfflineIndicator 
+          syncStatus={syncStatus} 
+          pendingCount={pendingCount}
+          onRetrySync={handleRetrySync}
+        />
 
         {/* GPS Status */}
         <GPSStatusCard status={gpsStatus} position={currentPosition} />

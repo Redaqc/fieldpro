@@ -48,14 +48,43 @@ export default function MobileJobCard({ job, currentPosition, isOnline }) {
         OfflineStorage.addPendingSync({
           method: 'update',
           entity: 'Job',
-          data: { ...job, status: newStatus },
+          data: { id: job.id, status: newStatus },
         });
       }
       job.status = newStatus;
     } catch (error) {
       console.error('Error updating job status:', error);
+      alert('Erreur lors de la mise à jour. Les données seront synchronisées plus tard.');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const addJobNote = () => {
+    const note = prompt('Ajouter une note:');
+    if (!note) return;
+
+    try {
+      if (isOnline) {
+        const logs = job.technician_logs || [];
+        logs.push({
+          note,
+          timestamp: new Date().toISOString(),
+          technician_name: job.technician_name,
+        });
+        base44.entities.Job.update(job.id, { technician_logs: logs });
+      } else {
+        OfflineStorage.addJobNote(job.id, note);
+        OfflineStorage.addPendingSync({
+          method: 'update',
+          entity: 'Job',
+          data: { id: job.id, technician_logs: job.technician_logs },
+        });
+      }
+      alert('Note ajoutée avec succès');
+    } catch (error) {
+      console.error('Error adding note:', error);
+      alert('Erreur lors de l\'ajout. La note sera synchronisée plus tard.');
     }
   };
 
@@ -122,12 +151,12 @@ export default function MobileJobCard({ job, currentPosition, isOnline }) {
           </div>
         )}
 
-        <div className="flex gap-2 mt-3">
+        <div className="flex gap-2 mt-3 flex-wrap">
           {job.location && (
             <Button 
               onClick={openMaps}
               variant="outline" 
-              className="flex-1"
+              className="flex-1 min-w-[100px]"
               size="sm"
             >
               <Navigation className="w-4 h-4 mr-1" />
@@ -137,12 +166,22 @@ export default function MobileJobCard({ job, currentPosition, isOnline }) {
           <Button 
             onClick={callCustomer}
             variant="outline" 
-            className="flex-1"
+            className="flex-1 min-w-[100px]"
             size="sm"
           >
             <Phone className="w-4 h-4 mr-1" />
             Appeler
           </Button>
+          {expanded && (
+            <Button
+              onClick={addJobNote}
+              variant="outline"
+              className="flex-1 min-w-[100px]"
+              size="sm"
+            >
+              Ajouter note
+            </Button>
+          )}
           <Button
             onClick={() => setExpanded(!expanded)}
             variant="ghost"

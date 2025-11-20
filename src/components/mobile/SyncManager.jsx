@@ -29,23 +29,38 @@ export class SyncManager {
 
     this.notifyStatusChange('syncing', pending.length);
 
+    let successCount = 0;
+    let failedOperations = [];
+
     for (const operation of pending) {
       try {
         await this.executeOperation(operation);
         OfflineStorage.removePendingSync(operation.id);
+        successCount++;
         this.notifyStatusChange('syncing', OfflineStorage.getPendingSync().length);
       } catch (error) {
         console.error('Error syncing operation:', error);
-        // Continue with next operation
+        failedOperations.push(operation);
+        // Continue with next operation - will retry later
       }
     }
 
     // Sync GPS tracking data
     await this.syncGPSTracking();
 
+    // Refresh data from server after sync
+    await this.refreshData();
+
     OfflineStorage.setLastSync(new Date().toISOString());
     this.isSyncing = false;
-    this.notifyStatusChange('synced', 0);
+    
+    if (failedOperations.length > 0) {
+      this.notifyStatusChange('error', failedOperations.length);
+    } else {
+      this.notifyStatusChange('synced', 0);
+    }
+
+    return { success: successCount, failed: failedOperations.length };
   }
 
   async executeOperation(operation) {
@@ -82,8 +97,8 @@ export class SyncManager {
     }
   }
 
-  async refreshData(currentUser) {
-    if (!navigator.onLine || !currentUser) return;
+  async refreshData() {
+    if (!navigator.onLine) return;
 
     try {
       // Fetch latest jobs
@@ -97,7 +112,28 @@ export class SyncManager {
       OfflineStorage.setLastSync(new Date().toISOString());
     } catch (error) {
       console.error('Error refreshing data:', error);
+      throw error;
     }
+  }
+
+  // Retry failed operations
+  async retryFailedOperations() {
+    if (!navigator.onLine) return;
+    await this.syncPendingOperations();
+  }
+
+  // Get sync statistics
+  getSyncStats() {
+    const pending = OfflineStorage.getPendingSync();
+    const lastSync = OfflineStorage.getLastSync();
+    const gpsData = OfflineStorage.getGPSTracking();
+
+    return {
+      pendingOperations: pending.length,
+      pendingGPS: gpsData.length,
+      lastSync: lastSync ? new Date(lastSync) : null,
+      totalPending: pending.length + gpsData.length,
+    };
   }
 }
 
