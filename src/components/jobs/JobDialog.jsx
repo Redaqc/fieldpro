@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock, List, StopCircle, TrendingDown, GitBranch, Flag, BarChart } from "lucide-react";
+import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock, List, StopCircle, TrendingDown, GitBranch, Flag, BarChart, Package } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import InvoicingTab from "./InvoicingTab";
@@ -18,6 +18,7 @@ import CostsTab from "./CostsTab";
 import TaskDependenciesTab from "./TaskDependenciesTab";
 import MilestonesTab from "./MilestonesTab";
 import GanttChart from "./GanttChart";
+import MaterialUsageTab from "./MaterialUsageTab";
 
 export default function JobDialog({ open, onClose, job, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
@@ -1031,6 +1032,14 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                 <CheckSquare className="w-4 h-4" />
                 <span className="font-medium">Checklist</span>
               </TabsTrigger>
+
+              <TabsTrigger 
+                value="materials" 
+                className="flex items-center gap-2 px-4 py-2.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+              >
+                <Package className="w-4 h-4" />
+                <span className="font-medium">Materials</span>
+              </TabsTrigger>
               
               {appSettings?.feature_task_dependencies && (
                 <TabsTrigger 
@@ -1222,6 +1231,10 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                   </SelectContent>
                 </Select>
               </div>
+            </TabsContent>
+
+            <TabsContent value="materials" className="space-y-4">
+              <MaterialUsageTab job={job} />
             </TabsContent>
 
             {appSettings?.feature_task_dependencies && (
