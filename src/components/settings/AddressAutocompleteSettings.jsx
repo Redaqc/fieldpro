@@ -128,6 +128,17 @@ export default function AddressAutocompleteSettings() {
           <strong>Note:</strong> Address autocomplete will be available in Customer forms, Job locations, and Service Call addresses.
         </p>
       </div>
+
+      <Button 
+        onClick={() => {
+          if (localApiKey !== addressSettings?.api_key) {
+            updateAddressSettings({ api_key: localApiKey });
+          }
+        }}
+        className="w-full bg-blue-600 hover:bg-blue-700"
+      >
+        Save Settings
+      </Button>
     </>
   );
 }
