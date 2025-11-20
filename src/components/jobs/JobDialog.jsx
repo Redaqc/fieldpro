@@ -702,11 +702,71 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
 
             {/* Time Spent */}
             {job && (
-              <div>
-                <Label className="text-sm font-medium">Temps passé</Label>
-                <div className="mt-1 h-11 border rounded-md flex items-center px-3 bg-slate-50">
-                  <Clock className="w-4 h-4 mr-2 text-slate-500" />
-                  <span className="font-medium">{formData.total_time_spent || 0}h</span>
+              <div className="col-span-2">
+                <Label className="text-sm font-medium">Temps passé par technicien</Label>
+                <div className="mt-1 space-y-2 border rounded-lg p-3 bg-slate-50 max-h-64 overflow-y-auto">
+                  {(formData.technicians || []).length === 0 ? (
+                    <p className="text-sm text-slate-400 text-center py-2">Aucun technicien assigné</p>
+                  ) : (
+                    (formData.technicians || []).map(assignedTech => {
+                      const tech = technicians.find(t => t.id === assignedTech.id);
+                      if (!tech) return null;
+                      return (
+                        <div key={assignedTech.id} className="border rounded-lg p-2 bg-white space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                style={{ backgroundColor: tech.color || '#64748b' }}
+                              >
+                                {tech.first_name[0]}{tech.last_name[0]}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{tech.first_name} {tech.last_name}</p>
+                                <p className="text-xs text-slate-500">{assignedTech.time_spent || 0}h</p>
+                              </div>
+                            </div>
+                            {assignedTech.active_start ? (
+                              <Button
+                                size="sm"
+                                onClick={() => stopTimer(assignedTech.id)}
+                                className="bg-red-500 hover:bg-red-600 text-white"
+                              >
+                                <StopCircle className="w-3 h-3 mr-1" />
+                                Arrêter
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => startTimer(assignedTech.id)}
+                                className="bg-green-500 hover:bg-green-600 text-white"
+                              >
+                                <Play className="w-3 h-3 mr-1" />
+                                Démarrer
+                              </Button>
+                            )}
+                          </div>
+                          {assignedTech.time_logs && assignedTech.time_logs.length > 0 && (
+                            <div className="pt-2 border-t space-y-1">
+                              <p className="text-xs font-medium text-slate-600">Historique:</p>
+                              {assignedTech.time_logs.slice(-3).reverse().map((log, idx) => (
+                                <div key={idx} className="text-xs text-slate-500 flex justify-between bg-slate-50 p-1 rounded">
+                                  <span>{format(new Date(log.start), 'dd/MM HH:mm', { locale: fr })} → {format(new Date(log.end), 'HH:mm', { locale: fr })}</span>
+                                  <span className="font-medium">{log.duration}h</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                  <div className="pt-2 border-t mt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold">Total:</span>
+                      <span className="text-base font-bold text-blue-600">{formData.total_time_spent || 0}h</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
