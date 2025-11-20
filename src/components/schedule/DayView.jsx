@@ -1,143 +1,157 @@
-import React from "react";
-import { Card } from "@/components/ui/card";
+import React, { useState } from "react";
+import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { Clock, User, MapPin } from "lucide-react";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import { AlertCircle } from "lucide-react";
 
-const statusColors = {
-  scheduled: "bg-blue-100 text-blue-800",
-  in_progress: "bg-yellow-100 text-yellow-800",
-  completed: "bg-green-100 text-green-800",
-  cancelled: "bg-red-100 text-red-800",
-  on_hold: "bg-gray-100 text-gray-800"
-};
+export default function DayView({ 
+  date, 
+  events, 
+  technicians, 
+  onEventChange, 
+  onEventClick, 
+  onSlotClick,
+  readOnly 
+}) {
+  const [draggedEvent, setDraggedEvent] = useState(null);
 
-export default function DayView({ currentDate, jobs, technicians }) {
-  const groupedJobs = technicians.map(tech => ({
-    technician: tech,
-    jobs: jobs
-      .filter(job => job.technician_id === tech.id)
-      .sort((a, b) => (a.scheduled_time || '').localeCompare(b.scheduled_time || ''))
-  }));
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  
+  // Get events for this day per technician
+  const getTechnicianEvents = (techId) => {
+    return events.filter(event => {
+      const eventDate = new Date(event.start);
+      const isSameDay = eventDate.toDateString() === date.toDateString();
+      const hasTech = event.technicians.some(t => t.id === techId);
+      return isSameDay && hasTech;
+    });
+  };
 
-  const unassignedJobs = jobs
-    .filter(job => !job.technician_id)
-    .sort((a, b) => (a.scheduled_time || '').localeCompare(b.scheduled_time || ''));
+  const handleSlotClick = (hour, techId) => {
+    if (!onSlotClick || readOnly) return;
+    const slotDate = new Date(date);
+    slotDate.setHours(hour, 0, 0, 0);
+    onSlotClick(slotDate, techId);
+  };
+
+  const handleEventDragStart = (e, event) => {
+    if (readOnly) return;
+    setDraggedEvent(event);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleEventDrop = async (e, hour, techId) => {
+    e.preventDefault();
+    if (!draggedEvent || !onEventChange || readOnly) return;
+
+    const newStart = new Date(date);
+    newStart.setHours(hour, 0, 0, 0);
+    
+    const duration = draggedEvent.end - draggedEvent.start;
+    const newEnd = new Date(newStart.getTime() + duration);
+
+    const newTechIds = techId ? [techId] : draggedEvent.technicians.map(t => t.id);
+
+    await onEventChange(draggedEvent, newStart, newEnd, newTechIds);
+    setDraggedEvent(null);
+  };
+
+  const getEventPosition = (event) => {
+    const start = new Date(event.start);
+    const end = new Date(event.end);
+    
+    const top = (start.getHours() + start.getMinutes() / 60) * 60; // 60px per hour
+    const height = Math.max(((end - start) / (1000 * 60 * 60)) * 60, 30); // min 30px
+    
+    return { top, height };
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'urgent': return 'border-red-500 bg-red-50';
+      case 'high': return 'border-orange-500 bg-orange-50';
+      case 'medium': return 'border-yellow-500 bg-yellow-50';
+      default: return 'border-blue-500 bg-blue-50';
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      {groupedJobs.map(({ technician, jobs: techJobs }) => (
-        <Card key={technician.id} className="p-6 border-slate-200">
-          <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100">
-            <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold"
-              style={{ backgroundColor: technician.color || '#64748b' }}
-            >
-              {technician.first_name[0]}{technician.last_name[0]}
+    <div className="overflow-x-auto">
+      <div className="min-w-[800px]">
+        {/* Header */}
+        <div className="grid grid-cols-[60px_repeat(auto-fit,minmax(200px,1fr))] border-b bg-slate-50">
+          <div className="p-2 text-xs font-semibold text-slate-600">Time</div>
+          {technicians.map(tech => (
+            <div key={tech.id} className="p-2 border-l">
+              <div className="font-semibold">{tech.first_name} {tech.last_name}</div>
+              <div className="text-xs text-slate-600">{tech.role}</div>
             </div>
-            <div>
-              <h3 className="font-semibold text-slate-900">
-                {technician.first_name} {technician.last_name}
-              </h3>
-              <p className="text-sm text-slate-500">
-                {techJobs.length} job{techJobs.length !== 1 ? 's' : ''} scheduled
-              </p>
-            </div>
-          </div>
+          ))}
+        </div>
 
-          {techJobs.length === 0 ? (
-            <p className="text-slate-400 text-center py-4">No jobs scheduled</p>
-          ) : (
-            <div className="space-y-3">
-              {techJobs.map(job => (
-                <Link
-                  key={job.id}
-                  to={createPageUrl("Jobs") + "?id=" + job.id}
-                  className="block p-4 rounded-lg hover:bg-slate-50 transition-colors border border-slate-200"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-semibold text-slate-900">{job.title}</h4>
-                        <Badge className={statusColors[job.status]}>
-                          {job.status.replace('_', ' ')}
-                        </Badge>
-                      </div>
-
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
-                        {job.scheduled_time && (
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            <span>{job.scheduled_time}</span>
-                          </div>
-                        )}
-                        {job.customer_name && (
-                          <div className="flex items-center gap-1">
-                            <User className="w-4 h-4" />
-                            <span>{job.customer_name}</span>
-                          </div>
-                        )}
-                        {job.location && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            <span className="truncate">{job.location}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {job.estimated_cost && (
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-slate-900">
-                          ${job.estimated_cost.toFixed(2)}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </Link>
+        {/* Time Grid */}
+        <div className="relative">
+          {hours.map(hour => (
+            <div key={hour} className="grid grid-cols-[60px_repeat(auto-fit,minmax(200px,1fr))] border-b" style={{ height: '60px' }}>
+              <div className="p-2 text-xs text-slate-600 border-r">
+                {format(new Date().setHours(hour, 0, 0, 0), 'h:mm a')}
+              </div>
+              {technicians.map(tech => (
+                <div
+                  key={`${hour}-${tech.id}`}
+                  className="border-l hover:bg-slate-50 cursor-pointer transition-colors relative"
+                  onClick={() => handleSlotClick(hour, tech.id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => handleEventDrop(e, hour, tech.id)}
+                />
               ))}
             </div>
-          )}
-        </Card>
-      ))}
+          ))}
 
-      {unassignedJobs.length > 0 && (
-        <Card className="p-6 border-slate-200 border-dashed">
-          <h3 className="font-semibold text-slate-900 mb-4">
-            Unassigned Jobs ({unassignedJobs.length})
-          </h3>
-          <div className="space-y-3">
-            {unassignedJobs.map(job => (
-              <Link
-                key={job.id}
-                to={createPageUrl("Jobs") + "?id=" + job.id}
-                className="block p-4 rounded-lg hover:bg-slate-50 transition-colors border border-slate-200"
+          {/* Events Overlay */}
+          {technicians.map((tech, techIndex) => {
+            const techEvents = getTechnicianEvents(tech.id);
+            return (
+              <div
+                key={tech.id}
+                className="absolute top-0 pointer-events-none"
+                style={{ 
+                  left: `${60 + (techIndex * (100 / technicians.length))}%`,
+                  width: `${100 / technicians.length}%`
+                }}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-slate-900 mb-2">{job.title}</h4>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
-                      {job.scheduled_time && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          <span>{job.scheduled_time}</span>
-                        </div>
-                      )}
-                      {job.customer_name && (
-                        <div className="flex items-center gap-1">
-                          <User className="w-4 h-4" />
-                          <span>{job.customer_name}</span>
-                        </div>
-                      )}
+                {techEvents.map(event => {
+                  const { top, height } = getEventPosition(event);
+                  return (
+                    <div
+                      key={event.id}
+                      draggable={!readOnly}
+                      onDragStart={(e) => handleEventDragStart(e, event)}
+                      onClick={() => onEventClick && onEventClick(event)}
+                      className={`absolute left-1 right-1 rounded border-l-4 p-2 cursor-pointer hover:shadow-lg transition-all pointer-events-auto ${getPriorityColor(event.priority)}`}
+                      style={{ 
+                        top: `${top}px`, 
+                        height: `${height}px`,
+                        backgroundColor: event.type === 'job' ? '#eff6ff' : '#f0fdf4'
+                      }}
+                    >
+                      <div className="text-xs font-semibold truncate">{event.title}</div>
+                      <div className="text-xs text-slate-600 truncate">{event.client_name}</div>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {event.type === 'job' ? 'Job' : 'Call'}
+                        </Badge>
+                        {event.priority === 'urgent' && (
+                          <AlertCircle className="w-3 h-3 text-red-500" />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </Card>
-      )}
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

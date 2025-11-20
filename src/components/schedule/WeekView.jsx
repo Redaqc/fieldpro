@@ -1,87 +1,100 @@
 import React from "react";
-import { Card } from "@/components/ui/card";
+import { format, startOfWeek, addDays } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { format, startOfWeek, addDays, isSameDay } from "date-fns";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import { AlertCircle } from "lucide-react";
 
-const statusColors = {
-  scheduled: "bg-blue-500",
-  in_progress: "bg-yellow-500",
-  completed: "bg-green-500",
-  cancelled: "bg-red-500",
-  on_hold: "bg-gray-500"
-};
+export default function WeekView({ 
+  date, 
+  events, 
+  technicians,
+  onEventChange, 
+  onEventClick, 
+  onSlotClick,
+  readOnly 
+}) {
+  const weekStart = startOfWeek(date, { weekStartsOn: 0 });
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const hours = Array.from({ length: 14 }, (_, i) => i + 7); // 7am to 9pm
 
-export default function WeekView({ currentDate, jobs, technicians }) {
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
-  const weekDays = [...Array(7)].map((_, i) => addDays(weekStart, i));
-  const today = new Date();
+  const getEventsForDay = (day) => {
+    return events.filter(event => {
+      const eventDate = new Date(event.start);
+      return eventDate.toDateString() === day.toDateString();
+    });
+  };
 
-  const getJobsForDay = (date) => {
-    return jobs.filter(job => 
-      job.scheduled_date && isSameDay(new Date(job.scheduled_date), date)
-    );
+  const handleSlotClick = (day, hour) => {
+    if (!onSlotClick || readOnly) return;
+    const slotDate = new Date(day);
+    slotDate.setHours(hour, 0, 0, 0);
+    onSlotClick(slotDate);
   };
 
   return (
-    <div className="grid grid-cols-7 gap-2 h-full">
-      {weekDays.map((day, index) => {
-        const dayJobs = getJobsForDay(day);
-        const isToday = isSameDay(day, today);
-
-        return (
-          <Card 
-            key={index}
-            className={`p-3 flex flex-col ${isToday ? 'border-blue-500 border-2' : 'border-slate-200'}`}
-          >
-            <div className="text-center mb-3 pb-2 border-b border-slate-100">
-              <p className="text-xs text-slate-500 uppercase">
-                {format(day, 'EEE')}
-              </p>
-              <p className={`text-xl font-bold ${isToday ? 'text-blue-600' : 'text-slate-900'}`}>
-                {format(day, 'd')}
-              </p>
+    <div className="overflow-x-auto">
+      <div className="min-w-[900px]">
+        {/* Header */}
+        <div className="grid grid-cols-8 border-b bg-slate-50">
+          <div className="p-2 text-xs font-semibold text-slate-600">Time</div>
+          {days.map(day => (
+            <div key={day.toISOString()} className="p-2 text-center border-l">
+              <div className="font-semibold">{format(day, 'EEE')}</div>
+              <div className="text-sm">{format(day, 'MMM d')}</div>
             </div>
+          ))}
+        </div>
 
-            <div className="space-y-2 overflow-auto flex-1">
-              {dayJobs.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center mt-4">No jobs</p>
-              ) : (
-                dayJobs.map(job => {
-                  const tech = technicians.find(t => t.id === job.technician_id);
-                  return (
-                    <Link
-                      key={job.id}
-                      to={createPageUrl("Jobs") + "?id=" + job.id}
-                      className={`block p-2 rounded text-xs border-l-4 hover:shadow-sm transition-shadow`}
-                      style={{ 
-                        borderLeftColor: tech?.color || '#64748b',
-                        backgroundColor: `${tech?.color || '#64748b'}15`
-                      }}
-                    >
-                      <p className="font-medium text-slate-900 mb-1 line-clamp-2">
-                        {job.title}
-                      </p>
-                      {job.scheduled_time && (
-                        <p className="text-slate-600 mb-1">{job.scheduled_time}</p>
-                      )}
-                      {job.customer_name && (
-                        <p className="text-slate-500 truncate">{job.customer_name}</p>
-                      )}
-                      {tech && (
-                        <p className="text-slate-500 mt-1">
-                          {tech.first_name} {tech.last_name[0]}.
-                        </p>
-                      )}
-                    </Link>
-                  );
-                })
-              )}
+        {/* Time Grid */}
+        <div>
+          {hours.map(hour => (
+            <div key={hour} className="grid grid-cols-8 border-b" style={{ minHeight: '60px' }}>
+              <div className="p-2 text-xs text-slate-600 border-r">
+                {format(new Date().setHours(hour, 0, 0, 0), 'h:mm a')}
+              </div>
+              {days.map(day => {
+                const dayEvents = getEventsForDay(day).filter(event => {
+                  const eventHour = new Date(event.start).getHours();
+                  return eventHour === hour;
+                });
+
+                return (
+                  <div
+                    key={`${day.toISOString()}-${hour}`}
+                    className="border-l p-1 hover:bg-slate-50 cursor-pointer transition-colors"
+                    onClick={() => handleSlotClick(day, hour)}
+                  >
+                    {dayEvents.map(event => (
+                      <div
+                        key={event.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEventClick && onEventClick(event);
+                        }}
+                        className="mb-1 p-1 rounded text-xs cursor-pointer hover:shadow transition-all"
+                        style={{ 
+                          backgroundColor: event.type === 'job' ? '#dbeafe' : '#dcfce7',
+                          borderLeft: `3px solid ${event.priority === 'urgent' ? '#ef4444' : event.type === 'job' ? '#3b82f6' : '#10b981'}`
+                        }}
+                      >
+                        <div className="font-semibold truncate">{event.title}</div>
+                        <div className="text-slate-600 truncate">{event.client_name}</div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Badge variant="outline" className="text-xs px-1 py-0">
+                            {event.type === 'job' ? 'Job' : 'Call'}
+                          </Badge>
+                          {event.priority === 'urgent' && (
+                            <AlertCircle className="w-3 h-3 text-red-500" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
-          </Card>
-        );
-      })}
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
