@@ -55,7 +55,14 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
   };
 
   const getCallsByStatus = (status) => {
-    return calls.filter(c => (c.status || 'new') === status).sort((a, b) => 
+    return calls.filter(c => {
+      const callStatus = c.status || 'new';
+      // Pour la colonne "À faire", inclure aussi les statuts vides, null, undefined
+      if (status === 'new') {
+        return !c.status || c.status === 'new' || c.status === '';
+      }
+      return callStatus === status;
+    }).sort((a, b) => 
       new Date(b.created_date) - new Date(a.created_date)
     );
   };
