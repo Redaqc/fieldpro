@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2 } from "lucide-react";
+import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -403,53 +403,60 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
           {/* Labels */}
           <div>
             <Label className="text-sm font-medium">Labels</Label>
-            <div className="flex gap-2 flex-wrap mb-3 mt-2">
-              {formData.labels?.map((label, idx) => (
-                <Badge 
-                  key={idx} 
-                  className="gap-2 pr-1 text-white"
-                  style={{ backgroundColor: label.color }}
-                >
-                  {label.name}
-                  <X 
-                    className="w-3 h-3 cursor-pointer hover:bg-white/20 rounded" 
-                    onClick={() => removeLabel(idx)} 
-                  />
-                </Badge>
-              ))}
-            </div>
-            <div className="flex gap-2">
+            {formData.labels?.length > 0 && (
+              <div className="flex gap-2 flex-wrap mb-3 mt-2">
+                {formData.labels.map((label, idx) => (
+                  <Badge 
+                    key={idx} 
+                    className="gap-2 pr-1 text-white"
+                    style={{ backgroundColor: label.color }}
+                  >
+                    {label.name}
+                    <X 
+                      className="w-3 h-3 cursor-pointer hover:bg-white/20 rounded" 
+                      onClick={() => removeLabel(idx)} 
+                    />
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2 items-center mt-2">
               <Input
                 value={newLabel.name}
                 onChange={(e) => setNewLabel({ ...newLabel, name: e.target.value })}
-                placeholder="Nom du label"
-                className="flex-1 h-11"
+                placeholder="Nouveau label..."
+                className="flex-1 h-10 text-sm"
                 onKeyDown={(e) => e.key === 'Enter' && addLabel()}
               />
-              <div className="flex gap-1">
+              <div className="flex gap-1 flex-wrap">
                 {labelColors.map(color => (
                   <button
                     key={color}
                     type="button"
-                    className={`w-8 h-11 rounded border-2 transition-all ${
-                      newLabel.color === color ? 'border-slate-900 scale-110' : 'border-slate-200'
+                    className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 ${
+                      newLabel.color === color ? 'border-slate-900 ring-2 ring-slate-300' : 'border-transparent'
                     }`}
                     style={{ backgroundColor: color }}
                     onClick={() => setNewLabel({ ...newLabel, color })}
+                    title={color}
                   />
                 ))}
               </div>
-              <Button onClick={addLabel} size="sm" className="h-11 px-3">
+              <Button onClick={addLabel} size="sm" className="h-10 px-3" disabled={!newLabel.name.trim()}>
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
           </div>
 
           <Tabs defaultValue="checklist" className="w-full">
-            <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full h-auto">
+            <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full h-auto">
               <TabsTrigger value="checklist" className="flex items-center gap-1 sm:gap-2 py-2.5">
                 <CheckSquare className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Checklist</span>
+              </TabsTrigger>
+              <TabsTrigger value="invoicing" className="flex items-center gap-1 sm:gap-2 py-2.5">
+                <FileText className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Facturation</span>
               </TabsTrigger>
               <TabsTrigger value="attachments" className="flex items-center gap-1 sm:gap-2 py-2.5">
                 <Paperclip className="w-4 h-4" />
@@ -519,6 +526,35 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                 <Plus className="w-4 h-4 mr-2" />
                 Nouvelle checklist
               </Button>
+            </TabsContent>
+
+            <TabsContent value="invoicing" className="space-y-3">
+              <div className="text-center py-8">
+                <DollarSign className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-600 mb-4">Informations de facturation</p>
+                <div className="space-y-3 max-w-md mx-auto">
+                  <div>
+                    <Label className="text-sm font-medium">Montant estimé</Label>
+                    <Input
+                      type="number"
+                      placeholder="0.00"
+                      className="mt-1 h-11"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Notes de facturation</Label>
+                    <Textarea
+                      placeholder="Notes additionnelles pour la facture..."
+                      rows={3}
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button variant="outline" className="w-full">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Créer une facture pour ce job
+                  </Button>
+                </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="attachments" className="space-y-3">
