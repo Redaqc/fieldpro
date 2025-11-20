@@ -23,6 +23,8 @@ import {
                   Zap
                 } from "lucide-react";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
+import GlobalSearch from "@/components/shared/GlobalSearch";
+import QuickActionsMenu from "@/components/shared/QuickActionsMenu";
 
 const translations = {
   fr: {
@@ -227,6 +229,7 @@ export default function Layout({ children, currentPageName }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -507,13 +510,14 @@ export default function Layout({ children, currentPageName }) {
               </div>
               
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="relative hidden md:block">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <Input 
-                    placeholder="Search jobs, customers..."
-                    className="pl-9 w-64 border-slate-200"
-                  />
-                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSearchOpen(true)}
+                  className="h-10 w-10 rounded-lg hover:bg-slate-100"
+                >
+                  <Search className="w-5 h-5 text-slate-600" />
+                </Button>
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -542,6 +546,13 @@ export default function Layout({ children, currentPageName }) {
         onClose={() => setNotificationOpen(false)}
         currentUser={user}
         />
+
+        <GlobalSearch 
+          open={searchOpen}
+          onClose={() => setSearchOpen(false)}
+        />
+
+        <QuickActionsMenu />
         </SidebarProvider>
         );
         }
