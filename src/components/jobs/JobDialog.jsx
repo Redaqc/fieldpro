@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock, List } from "lucide-react";
+import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock, List, StopCircle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import InvoicingTab from "./InvoicingTab";
@@ -413,7 +413,8 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
       updatedTechs = [...currentTechs, { 
         id: tech.id, 
         name: `${tech.first_name} ${tech.last_name}`,
-        time_spent: 0
+        time_spent: 0,
+        time_logs: []
       }];
     }
     
@@ -421,6 +422,63 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
     
     if (job) {
       updateJobMutation.mutate({ id: job.id, data: { technicians: updatedTechs } });
+    }
+  };
+
+  const startTimer = (techId) => {
+    const updatedTechs = (formData.technicians || []).map(t => {
+      if (t.id === techId) {
+        return {
+          ...t,
+          active_start: new Date().toISOString()
+        };
+      }
+      return t;
+    });
+    
+    setFormData({ ...formData, technicians: updatedTechs });
+    
+    if (job) {
+      updateJobMutation.mutate({ id: job.id, data: { technicians: updatedTechs } });
+    }
+  };
+
+  const stopTimer = (techId) => {
+    const updatedTechs = (formData.technicians || []).map(t => {
+      if (t.id === techId && t.active_start) {
+        const start = new Date(t.active_start);
+        const end = new Date();
+        const duration = (end - start) / (1000 * 60 * 60); // heures
+        
+        const newLog = {
+          start: t.active_start,
+          end: end.toISOString(),
+          duration: parseFloat(duration.toFixed(2))
+        };
+        
+        return {
+          ...t,
+          time_spent: (t.time_spent || 0) + parseFloat(duration.toFixed(2)),
+          time_logs: [...(t.time_logs || []), newLog],
+          active_start: null
+        };
+      }
+      return t;
+    });
+    
+    // Calculer le total
+    const totalTime = updatedTechs.reduce((sum, t) => sum + (t.time_spent || 0), 0);
+    
+    setFormData({ ...formData, technicians: updatedTechs, total_time_spent: parseFloat(totalTime.toFixed(2)) });
+    
+    if (job) {
+      updateJobMutation.mutate({ 
+        id: job.id, 
+        data: { 
+          technicians: updatedTechs,
+          total_time_spent: parseFloat(totalTime.toFixed(2))
+        } 
+      });
     }
   };
 
@@ -687,31 +745,86 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               <PopoverContent className="w-80 p-4">
                 <div className="space-y-3">
                   <h3 className="font-semibold">Techniciens assignés</h3>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
                     {technicians.map(tech => {
                       const isAssigned = (formData.technicians || []).find(t => t.id === tech.id);
                       return (
-                        <div 
-                          key={tech.id} 
-                          className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded cursor-pointer"
-                          onClick={() => toggleTechnician(tech.id)}
-                        >
+                        <div key={tech.id} className="border rounded-lg p-3 space-y-2">
                           <div 
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                            style={{ backgroundColor: tech.color || '#64748b' }}
+                            className="flex items-center gap-3 cursor-pointer"
+                            onClick={() => !isAssigned && toggleTechnician(tech.id)}
                           >
-                            {tech.first_name[0]}{tech.last_name[0]}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{tech.first_name} {tech.last_name}</p>
-                            {isAssigned && (
-                              <p className="text-xs text-slate-500">{isAssigned.time_spent || 0}h passées</p>
+                            <div 
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                              style={{ backgroundColor: tech.color || '#64748b' }}
+                            >
+                              {tech.first_name[0]}{tech.last_name[0]}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{tech.first_name} {tech.last_name}</p>
+                              {isAssigned && (
+                                <p className="text-xs text-slate-500">{isAssigned.time_spent || 0}h passées</p>
+                              )}
+                            </div>
+                            {isAssigned ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleTechnician(tech.id);
+                                }}
+                                className="h-8 w-8 p-0"
+                              >
+                                <X className="w-4 h-4 text-red-500" />
+                              </Button>
+                            ) : (
+                              <Plus className="w-4 h-4 text-slate-400 flex-shrink-0" />
                             )}
                           </div>
-                          {isAssigned ? (
-                            <X className="w-4 h-4 text-red-500 flex-shrink-0" />
-                          ) : (
-                            <Plus className="w-4 h-4 text-slate-400 flex-shrink-0" />
+
+                          {isAssigned && (
+                            <div className="flex gap-2 pl-11">
+                              {isAssigned.active_start ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    stopTimer(tech.id);
+                                  }}
+                                  className="flex-1 bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                                >
+                                  <StopCircle className="w-3 h-3 mr-1" />
+                                  Arrêter
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startTimer(tech.id);
+                                  }}
+                                  className="flex-1 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                                >
+                                  <Play className="w-3 h-3 mr-1" />
+                                  Démarrer
+                                </Button>
+                              )}
+                            </div>
+                          )}
+
+                          {isAssigned && isAssigned.time_logs && isAssigned.time_logs.length > 0 && (
+                            <div className="pl-11 space-y-1">
+                              <p className="text-xs font-medium text-slate-600">Historique:</p>
+                              {isAssigned.time_logs.slice(-3).map((log, idx) => (
+                                <div key={idx} className="text-xs text-slate-500 flex justify-between">
+                                  <span>{format(new Date(log.start), 'dd/MM HH:mm', { locale: fr })}</span>
+                                  <span className="font-medium">{log.duration}h</span>
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
                       );
