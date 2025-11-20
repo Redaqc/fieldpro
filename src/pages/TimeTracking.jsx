@@ -310,6 +310,9 @@ export default function TimeTracking() {
                       <p className="text-xs text-slate-500">
                         Arrivée: {format(new Date(entry.clock_in), 'HH:mm')}
                       </p>
+                      {entry.location_in && (
+                        <p className="text-xs text-green-600 mt-1">📍 {entry.location_in}</p>
+                      )}
                     </div>
                     <Clock className="w-5 h-5 text-green-600" />
                   </div>
@@ -331,9 +334,12 @@ export default function TimeTracking() {
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Actions Rapides</CardTitle>
+          <CardTitle className="text-lg">Poinçon Rapide (GPS)</CardTitle>
         </CardHeader>
         <CardContent>
+          <p className="text-sm text-slate-600 mb-4">
+            Les poinçons utilisent automatiquement le GPS pour enregistrer la localisation et vérifier les zones autorisées.
+          </p>
           <div className="flex flex-wrap gap-2">
             {technicians.map(tech => {
               const hasActiveEntry = activeEntries.some(e => e.technician_id === tech.id);
@@ -341,7 +347,7 @@ export default function TimeTracking() {
                 <Button
                   key={tech.id}
                   onClick={() => !hasActiveEntry && handleClockIn(tech.id)}
-                  disabled={hasActiveEntry}
+                  disabled={hasActiveEntry || clockInMutation.isPending}
                   variant={hasActiveEntry ? "secondary" : "outline"}
                   size="sm"
                 >

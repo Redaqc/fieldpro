@@ -151,13 +151,27 @@ export default function CustomerDialog({ open, onClose, onSave, customer }) {
               />
             </div>
 
-            <div className="col-span-2">
+            <div>
               <Label htmlFor="company_name">Company Name</Label>
               <Input
                 id="company_name"
                 value={formData.company_name}
                 onChange={(e) => handleChange('company_name', e.target.value)}
               />
+            </div>
+
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select value={formData.status} onValueChange={(val) => handleChange('status', val)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="vip">VIP</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="col-span-2">
@@ -187,27 +201,13 @@ export default function CustomerDialog({ open, onClose, onSave, customer }) {
               />
             </div>
 
-            <div>
+            <div className="col-span-2">
               <Label htmlFor="zip_code">Zip Code</Label>
               <Input
                 id="zip_code"
                 value={formData.zip_code}
                 onChange={(e) => handleChange('zip_code', e.target.value)}
               />
-            </div>
-
-            <div>
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(val) => handleChange('status', val)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="vip">VIP</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="col-span-2">
