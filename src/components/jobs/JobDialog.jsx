@@ -580,33 +580,12 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               </Button>
             </TabsContent>
 
-            <TabsContent value="invoicing" className="space-y-3">
-              <div className="text-center py-8">
-                <DollarSign className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <p className="text-slate-600 mb-4">Informations de facturation</p>
-                <div className="space-y-3 max-w-md mx-auto">
-                  <div>
-                    <Label className="text-sm font-medium">Montant estimé</Label>
-                    <Input
-                      type="number"
-                      placeholder="0.00"
-                      className="mt-1 h-11"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Notes de facturation</Label>
-                    <Textarea
-                      placeholder="Notes additionnelles pour la facture..."
-                      rows={3}
-                      className="mt-1"
-                    />
-                  </div>
-                  <Button variant="outline" className="w-full">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Créer une facture pour ce job
-                  </Button>
-                </div>
-              </div>
+            <TabsContent value="invoicing" className="space-y-4">
+              <InvoicingTab 
+                job={job}
+                formData={formData}
+                setFormData={setFormData}
+              />
             </TabsContent>
 
             <TabsContent value="attachments" className="space-y-3">
