@@ -50,36 +50,36 @@ export default function ServiceCallsTable({ calls = [], onEditCall, technicians 
 
   const getStatusBadge = (status) => {
     const colors = {
-      todo: 'bg-gray-100 text-gray-700',
-      in_progress: 'bg-blue-100 text-blue-700',
-      review: 'bg-purple-100 text-purple-700',
-      completed: 'bg-green-100 text-green-700',
-      archived: 'bg-slate-100 text-slate-700',
+      todo: 'bg-slate-100 text-slate-800',
+      in_progress: 'bg-blue-100 text-blue-800',
+      review: 'bg-purple-100 text-purple-800',
+      completed: 'bg-green-100 text-green-800',
+      archived: 'bg-slate-200 text-slate-700',
     };
     const labels = {
-      todo: 'À faire',
-      in_progress: 'En cours',
-      review: 'Révision',
-      completed: 'Terminé',
-      archived: 'Archivé',
+      todo: '⚪ À faire',
+      in_progress: '🔵 En cours',
+      review: '🟣 Révision',
+      completed: '🟢 Terminé',
+      archived: '⚫ Archivé',
     };
-    return <Badge className={colors[status]}>{labels[status]}</Badge>;
+    return <Badge className={`${colors[status]} font-medium shadow-sm`}>{labels[status]}</Badge>;
   };
 
   const getPriorityBadge = (priority) => {
     const colors = {
-      low: 'bg-blue-100 text-blue-700',
-      medium: 'bg-yellow-100 text-yellow-700',
-      high: 'bg-orange-100 text-orange-700',
-      urgent: 'bg-red-100 text-red-700',
+      low: 'bg-blue-100 text-blue-800',
+      medium: 'bg-yellow-100 text-yellow-800',
+      high: 'bg-orange-100 text-orange-800',
+      urgent: 'bg-red-500 text-white',
     };
     const labels = {
-      low: 'Basse',
-      medium: 'Moyenne',
-      high: 'Haute',
-      urgent: 'Urgente',
+      low: '🔵 Basse',
+      medium: '🟡 Moyenne',
+      high: '🟠 Haute',
+      urgent: '🔴 Urgente',
     };
-    return <Badge className={colors[priority]}>{labels[priority]}</Badge>;
+    return <Badge className={`${colors[priority]} font-medium shadow-sm`}>{labels[priority]}</Badge>;
   };
 
   const SortIcon = ({ field }) => {
@@ -90,107 +90,109 @@ export default function ServiceCallsTable({ calls = [], onEditCall, technicians 
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-6">
       <div className="flex flex-wrap gap-4">
         <div className="relative flex-1 min-w-64">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <Input
-            placeholder="Rechercher..."
+            placeholder="🔍 Rechercher un appel..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-9 h-11 shadow-sm"
           />
         </div>
 
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-48 h-11 shadow-sm">
             <SelectValue placeholder="Statut" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tous statuts</SelectItem>
-            <SelectItem value="todo">À faire</SelectItem>
-            <SelectItem value="in_progress">En cours</SelectItem>
-            <SelectItem value="review">Révision</SelectItem>
-            <SelectItem value="completed">Terminé</SelectItem>
-            <SelectItem value="archived">Archivé</SelectItem>
+            <SelectItem value="all">📋 Tous statuts</SelectItem>
+            <SelectItem value="todo">⚪ À faire</SelectItem>
+            <SelectItem value="in_progress">🔵 En cours</SelectItem>
+            <SelectItem value="review">🟣 Révision</SelectItem>
+            <SelectItem value="completed">🟢 Terminé</SelectItem>
+            <SelectItem value="archived">⚫ Archivé</SelectItem>
           </SelectContent>
         </Select>
 
         <Select value={filterPriority} onValueChange={setFilterPriority}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-48 h-11 shadow-sm">
             <SelectValue placeholder="Priorité" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Toutes priorités</SelectItem>
-            <SelectItem value="low">Basse</SelectItem>
-            <SelectItem value="medium">Moyenne</SelectItem>
-            <SelectItem value="high">Haute</SelectItem>
-            <SelectItem value="urgent">Urgente</SelectItem>
+            <SelectItem value="all">🎯 Toutes priorités</SelectItem>
+            <SelectItem value="low">🔵 Basse</SelectItem>
+            <SelectItem value="medium">🟡 Moyenne</SelectItem>
+            <SelectItem value="high">🟠 Haute</SelectItem>
+            <SelectItem value="urgent">🔴 Urgente</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-xl overflow-hidden shadow-sm bg-white">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-slate-50">
             <TableRow>
               <TableHead 
-                className="cursor-pointer group hover:bg-slate-50"
+                className="cursor-pointer group hover:bg-slate-100 font-semibold"
                 onClick={() => handleSort('call_number')}
               >
                 <div className="flex items-center gap-2">
-                  Numéro
+                  📋 Numéro
                   <SortIcon field="call_number" />
                 </div>
               </TableHead>
               <TableHead 
-                className="cursor-pointer group hover:bg-slate-50"
+                className="cursor-pointer group hover:bg-slate-100 font-semibold"
                 onClick={() => handleSort('title')}
               >
                 <div className="flex items-center gap-2">
-                  Titre
+                  📝 Titre
                   <SortIcon field="title" />
                 </div>
               </TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Techniciens</TableHead>
+              <TableHead className="font-semibold">👤 Client</TableHead>
+              <TableHead className="font-semibold">👷 Techniciens</TableHead>
               <TableHead 
-                className="cursor-pointer group hover:bg-slate-50"
+                className="cursor-pointer group hover:bg-slate-100 font-semibold"
                 onClick={() => handleSort('status')}
               >
                 <div className="flex items-center gap-2">
-                  Statut
+                  📊 Statut
                   <SortIcon field="status" />
                 </div>
               </TableHead>
               <TableHead 
-                className="cursor-pointer group hover:bg-slate-50"
+                className="cursor-pointer group hover:bg-slate-100 font-semibold"
                 onClick={() => handleSort('priority')}
               >
                 <div className="flex items-center gap-2">
-                  Priorité
+                  🎯 Priorité
                   <SortIcon field="priority" />
                 </div>
               </TableHead>
               <TableHead 
-                className="cursor-pointer group hover:bg-slate-50"
+                className="cursor-pointer group hover:bg-slate-100 font-semibold"
                 onClick={() => handleSort('due_date')}
               >
                 <div className="flex items-center gap-2">
-                  Échéance
+                  📅 Échéance
                   <SortIcon field="due_date" />
                 </div>
               </TableHead>
-              <TableHead>Temps</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="font-semibold">⏱️ Temps</TableHead>
+              <TableHead className="font-semibold">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredAndSortedCalls.map(call => (
-              <TableRow key={call.id} className="hover:bg-slate-50">
-                <TableCell className="font-mono text-sm">{call.call_number}</TableCell>
-                <TableCell className="font-medium">{call.title}</TableCell>
-                <TableCell>{call.customer_name || '-'}</TableCell>
+              <TableRow key={call.id} className="hover:bg-blue-50 transition-colors">
+                <TableCell className="font-mono text-sm font-semibold text-slate-700">
+                  {call.call_number || `#${call.id.slice(0, 8)}`}
+                </TableCell>
+                <TableCell className="font-semibold text-slate-900">{call.title}</TableCell>
+                <TableCell className="text-slate-700">{call.customer_name || '-'}</TableCell>
                 <TableCell>
                   <div className="flex -space-x-2">
                     {(call.technicians || []).slice(0, 3).map(tech => {
@@ -236,6 +238,7 @@ export default function ServiceCallsTable({ calls = [], onEditCall, technicians 
                     size="sm"
                     variant="outline"
                     onClick={() => onEditCall(call)}
+                    className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 transition-colors shadow-sm"
                   >
                     <Eye className="w-4 h-4 mr-1" />
                     Voir

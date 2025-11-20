@@ -73,16 +73,18 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 p-6 h-full overflow-x-auto">
+      <div className="flex gap-6 p-6 h-full overflow-x-auto pb-8">
         {COLUMNS.map(column => {
           const columnCalls = getCallsByStatus(column.id);
           
           return (
             <div key={column.id} className="flex-shrink-0 w-80">
-              <div className={`${column.color} rounded-t-lg px-4 py-3`}>
-                <h3 className="font-semibold text-slate-900">
-                  {column.title}
-                  <span className="ml-2 text-sm text-slate-600">({columnCalls.length})</span>
+              <div className={`${column.color} rounded-t-xl px-4 py-3 border-b-2 border-slate-200`}>
+                <h3 className="font-bold text-slate-900 flex items-center justify-between">
+                  <span>{column.title}</span>
+                  <span className="text-sm bg-white px-2 py-0.5 rounded-full font-semibold text-slate-700 shadow-sm">
+                    {columnCalls.length}
+                  </span>
                 </h3>
               </div>
 
@@ -91,8 +93,8 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`min-h-[200px] p-2 rounded-b-lg ${
-                      snapshot.isDraggingOver ? 'bg-blue-50' : 'bg-slate-50'
+                    className={`min-h-[200px] p-3 rounded-b-xl transition-colors ${
+                      snapshot.isDraggingOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed' : 'bg-slate-50/50'
                     }`}
                     style={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' }}
                   >
@@ -106,56 +108,72 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              className={`mb-2 p-3 cursor-pointer hover:shadow-md transition-shadow ${
-                                snapshot.isDragging ? 'shadow-lg rotate-2' : ''
+                              className={`mb-3 p-4 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02] border-l-4 ${
+                                snapshot.isDragging ? 'shadow-2xl rotate-3 scale-105 ring-2 ring-blue-400' : ''
                               }`}
+                              style={{
+                                borderLeftColor: call.work_type_color || '#0074D9',
+                                ...provided.draggableProps.style
+                              }}
                               onClick={() => onEditCall(call)}
                             >
-                              {call.work_type_name && (
-                                <div className="mb-2">
+                              <div className="space-y-3">
+                                {call.work_type_name && (
                                   <Badge 
-                                    className="text-white text-xs"
+                                    className="text-white text-xs font-medium shadow-sm"
                                     style={{ backgroundColor: call.work_type_color || '#0074D9' }}
                                   >
                                     {call.work_type_name}
                                   </Badge>
-                                </div>
-                              )}
+                                )}
 
-                              <h4 className="font-semibold text-sm mb-2 line-clamp-2">
-                                {call.title}
-                              </h4>
+                                <h4 className="font-bold text-base mb-2 line-clamp-2 leading-tight text-slate-900">
+                                  {call.title}
+                                </h4>
 
-                              <div className="space-y-2 text-xs">
-                                <div className="flex items-center gap-2">
-                                  {call.priority && (
-                                    <Badge className={priorityColors[call.priority]}>
-                                      {call.priority}
-                                    </Badge>
-                                  )}
-                                  {overdue && (
-                                    <Badge className="bg-red-100 text-red-800 flex items-center gap-1">
-                                      <AlertCircle className="w-3 h-3" />
-                                      En retard
-                                    </Badge>
-                                  )}
-                                </div>
+                                {call.customer_name && (
+                                  <p className="text-xs text-slate-600 font-medium">
+                                    👤 {call.customer_name}
+                                  </p>
+                                )}
 
-                                {call.due_date && (
-                                  <div className="flex items-center gap-1 text-slate-600">
-                                    <Calendar className="w-3 h-3" />
-                                    <span className={overdue ? 'text-red-600 font-semibold' : ''}>
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {call.priority && (
+                                      <Badge className={`${priorityColors[call.priority]} text-xs font-medium`}>
+                                        {call.priority === 'low' ? '🔵 Basse' : 
+                                         call.priority === 'medium' ? '🟡 Moyenne' : 
+                                         call.priority === 'high' ? '🟠 Haute' : '🔴 Urgente'}
+                                      </Badge>
+                                    )}
+                                    {overdue && (
+                                      <Badge className="bg-red-500 text-white flex items-center gap-1 shadow-sm">
+                                        <AlertCircle className="w-3 h-3" />
+                                        En retard
+                                      </Badge>
+                                    )}
+                                  </div>
+
+                                  {call.due_date && (
+                                    <div className={`flex items-center gap-1.5 text-xs ${overdue ? 'text-red-600 font-semibold' : 'text-slate-600'}`}>
+                                      <Calendar className="w-3.5 h-3.5" />
                                       {format(new Date(call.due_date), 'dd MMM yyyy')}
-                                    </span>
-                                  </div>
-                                )}
+                                    </div>
+                                  )}
 
-                                {call.technicians && call.technicians.length > 0 && (
-                                  <div className="flex items-center gap-1 text-slate-600">
-                                    <User className="w-3 h-3" />
-                                    <span>{call.technicians.length} tech</span>
-                                  </div>
-                                )}
+                                  {call.technicians && call.technicians.length > 0 && (
+                                    <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                                      <User className="w-3.5 h-3.5" />
+                                      <span className="font-medium">{call.technicians.length} technicien{call.technicians.length > 1 ? 's' : ''}</span>
+                                    </div>
+                                  )}
+
+                                  {call.total_time_spent > 0 && (
+                                    <div className="flex items-center gap-1.5 text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-1 rounded">
+                                      ⏱️ {call.total_time_spent}h
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </Card>
                           )}
