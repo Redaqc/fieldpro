@@ -34,7 +34,7 @@ const DEFAULT_VIEWS = {
 
 export default function Dashboard() {
   const [customizerOpen, setCustomizerOpen] = useState(false);
-  const [selectedView, setSelectedView] = useState('custom');
+  const [selectedView, setSelectedView] = useState('admin');
   const queryClient = useQueryClient();
 
   const { data: currentUser } = useQuery({
