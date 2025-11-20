@@ -23,7 +23,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
     due_date: '',
     priority: 'medium',
     technicians: [],
-    estimated_hours: 0,
+    start_date: '',
     total_time_spent: 0,
     work_type_id: '',
     work_type_name: '',
@@ -77,7 +77,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
         comments: job.comments || [],
         activity_log: job.activity_log || [],
         attachments: job.attachments || [],
-        estimated_hours: job.estimated_hours || 0,
+        start_date: job.start_date || '',
         total_time_spent: job.total_time_spent || 0,
         project_addresses: job.project_addresses || [],
       });
@@ -89,7 +89,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
         due_date: '',
         priority: 'medium',
         technicians: [],
-        estimated_hours: 0,
+        start_date: '',
         total_time_spent: 0,
         work_type_id: '',
         work_type_name: '',
@@ -631,16 +631,14 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               />
             </div>
 
-            {/* Estimated Hours */}
+            {/* Start Date */}
             <div>
-              <Label className="text-sm font-medium">Heures estimées</Label>
+              <Label className="text-sm font-medium">Date de début</Label>
               <Input
-                type="number"
-                step="0.5"
-                value={formData.estimated_hours}
-                onChange={(e) => setFormData({ ...formData, estimated_hours: parseFloat(e.target.value) || 0 })}
+                type="date"
+                value={formData.start_date}
+                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                 className="mt-1 h-11"
-                placeholder="0"
               />
             </div>
 
