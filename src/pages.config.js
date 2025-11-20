@@ -34,6 +34,9 @@ import MaintenanceTracker from './pages/MaintenanceTracker';
 import TeamChat from './pages/TeamChat';
 import NotificationCenter from './pages/NotificationCenter';
 import BIDashboard from './pages/BIDashboard';
+import IntegrationMarketplace from './pages/IntegrationMarketplace';
+import CustomFields from './pages/CustomFields';
+import WebhookManager from './pages/WebhookManager';
 import __Layout from './Layout.jsx';
 
 
@@ -74,6 +77,9 @@ export const PAGES = {
     "TeamChat": TeamChat,
     "NotificationCenter": NotificationCenter,
     "BIDashboard": BIDashboard,
+    "IntegrationMarketplace": IntegrationMarketplace,
+    "CustomFields": CustomFields,
+    "WebhookManager": WebhookManager,
 }
 
 export const pagesConfig = {

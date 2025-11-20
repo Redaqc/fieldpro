@@ -221,6 +221,21 @@ const getNavigationItems = (t) => [
     icon: BarChart3,
   },
   {
+    title: "Integrations",
+    url: createPageUrl("IntegrationMarketplace"),
+    icon: Zap,
+  },
+  {
+    title: "Custom Fields",
+    url: createPageUrl("CustomFields"),
+    icon: Settings,
+  },
+  {
+    title: "Webhooks",
+    url: createPageUrl("WebhookManager"),
+    icon: Zap,
+  },
+  {
     title: t('profitability'),
     url: createPageUrl("ProfitabilityReports"),
     icon: TrendingUp,
