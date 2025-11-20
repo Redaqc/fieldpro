@@ -1357,13 +1357,67 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
             )}
           </Tabs>
 
-          <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={onClose} className="h-11 text-base">
-              Annuler
-            </Button>
-            <Button onClick={handleSave} disabled={!formData.title} className="h-11 text-base">
-              {call ? 'Sauvegarder' : 'Créer'}
-            </Button>
+          <div className="flex flex-col sm:flex-row justify-between gap-2 pt-4">
+            <div>
+              {call?.id && call.status !== 'converted' && (
+                <Button 
+                  type="button"
+                  onClick={async () => {
+                    if (confirm('Convert this service call to a full job? This will create a new job with all details.')) {
+                      try {
+                        const jobData = {
+                          title: call.title,
+                          description: call.description,
+                          customer_id: call.customer_id,
+                          customer_name: call.customer_name,
+                          location: call.location,
+                          project_addresses: call.project_addresses,
+                          start_date: call.start_date,
+                          due_date: call.due_date,
+                          priority: call.priority,
+                          status: 'scheduled',
+                          work_type_id: call.work_type_id,
+                          work_type_name: call.work_type_name,
+                          work_type_color: call.work_type_color,
+                          technicians: call.technicians || [],
+                          labels: call.labels || [],
+                          checklist: call.checklist || [],
+                          service_call_id: call.id,
+                          activity_log: [{
+                            timestamp: new Date().toISOString(),
+                            user: currentUser?.email || 'System',
+                            action: 'converted_from_service_call',
+                            details: `Converted from Service Call #${call.call_number || call.id}`
+                          }]
+                        };
+                        
+                        const newJob = await base44.entities.Job.create(jobData);
+                        await base44.entities.ServiceCall.update(call.id, { 
+                          status: 'converted',
+                          converted_to_job_id: newJob.id
+                        });
+                        
+                        alert('Service call converted to job successfully!');
+                        onClose();
+                      } catch (err) {
+                        alert('Failed to convert: ' + err.message);
+                      }
+                    }
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white h-11"
+                >
+                  Convert to Job
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose} className="h-11 text-base">
+                Annuler
+              </Button>
+              <Button onClick={handleSave} disabled={!formData.title} className="h-11 text-base">
+                {call ? 'Sauvegarder' : 'Créer'}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
