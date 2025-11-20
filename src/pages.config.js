@@ -24,6 +24,7 @@ import FormAutomations from './pages/FormAutomations';
 import RoleManager from './pages/RoleManager';
 import ServiceCalls from './pages/ServiceCalls';
 import ScheduleAnalytics from './pages/ScheduleAnalytics';
+import DispatcherDashboard from './pages/DispatcherDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -54,6 +55,7 @@ export const PAGES = {
     "RoleManager": RoleManager,
     "ServiceCalls": ServiceCalls,
     "ScheduleAnalytics": ScheduleAnalytics,
+    "DispatcherDashboard": DispatcherDashboard,
 }
 
 export const pagesConfig = {

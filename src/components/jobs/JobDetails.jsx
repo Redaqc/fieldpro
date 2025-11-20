@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import QuickInvoiceButton from "./QuickInvoiceButton";
 
 const statusColors = {
   scheduled: "bg-blue-100 text-blue-800",
@@ -43,6 +44,7 @@ export default function JobDetails({ job, onClose, onEdit, onUpdate, onDelete, c
               <p className="text-sm text-slate-500">Job #{job.job_number}</p>
             </div>
             <div className="flex gap-2">
+              <QuickInvoiceButton job={job} />
               <Button variant="outline" size="sm" onClick={onEdit}>
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
