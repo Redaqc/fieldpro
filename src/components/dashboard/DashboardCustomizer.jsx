@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, Users, TrendingUp, DollarSign, LayoutDashboard, BarChart, Clock, UserCheck, UserCircle, FileText, Activity, Briefcase, Trophy, Package, TrendingDown } from "lucide-react";
 
 const AVAILABLE_WIDGETS = [
+  { id: 'today_summary', name: 'Today Summary', icon: LayoutDashboard, description: 'Résumé financier du jour/mois', color: 'text-blue-600', bgColor: 'bg-blue-100' },
   { id: 'invoices_due', name: 'Factures À Recevoir', icon: FileText, description: 'Factures dues et en retard', color: 'text-orange-500', bgColor: 'bg-orange-100' },
   { id: 'jobs_by_status_new', name: 'Jobs par Statut (Nouveau)', icon: Briefcase, description: 'Soumis, planifié, en cours, terminé', color: 'text-blue-500', bgColor: 'bg-blue-100' },
   { id: 'recent_activities', name: 'Activités Récentes', icon: Activity, description: 'Factures, soumissions, dépenses', color: 'text-purple-500', bgColor: 'bg-purple-100' },

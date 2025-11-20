@@ -25,10 +25,11 @@ import TopClientsWidget from "@/components/dashboard/TopClientsWidget";
 import StockAlertWidget from "@/components/dashboard/StockAlertWidget";
 import SalesVsCostWidget from "@/components/dashboard/SalesVsCostWidget";
 import OverdueJobsWidget from "@/components/dashboard/OverdueJobsWidget";
+import TodaySummaryWidget from "@/components/dashboard/TodaySummaryWidget";
 
 const DEFAULT_VIEWS = {
-  admin: ['invoices_due', 'jobs_by_status_new', 'recent_activities', 'payments_chart', 'top_clients', 'stock_alert', 'sales_vs_cost', 'overdue_jobs_new', 'financial_indicators', 'tasks_by_technician', 'technician_performance'],
-  manager: ['invoices_due', 'jobs_by_status_new', 'overdue_jobs_new', 'sales_vs_cost', 'tasks_by_technician', 'payments_chart', 'stock_alert'],
+  admin: ['today_summary', 'invoices_due', 'jobs_by_status_new', 'recent_activities', 'payments_chart', 'top_clients', 'stock_alert', 'sales_vs_cost', 'overdue_jobs_new', 'financial_indicators', 'tasks_by_technician', 'technician_performance'],
+  manager: ['today_summary', 'invoices_due', 'jobs_by_status_new', 'overdue_jobs_new', 'sales_vs_cost', 'tasks_by_technician', 'payments_chart', 'stock_alert'],
   technician: ['tasks_by_technician', 'jobs_by_status_new', 'overdue_jobs_new', 'recent_activities'],
 };
 
@@ -144,6 +145,8 @@ export default function Dashboard() {
 
   const renderWidget = (widgetType) => {
     switch (widgetType) {
+      case 'today_summary':
+        return <TodaySummaryWidget key={widgetType} invoices={invoices} payments={payments} jobs={jobs} expenses={supplierInvoices} />;
       case 'invoices_due':
         return <InvoicesDueWidget key={widgetType} invoices={invoices} />;
       case 'jobs_by_status_new':
