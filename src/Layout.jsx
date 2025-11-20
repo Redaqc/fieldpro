@@ -285,6 +285,11 @@ const getNavigationItems = (t) => [
     url: createPageUrl("RoleManager"),
     icon: Shield,
   },
+  {
+    title: "Workflow Overview",
+    url: createPageUrl("WorkflowOverview"),
+    icon: Activity,
+  },
   ];
 
 export default function Layout({ children, currentPageName }) {

@@ -37,6 +37,7 @@ import BIDashboard from './pages/BIDashboard';
 import IntegrationMarketplace from './pages/IntegrationMarketplace';
 import CustomFields from './pages/CustomFields';
 import WebhookManager from './pages/WebhookManager';
+import WorkflowOverview from './pages/WorkflowOverview';
 import __Layout from './Layout.jsx';
 
 
@@ -80,6 +81,7 @@ export const PAGES = {
     "IntegrationMarketplace": IntegrationMarketplace,
     "CustomFields": CustomFields,
     "WebhookManager": WebhookManager,
+    "WorkflowOverview": WorkflowOverview,
 }
 
 export const pagesConfig = {
