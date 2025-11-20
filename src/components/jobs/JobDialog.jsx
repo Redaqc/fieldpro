@@ -10,11 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock, List, StopCircle, TrendingDown } from "lucide-react";
+import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock, List, StopCircle, TrendingDown, GitBranch, Flag, BarChart } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import InvoicingTab from "./InvoicingTab";
 import CostsTab from "./CostsTab";
+import TaskDependenciesTab from "./TaskDependenciesTab";
+import MilestonesTab from "./MilestonesTab";
+import GanttChart from "./GanttChart";
 
 export default function JobDialog({ open, onClose, job, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
@@ -31,6 +34,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
     work_type_color: '',
     labels: [],
     checklist: [],
+    milestones: [],
     comments: [],
     activity_log: [],
     attachments: [],
@@ -78,6 +82,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
         technicians: job.technicians || [],
         labels: job.labels || [],
         checklist: job.checklist || [],
+        milestones: job.milestones || [],
         comments: job.comments || [],
         activity_log: job.activity_log || [],
         attachments: job.attachments || [],
@@ -100,6 +105,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
         work_type_color: '',
         labels: [],
         checklist: [],
+        milestones: [],
         comments: [],
         activity_log: [],
         attachments: [],
@@ -990,10 +996,22 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
           </div>
 
           <Tabs defaultValue="checklist" className="w-full">
-            <TabsList className={`grid w-full h-auto ${isAdminOrManager ? 'grid-cols-2 sm:grid-cols-6' : 'grid-cols-2 sm:grid-cols-5'}`}>
+            <TabsList className={`grid w-full h-auto ${isAdminOrManager ? 'grid-cols-3 sm:grid-cols-9' : 'grid-cols-3 sm:grid-cols-8'}`}>
               <TabsTrigger value="checklist" className="flex items-center gap-1 sm:gap-2 py-2.5">
                 <CheckSquare className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Checklist</span>
+              </TabsTrigger>
+              <TabsTrigger value="dependencies" className="flex items-center gap-1 sm:gap-2 py-2.5">
+                <GitBranch className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Dépendances</span>
+              </TabsTrigger>
+              <TabsTrigger value="milestones" className="flex items-center gap-1 sm:gap-2 py-2.5">
+                <Flag className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Jalons</span>
+              </TabsTrigger>
+              <TabsTrigger value="gantt" className="flex items-center gap-1 sm:gap-2 py-2.5">
+                <BarChart className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Gantt</span>
               </TabsTrigger>
               <TabsTrigger value="invoicing" className="flex items-center gap-1 sm:gap-2 py-2.5">
                 <FileText className="w-4 h-4" />
@@ -1118,6 +1136,32 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                   </SelectContent>
                 </Select>
               </div>
+            </TabsContent>
+
+            <TabsContent value="dependencies" className="space-y-4">
+              <TaskDependenciesTab 
+                formData={formData}
+                setFormData={setFormData}
+                job={job}
+                updateJobMutation={updateJobMutation}
+                technicians={technicians}
+              />
+            </TabsContent>
+
+            <TabsContent value="milestones" className="space-y-4">
+              <MilestonesTab 
+                formData={formData}
+                setFormData={setFormData}
+                job={job}
+                updateJobMutation={updateJobMutation}
+              />
+            </TabsContent>
+
+            <TabsContent value="gantt" className="space-y-4">
+              <GanttChart 
+                job={formData}
+                technicians={technicians}
+              />
             </TabsContent>
 
             <TabsContent value="invoicing" className="space-y-4">
