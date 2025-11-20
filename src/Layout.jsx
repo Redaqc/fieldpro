@@ -144,7 +144,15 @@ export default function Layout({ children, currentPageName }) {
       return isAdmin || currentTech?.role === 'admin';
     }
 
-    return visibleModules.includes(moduleName);
+    // Map page names to module names (handle underscore variations)
+    const moduleMapping = {
+      'timetracking': 'time_tracking',
+      'pricelists': 'price_lists',
+      'gpstracking': 'gps_tracking'
+    };
+
+    const mappedModule = moduleMapping[moduleName] || moduleName;
+    return visibleModules.includes(mappedModule) || visibleModules.includes(moduleName);
   });
 
   return (
