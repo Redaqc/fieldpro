@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +8,27 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, FileText, Download, Search, DollarSign, Package, Calendar, Edit, Trash2, Upload } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Plus, FileText, Download, Search, DollarSign, Package, Calendar, Edit, Trash2, Upload, BarChart3, PieChart, TrendingUp } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { BarChart, Bar, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+
+const CATEGORY_COLORS = {
+  materials: '#3b82f6',
+  equipment: '#8b5cf6',
+  subcontractor: '#f59e0b',
+  transport: '#10b981',
+  other: '#6b7280'
+};
+
+const CATEGORY_LABELS = {
+  materials: 'Matériaux',
+  equipment: 'Équipement',
+  subcontractor: 'Sous-traitant',
+  transport: 'Transport',
+  other: 'Autre'
+};
 
 export default function CostsManagement() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,6 +37,8 @@ export default function CostsManagement() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('list');
 
   const queryClient = useQueryClient();
 
@@ -86,6 +106,34 @@ export default function CostsManagement() {
   const pendingAmount = filteredInvoices.filter(inv => inv.status === 'pending').reduce((sum, inv) => sum + (inv.amount || 0), 0);
   const paidAmount = filteredInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + (inv.amount || 0), 0);
 
+  // Data for visualizations
+  const costsByCategory = useMemo(() => {
+    const categories = {};
+    filteredInvoices.forEach(inv => {
+      const cat = inv.category || 'other';
+      categories[cat] = (categories[cat] || 0) + inv.amount;
+    });
+    return Object.entries(categories).map(([name, value]) => ({
+      name: CATEGORY_LABELS[name] || name,
+      value: parseFloat(value.toFixed(2)),
+      fill: CATEGORY_COLORS[name] || '#6b7280'
+    }));
+  }, [filteredInvoices]);
+
+  const costsByProject = useMemo(() => {
+    const projects = {};
+    filteredInvoices.forEach(inv => {
+      if (inv.job_title) {
+        const key = inv.job_title;
+        projects[key] = (projects[key] || 0) + inv.amount;
+      }
+    });
+    return Object.entries(projects)
+      .map(([name, amount]) => ({ name, amount: parseFloat(amount.toFixed(2)) }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 10);
+  }, [filteredInvoices]);
+
   const handleSave = (formData) => {
     if (selectedInvoice) {
       updateInvoiceMutation.mutate({ id: selectedInvoice.id, data: formData });
@@ -118,6 +166,39 @@ export default function CostsManagement() {
     a.remove();
   };
 
+  const handleImportCSV = async (file) => {
+    const text = await file.text();
+    const lines = text.split('\n').filter(line => line.trim());
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    
+    const invoices = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',');
+      if (values.length < 4) continue;
+      
+      const invoice = {
+        invoice_number: values[0]?.trim() || '',
+        supplier_name: values[1]?.trim() || '',
+        job_title: values[2]?.trim() || '',
+        category: values[3]?.trim() || 'other',
+        amount: parseFloat(values[4]) || 0,
+        invoice_date: values[5]?.trim() || format(new Date(), 'yyyy-MM-dd'),
+        status: values[6]?.trim() || 'pending',
+      };
+      
+      if (invoice.supplier_name && invoice.amount > 0) {
+        invoices.push(invoice);
+      }
+    }
+
+    for (const invoice of invoices) {
+      await createInvoiceMutation.mutateAsync(invoice);
+    }
+    
+    alert(`${invoices.length} factures importées avec succès`);
+    setImportDialogOpen(false);
+  };
+
   if (!isAdminOrManager) {
     return (
       <div className="p-6 flex items-center justify-center min-h-screen bg-slate-50">
@@ -145,6 +226,10 @@ export default function CostsManagement() {
           <Button variant="outline" onClick={handleExportCSV}>
             <Download className="w-4 h-4 mr-2" />
             Exporter
+          </Button>
+          <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />
+            Importer CSV
           </Button>
           <Button onClick={() => { setSelectedInvoice(null); setDialogOpen(true); }}>
             <Plus className="w-4 h-4 mr-2" />
@@ -235,14 +320,32 @@ export default function CostsManagement() {
         </CardContent>
       </Card>
 
-      {/* Liste des factures */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Factures fournisseurs ({filteredInvoices.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="list" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Liste
+          </TabsTrigger>
+          <TabsTrigger value="by-category" className="flex items-center gap-2">
+            <PieChart className="w-4 h-4" />
+            Par catégorie
+          </TabsTrigger>
+          <TabsTrigger value="by-project" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Par projet
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Liste */}
+        <TabsContent value="list">
+          <Card>
+            <CardHeader>
+              <CardTitle>Factures fournisseurs ({filteredInvoices.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
               <thead className="bg-slate-100">
                 <tr>
                   <th className="text-left p-3">Numéro</th>
@@ -317,8 +420,115 @@ export default function CostsManagement() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
 
-      {/* Dialog */}
+        {/* By Category */}
+        <TabsContent value="by-category">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Répartition par catégorie</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <RechartsPie>
+                    <Pie 
+                      data={costsByCategory} 
+                      dataKey="value" 
+                      nameKey="name" 
+                      cx="50%" 
+                      cy="50%" 
+                      outerRadius={100}
+                      label={(entry) => `${entry.name}: $${entry.value}`}
+                    >
+                      {costsByCategory.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                  </RechartsPie>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Détails par catégorie</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {costsByCategory.map((cat, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-4 h-4 rounded" 
+                          style={{ backgroundColor: cat.fill }}
+                        />
+                        <span className="font-medium">{cat.name}</span>
+                      </div>
+                      <span className="text-lg font-bold">${cat.value.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* By Project */}
+        <TabsContent value="by-project">
+          <Card>
+            <CardHeader>
+              <CardTitle>Top 10 projets par coûts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={costsByProject} layout="horizontal">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={150} />
+                  <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                  <Legend />
+                  <Bar dataKey="amount" fill="#3b82f6" name="Montant ($)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Détails par projet</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-100">
+                    <tr>
+                      <th className="text-left p-3">Projet</th>
+                      <th className="text-right p-3">Montant total</th>
+                      <th className="text-right p-3">Nombre de factures</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {costsByProject.map((project, idx) => {
+                      const invoiceCount = filteredInvoices.filter(inv => inv.job_title === project.name).length;
+                      return (
+                        <tr key={idx} className="hover:bg-slate-50">
+                          <td className="p-3 font-medium">{project.name}</td>
+                          <td className="p-3 text-right font-bold">${project.amount.toFixed(2)}</td>
+                          <td className="p-3 text-right">{invoiceCount}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialogs */}
       <InvoiceDialog
         open={dialogOpen}
         onClose={() => { setDialogOpen(false); setSelectedInvoice(null); }}
@@ -326,7 +536,87 @@ export default function CostsManagement() {
         jobs={jobs}
         onSave={handleSave}
       />
+
+      <ImportCSVDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        onImport={handleImportCSV}
+      />
     </div>
+  );
+}
+
+function ImportCSVDialog({ open, onClose, onImport }) {
+  const [file, setFile] = useState(null);
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  const handleSubmit = () => {
+    if (!file) {
+      alert('Veuillez sélectionner un fichier CSV');
+      return;
+    }
+    onImport(file);
+    setFile(null);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Importer des factures depuis CSV</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-900 mb-2">
+              <strong>Format attendu:</strong>
+            </p>
+            <p className="text-xs text-blue-800 font-mono">
+              Numéro,Fournisseur,Projet,Catégorie,Montant,Date,Statut
+            </p>
+            <p className="text-xs text-blue-800 mt-2">
+              <strong>Catégories valides:</strong> materials, equipment, subcontractor, transport, other
+            </p>
+            <p className="text-xs text-blue-800">
+              <strong>Statuts valides:</strong> pending, paid, overdue
+            </p>
+          </div>
+
+          <div>
+            <Label>Fichier CSV</Label>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleFileChange}
+              className="mt-1 block w-full text-sm text-slate-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-lg file:border-0
+                file:text-sm file:font-semibold
+                file:bg-blue-50 file:text-blue-700
+                hover:file:bg-blue-100"
+            />
+          </div>
+
+          {file && (
+            <div className="text-sm text-slate-600">
+              Fichier sélectionné: <strong>{file.name}</strong>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button onClick={handleSubmit}>
+            Importer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
