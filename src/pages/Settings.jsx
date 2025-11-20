@@ -931,6 +931,34 @@ export default function Settings() {
                     onCheckedChange={() => toggleFeature('feature_job_activity', appSettings?.feature_job_activity !== false)}
                   />
                 </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+                  <div className="flex items-center gap-3">
+                    <Paperclip className="w-5 h-5 text-emerald-600" />
+                    <div>
+                      <p className="font-medium">Utilisation de matériaux</p>
+                      <p className="text-xs text-slate-500">Suivre les matériaux consommés</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={appSettings?.feature_material_usage !== false}
+                    onCheckedChange={() => toggleFeature('feature_material_usage', appSettings?.feature_material_usage !== false)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+                  <div className="flex items-center gap-3">
+                    <Paperclip className="w-5 h-5 text-amber-600" />
+                    <div>
+                      <p className="font-medium">Assignment d'actifs</p>
+                      <p className="text-xs text-slate-500">Assigner des équipements aux jobs</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={appSettings?.feature_asset_assignment !== false}
+                    onCheckedChange={() => toggleFeature('feature_asset_assignment', appSettings?.feature_asset_assignment !== false)}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
