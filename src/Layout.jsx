@@ -603,7 +603,7 @@ export default function Layout({ children, currentPageName }) {
         </Sidebar>
 
         <main className="flex-1 flex flex-col">
-          <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 sticky top-0 z-30">
+          <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sticky top-0 z-30">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 {/* Mobile Hamburger */}
@@ -611,35 +611,83 @@ export default function Layout({ children, currentPageName }) {
                   variant="ghost"
                   size="icon"
                   onClick={() => setMobileMenuOpen(true)}
-                  className="lg:hidden h-10 w-10 rounded-lg hover:bg-slate-100 active:bg-slate-200 transition-colors"
+                  className="lg:hidden h-9 w-9 rounded-lg hover:bg-slate-100 active:bg-slate-200 transition-colors"
                 >
-                  <Menu className="w-6 h-6 text-slate-700" />
+                  <Menu className="w-5 h-5 text-slate-700" />
                 </Button>
-                <h1 className="text-lg sm:text-xl font-bold text-slate-900">{currentPageName}</h1>
+
+                {/* Language Selector */}
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200">
+                  <img 
+                    src={lang === 'fr' ? 'https://flagcdn.com/w20/fr.png' : 'https://flagcdn.com/w20/gb.png'} 
+                    alt={lang === 'fr' ? 'FR' : 'EN'}
+                    className="w-4 h-4 rounded-sm"
+                  />
+                  <select 
+                    value={lang} 
+                    onChange={(e) => {
+                      const settings = languageSettings || {};
+                      base44.entities.LanguageSettings.update(settings.id, { language: e.target.value });
+                    }}
+                    className="text-sm font-medium text-slate-700 bg-transparent border-none outline-none cursor-pointer"
+                  >
+                    <option value="fr">FR</option>
+                    <option value="en">EN</option>
+                  </select>
+                </div>
               </div>
-              
-              <div className="flex items-center gap-2 sm:gap-3">
+
+              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setSearchOpen(true)}
-                  className="h-10 w-10 rounded-lg hover:bg-slate-100"
+                  className="h-9 w-9 rounded-lg hover:bg-slate-100"
                 >
                   <Search className="w-5 h-5 text-slate-600" />
                 </Button>
+
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="relative h-10 w-10 rounded-lg hover:bg-slate-100"
+                  className="relative h-9 w-9 rounded-lg hover:bg-slate-100"
                   onClick={() => setNotificationOpen(true)}
                 >
                   <Bell className="w-5 h-5 text-slate-600" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center font-semibold shadow-sm">
+                    <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-semibold">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
                 </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  asChild
+                  className="h-9 w-9 rounded-lg hover:bg-slate-100"
+                >
+                  <Link to={createPageUrl("TeamChat")}>
+                    <MessageCircle className="w-5 h-5 text-slate-600" />
+                  </Link>
+                </Button>
+
+                <div className="h-6 w-px bg-slate-200 mx-1" />
+
+                {/* User Profile */}
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                    {user?.full_name?.[0] || 'U'}
+                  </div>
+                  <div className="hidden sm:block">
+                    <p className="text-sm font-medium text-slate-900 leading-none">
+                      {user?.full_name || 'User'}
+                    </p>
+                    <p className="text-xs text-slate-500 leading-none mt-0.5">
+                      {user?.role === 'admin' ? 'Super Admin' : currentTech?.role || 'User'}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </header>
