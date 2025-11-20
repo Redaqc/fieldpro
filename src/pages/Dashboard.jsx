@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Settings2, LayoutDashboard } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Settings2, LayoutDashboard, DollarSign, ShoppingCart, Wallet, CreditCard, TrendingUp, TrendingDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DashboardCustomizer from "@/components/dashboard/DashboardCustomizer";
 import WidgetJobsByStatus from "@/components/dashboard/WidgetJobsByStatus";
@@ -17,6 +18,7 @@ import WidgetProjectProgress from "@/components/dashboard/WidgetProjectProgress"
 import WidgetFinancialIndicators from "@/components/dashboard/WidgetFinancialIndicators";
 import AlertsPanel from "@/components/shared/AlertsPanel";
 import WidgetAlerts from "@/components/dashboard/WidgetAlerts";
+import MetricCard from "@/components/dashboard/MetricCard";
 
 const DEFAULT_VIEWS = {
   admin: ['alerts', 'urgent_jobs', 'financial_indicators', 'project_progress', 'tasks_by_technician', 'jobs_by_status', 'monthly_revenue', 'technician_performance', 'invoice_summary'],
@@ -112,6 +114,14 @@ export default function Dashboard() {
 
   const activeWidgets = getActiveWidgets();
 
+  // Calculate key metrics
+  const totalRevenue = invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + (i.total || 0), 0);
+  const totalPurchases = supplierInvoices.reduce((sum, i) => sum + (i.total_amount || 0), 0);
+  const clientPayments = invoices.filter(i => i.status === 'paid').length;
+  const supplierPayments = supplierInvoices.filter(i => i.status === 'paid').length;
+  const totalExpenses = supplierInvoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + (i.total_amount || 0), 0);
+  const balanceTransfers = jobs.filter(j => j.status === 'completed').length;
+
   const renderWidget = (widgetType) => {
     switch (widgetType) {
       case 'alerts':
@@ -176,9 +186,75 @@ export default function Dashboard() {
 
       {/* Content */}
       <div className="p-6 space-y-6">
+        {/* Today Summary */}
+        <div className="flex items-center gap-2 mb-2">
+          <LayoutDashboard className="w-5 h-5 text-slate-600" />
+          <h2 className="text-lg font-semibold text-slate-900">Today Summary</h2>
+        </div>
+
+        {/* Metric Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard
+            title="Purchase"
+            value={`$${totalRevenue.toFixed(2)}`}
+            subtitle="Revenue"
+            icon={ShoppingCart}
+            gradient="from-blue-400 to-blue-600"
+          />
+          <MetricCard
+            title="Purchase Return"
+            value={`$${(invoices.filter(i => i.status === 'cancelled').reduce((s, i) => s + (i.total || 0), 0)).toFixed(2)}`}
+            subtitle="Returns"
+            icon={TrendingDown}
+            gradient="from-cyan-400 to-cyan-600"
+          />
+          <MetricCard
+            title="Sales"
+            value={`$${(jobs.filter(j => j.status === 'completed' && j.invoice_total).reduce((s, j) => s + (j.invoice_total || 0), 0)).toFixed(2)}`}
+            subtitle="Completed Jobs"
+            icon={TrendingUp}
+            gradient="from-purple-400 to-purple-600"
+          />
+          <MetricCard
+            title="Sales Return"
+            value={`$${(jobs.filter(j => j.status === 'cancelled').length * 100).toFixed(2)}`}
+            subtitle="Cancelled"
+            icon={TrendingDown}
+            gradient="from-slate-400 to-slate-600"
+          />
+          <MetricCard
+            title="Client Payment"
+            value={`$${(invoices.filter(i => i.status === 'paid').reduce((s, i) => s + (i.total || 0), 0)).toFixed(2)}`}
+            subtitle={`${clientPayments} Payments`}
+            icon={Wallet}
+            gradient="from-green-400 to-green-600"
+          />
+          <MetricCard
+            title="Supplier Payment"
+            value={`$${totalPurchases.toFixed(2)}`}
+            subtitle={`${supplierPayments} Payments`}
+            icon={CreditCard}
+            gradient="from-purple-500 to-purple-700"
+          />
+          <MetricCard
+            title="Expense"
+            value={`$${totalExpenses.toFixed(2)}`}
+            subtitle="Total Expenses"
+            icon={DollarSign}
+            gradient="from-red-400 to-red-600"
+          />
+          <MetricCard
+            title="Balance Transfers"
+            value={`$${(balanceTransfers * 1000).toFixed(2)}`}
+            subtitle={`${balanceTransfers} Transfers`}
+            icon={TrendingUp}
+            gradient="from-slate-700 to-slate-900"
+          />
+        </div>
+
         <AlertsPanel />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {activeWidgets.map(widgetType => renderWidget(widgetType))}
         </div>
 
