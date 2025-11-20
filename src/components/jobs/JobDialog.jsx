@@ -10,20 +10,24 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette } from "lucide-react";
+import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import InvoicingTab from "./InvoicingTab";
 
-export default function JobDialog({ open, onClose, job, technicians, currentUser }) {
+export default function JobDialog({ open, onClose, job, technicians, currentUser, workTypes = [] }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     status: 'todo',
     due_date: '',
     priority: 'medium',
-    technician_id: '',
-    technician_name: '',
+    technicians: [],
+    estimated_hours: 0,
+    total_time_spent: 0,
+    work_type_id: '',
+    work_type_name: '',
+    work_type_color: '',
     labels: [],
     checklist: [],
     comments: [],
@@ -60,11 +64,14 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
     if (job) {
       setFormData({
         ...job,
+        technicians: job.technicians || [],
         labels: job.labels || [],
         checklist: job.checklist || [],
         comments: job.comments || [],
         activity_log: job.activity_log || [],
         attachments: job.attachments || [],
+        estimated_hours: job.estimated_hours || 0,
+        total_time_spent: job.total_time_spent || 0,
       });
     } else {
       setFormData({
@@ -73,8 +80,12 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
         status: 'todo',
         due_date: '',
         priority: 'medium',
-        technician_id: '',
-        technician_name: '',
+        technicians: [],
+        estimated_hours: 0,
+        total_time_spent: 0,
+        work_type_id: '',
+        work_type_name: '',
+        work_type_color: '',
         labels: [],
         checklist: [],
         comments: [],
@@ -327,13 +338,79 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
     return { completed, total: allItems.length };
   };
 
+  const handleQuickStatus = (newStatus) => {
+    const updates = { status: newStatus };
+    if (newStatus === 'in_progress' && !formData.started_at) {
+      updates.started_at = new Date().toISOString();
+    } else if (newStatus === 'completed') {
+      updates.completed_at = new Date().toISOString();
+    }
+    
+    setFormData({ ...formData, ...updates });
+    
+    if (job) {
+      updateJobMutation.mutate({ id: job.id, data: updates });
+    }
+  };
+
+  const toggleTechnician = (techId) => {
+    const tech = technicians.find(t => t.id === techId);
+    if (!tech) return;
+    
+    const currentTechs = formData.technicians || [];
+    const exists = currentTechs.find(t => t.id === techId);
+    
+    let updatedTechs;
+    if (exists) {
+      updatedTechs = currentTechs.filter(t => t.id !== techId);
+    } else {
+      updatedTechs = [...currentTechs, { 
+        id: tech.id, 
+        name: `${tech.first_name} ${tech.last_name}`,
+        time_spent: 0
+      }];
+    }
+    
+    setFormData({ ...formData, technicians: updatedTechs });
+    
+    if (job) {
+      updateJobMutation.mutate({ id: job.id, data: { technicians: updatedTechs } });
+    }
+  };
+
   const progress = getChecklistProgress();
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-full sm:max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">{job ? 'Modifier le job' : 'Nouveau job'}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-lg sm:text-xl">{job ? 'Modifier le job' : 'Nouveau job'}</DialogTitle>
+            {job && (
+              <div className="flex gap-2">
+                {formData.status !== 'in_progress' && (
+                  <Button
+                    size="sm"
+                    onClick={() => handleQuickStatus('in_progress')}
+                    className="bg-blue-600 hover:bg-blue-700 gap-2"
+                  >
+                    <Play className="w-4 h-4" />
+                    Démarrer
+                  </Button>
+                )}
+                {formData.status !== 'completed' && (
+                  <Button
+                    size="sm"
+                    onClick={() => handleQuickStatus('completed')}
+                    className="bg-green-600 hover:bg-green-700 gap-2"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Terminer
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -394,6 +471,37 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               </Select>
             </div>
 
+            {/* Work Type */}
+            <div>
+              <Label className="text-sm font-medium">Type de projet</Label>
+              <Select 
+                value={formData.work_type_id} 
+                onValueChange={(value) => {
+                  const type = workTypes.find(t => t.id === value);
+                  setFormData({ 
+                    ...formData, 
+                    work_type_id: value,
+                    work_type_name: type?.label_fr || type?.name || '',
+                    work_type_color: type?.color || '#0074D9'
+                  });
+                }}
+              >
+                <SelectTrigger className="mt-1 h-11">
+                  <SelectValue placeholder="Sélectionner un type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {workTypes.map(type => (
+                    <SelectItem key={type.id} value={type.id}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: type.color || '#0074D9' }} />
+                        {type.label_fr || type.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Due Date */}
             <div>
               <Label className="text-sm font-medium">Date d'échéance</Label>
@@ -405,31 +513,60 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               />
             </div>
 
-            {/* Technician */}
+            {/* Estimated Hours */}
             <div>
-              <Label className="text-sm font-medium">Technicien assigné</Label>
-              <Select 
-                value={formData.technician_id} 
-                onValueChange={(value) => {
-                  const tech = technicians.find(t => t.id === value);
-                  setFormData({ 
-                    ...formData, 
-                    technician_id: value,
-                    technician_name: tech ? `${tech.first_name} ${tech.last_name}` : ''
-                  });
-                }}
-              >
-                <SelectTrigger className="mt-1 h-11">
-                  <SelectValue placeholder="Sélectionner un technicien" />
-                </SelectTrigger>
-                <SelectContent>
-                  {technicians.map(tech => (
-                    <SelectItem key={tech.id} value={tech.id}>
-                      {tech.first_name} {tech.last_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-sm font-medium">Heures estimées</Label>
+              <Input
+                type="number"
+                step="0.5"
+                value={formData.estimated_hours}
+                onChange={(e) => setFormData({ ...formData, estimated_hours: parseFloat(e.target.value) || 0 })}
+                className="mt-1 h-11"
+                placeholder="0"
+              />
+            </div>
+
+            {/* Time Spent */}
+            {job && (
+              <div>
+                <Label className="text-sm font-medium">Temps passé</Label>
+                <div className="mt-1 h-11 border rounded-md flex items-center px-3 bg-slate-50">
+                  <Clock className="w-4 h-4 mr-2 text-slate-500" />
+                  <span className="font-medium">{formData.total_time_spent || 0}h</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Technicians Multi-Select */}
+          <div>
+            <Label className="text-sm font-medium">Techniciens assignés</Label>
+            <div className="mt-2 border rounded-lg p-3 space-y-2 max-h-48 overflow-y-auto">
+              {technicians.map(tech => {
+                const isAssigned = (formData.technicians || []).find(t => t.id === tech.id);
+                return (
+                  <div key={tech.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded">
+                    <input
+                      type="checkbox"
+                      checked={!!isAssigned}
+                      onChange={() => toggleTechnician(tech.id)}
+                      className="w-4 h-4"
+                    />
+                    <div 
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                      style={{ backgroundColor: tech.color || '#64748b' }}
+                    >
+                      {tech.first_name[0]}{tech.last_name[0]}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{tech.first_name} {tech.last_name}</p>
+                      {isAssigned && (
+                        <p className="text-xs text-slate-500">{isAssigned.time_spent || 0}h passées</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
