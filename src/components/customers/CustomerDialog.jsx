@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, X } from "lucide-react";
+import { Save, X, Upload, Image } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 
@@ -16,6 +16,7 @@ export default function CustomerDialog({ open, onClose, onSave, customer }) {
     email: "",
     phone: "",
     company_name: "",
+    logo_url: "",
     address: "",
     city: "",
     state: "",
@@ -25,6 +26,7 @@ export default function CustomerDialog({ open, onClose, onSave, customer }) {
     price_list_id: "",
     price_list_name: ""
   });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const { data: priceLists = [] } = useQuery({
     queryKey: ['priceLists'],
@@ -42,6 +44,21 @@ export default function CustomerDialog({ open, onClose, onSave, customer }) {
     handleChange('price_list_name', priceList?.name || '');
   };
 
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      handleChange('logo_url', file_url);
+    } catch (error) {
+      alert('Erreur lors de l\'upload du logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave(formData);
@@ -56,6 +73,44 @@ export default function CustomerDialog({ open, onClose, onSave, customer }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <Label>Logo du Client</Label>
+              <div className="flex items-center gap-4 mt-2">
+                {formData.logo_url && (
+                  <div className="w-20 h-20 rounded-lg border-2 border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center">
+                    <img src={formData.logo_url} alt="Logo" className="max-w-full max-h-full object-contain" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <label htmlFor="logo-upload">
+                    <Button type="button" variant="outline" disabled={uploadingLogo} asChild>
+                      <span>
+                        {uploadingLogo ? 'Upload...' : <><Upload className="w-4 h-4 mr-2" />Choisir un logo</>}
+                      </span>
+                    </Button>
+                  </label>
+                  {formData.logo_url && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleChange('logo_url', '')}
+                      className="ml-2 text-red-600"
+                    >
+                      Supprimer
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div>
               <Label htmlFor="first_name">First Name *</Label>
               <Input

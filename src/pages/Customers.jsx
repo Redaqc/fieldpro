@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Grid, List } from "lucide-react";
 
 import CustomersList from "../components/customers/CustomersList";
 import CustomerDialog from "../components/customers/CustomerDialog";
@@ -13,6 +13,7 @@ export default function Customers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [viewMode, setViewMode] = useState("cards"); // "cards" or "list"
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -98,21 +99,45 @@ export default function Customers() {
         </Button>
       </div>
 
-      <div className="relative">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-        <Input
-          placeholder="Search customers by name, email, phone, or company..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-9 border-slate-200"
-        />
+      <div className="flex gap-4 items-center">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            placeholder="Search customers by name, email, phone, or company..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 border-slate-200"
+          />
+        </div>
+        <div className="flex gap-1 border rounded-lg p-1">
+          <Button
+            variant={viewMode === "cards" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("cards")}
+          >
+            <Grid className="w-4 h-4" />
+          </Button>
+          <Button
+            variant={viewMode === "list" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+          >
+            <List className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       <CustomersList
         customers={filteredCustomers}
         isLoading={isLoading}
         onCustomerClick={setSelectedCustomer}
+        onDelete={(id) => {
+          if (confirm('Supprimer ce client ?')) {
+            deleteCustomerMutation.mutate(id);
+          }
+        }}
         jobs={jobs}
+        viewMode={viewMode}
       />
 
       {showDialog && (
