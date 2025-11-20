@@ -2,25 +2,26 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-        LayoutDashboard, 
-        Briefcase, 
-        Users, 
-        Calendar,
-        FileText,
-        UserCircle,
-        Menu,
-        X,
-        Settings,
-        Bell,
-        Search,
-        Package,
-        FileCheck,
-        DollarSign,
-        Clock,
-        MapPin,
-        BarChart3,
-        TrendingUp
-      } from "lucide-react";
+              LayoutDashboard, 
+              Briefcase, 
+              Users, 
+              Calendar,
+              FileText,
+              UserCircle,
+              Menu,
+              X,
+              Settings,
+              Bell,
+              Search,
+              Package,
+              FileCheck,
+              DollarSign,
+              Clock,
+              MapPin,
+              BarChart3,
+              TrendingUp,
+              Zap
+            } from "lucide-react";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 import {
   Sidebar,
@@ -96,6 +97,11 @@ const navigationItems = [
     title: "Soumissions",
     url: createPageUrl("FormSubmissions"),
     icon: FileText,
+  },
+  {
+    title: "Automatisations",
+    url: createPageUrl("FormAutomations"),
+    icon: Zap,
   },
   {
     title: "Rapports",
@@ -224,6 +230,7 @@ export default function Layout({ children, currentPageName }) {
       'forms': 'forms',
       'formbuilder': 'forms',
       'formsubmissions': 'forms',
+      'formautomations': 'forms',
       'reports': 'reports'
     };
 
