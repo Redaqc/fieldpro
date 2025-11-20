@@ -60,6 +60,11 @@ const navigationItems = [
     icon: Briefcase,
   },
   {
+    title: "Appels de Service",
+    url: createPageUrl("ServiceCalls"),
+    icon: UserCircle,
+  },
+  {
     title: "Schedule",
     url: createPageUrl("Schedule"),
     icon: Calendar,
