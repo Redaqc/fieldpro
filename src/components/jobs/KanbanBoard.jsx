@@ -126,17 +126,6 @@ export default function KanbanBoard({ jobs, onEditJob, currentUser }) {
                               }`}
                               onClick={() => onEditJob(job)}
                             >
-                              {/* Labels */}
-                              {job.labels && job.labels.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mb-2">
-                                  {job.labels.map((label, idx) => (
-                                    <Badge key={idx} variant="outline" className="text-xs">
-                                      {label}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
-
                               {/* Title */}
                               <h4 className="font-semibold text-sm mb-2 line-clamp-2">
                                 {job.title}
@@ -187,22 +176,11 @@ export default function KanbanBoard({ jobs, onEditJob, currentUser }) {
                                   </div>
                                 )}
 
-                                {/* Assigned Members */}
-                                {job.assigned_names && job.assigned_names.length > 0 && (
-                                  <div className="flex items-center gap-1">
-                                    <User className="w-3 h-3 text-slate-600" />
-                                    <div className="flex flex-wrap gap-1">
-                                      {job.assigned_names.slice(0, 2).map((name, idx) => (
-                                        <span key={idx} className="text-slate-700 text-xs">
-                                          {name}
-                                        </span>
-                                      ))}
-                                      {job.assigned_names.length > 2 && (
-                                        <span className="text-slate-500 text-xs">
-                                          +{job.assigned_names.length - 2}
-                                        </span>
-                                      )}
-                                    </div>
+                                {/* Assigned Technician */}
+                                {job.technician_name && (
+                                  <div className="flex items-center gap-1 text-slate-600">
+                                    <User className="w-3 h-3" />
+                                    <span className="text-xs">{job.technician_name}</span>
                                   </div>
                                 )}
                               </div>

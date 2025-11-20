@@ -13,24 +13,21 @@ import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
-export default function JobDialog({ open, onClose, job, users, currentUser }) {
+export default function JobDialog({ open, onClose, job, technicians, currentUser }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     status: 'todo',
     due_date: '',
     priority: 'medium',
-    labels: [],
-    assigned_to: [],
-    assigned_names: [],
-    trello_card_reference: '',
+    technician_id: '',
+    technician_name: '',
     checklist: [],
     comments: [],
     activity_log: [],
     attachments: [],
   });
 
-  const [newLabel, setNewLabel] = useState('');
   const [newComment, setNewComment] = useState('');
   const [uploadingFile, setUploadingFile] = useState(false);
 
@@ -40,9 +37,6 @@ export default function JobDialog({ open, onClose, job, users, currentUser }) {
     if (job) {
       setFormData({
         ...job,
-        labels: job.labels || [],
-        assigned_to: job.assigned_to || [],
-        assigned_names: job.assigned_names || [],
         checklist: job.checklist || [],
         comments: job.comments || [],
         activity_log: job.activity_log || [],
@@ -55,10 +49,8 @@ export default function JobDialog({ open, onClose, job, users, currentUser }) {
         status: 'todo',
         due_date: '',
         priority: 'medium',
-        labels: [],
-        assigned_to: [],
-        assigned_names: [],
-        trello_card_reference: '',
+        technician_id: '',
+        technician_name: '',
         checklist: [],
         comments: [],
         activity_log: [],
@@ -101,32 +93,7 @@ export default function JobDialog({ open, onClose, job, users, currentUser }) {
     }
   };
 
-  const addLabel = () => {
-    if (newLabel && !formData.labels.includes(newLabel)) {
-      const updatedLabels = [...formData.labels, newLabel];
-      setFormData({ ...formData, labels: updatedLabels });
-      setNewLabel('');
-      
-      if (job) {
-        updateJobMutation.mutate({
-          id: job.id,
-          data: { labels: updatedLabels },
-        });
-      }
-    }
-  };
 
-  const removeLabel = (label) => {
-    const updatedLabels = formData.labels.filter(l => l !== label);
-    setFormData({ ...formData, labels: updatedLabels });
-    
-    if (job) {
-      updateJobMutation.mutate({
-        id: job.id,
-        data: { labels: updatedLabels },
-      });
-    }
-  };
 
   const addChecklistGroup = () => {
     const newGroup = {
@@ -261,31 +228,7 @@ export default function JobDialog({ open, onClose, job, users, currentUser }) {
     }
   };
 
-  const toggleMember = (userId, userName) => {
-    const isAssigned = formData.assigned_to.includes(userId);
-    const updatedAssignedTo = isAssigned
-      ? formData.assigned_to.filter(id => id !== userId)
-      : [...formData.assigned_to, userId];
-    const updatedAssignedNames = isAssigned
-      ? formData.assigned_names.filter(name => name !== userName)
-      : [...formData.assigned_names, userName];
 
-    setFormData({
-      ...formData,
-      assigned_to: updatedAssignedTo,
-      assigned_names: updatedAssignedNames,
-    });
-
-    if (job) {
-      updateJobMutation.mutate({
-        id: job.id,
-        data: { 
-          assigned_to: updatedAssignedTo,
-          assigned_names: updatedAssignedNames,
-        },
-      });
-    }
-  };
 
   const getChecklistProgress = () => {
     const allItems = formData.checklist.flatMap(group => group.items || []);
@@ -297,39 +240,41 @@ export default function JobDialog({ open, onClose, job, users, currentUser }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-full sm:max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>{job ? 'Modifier le job' : 'Nouveau job'}</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">{job ? 'Modifier le job' : 'Nouveau job'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Title */}
           <div>
-            <Label>Titre *</Label>
+            <Label className="text-sm font-medium">Titre *</Label>
             <Input
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="Titre du job"
+              className="mt-1 h-11 text-base"
             />
           </div>
 
           {/* Description */}
           <div>
-            <Label>Description</Label>
+            <Label className="text-sm font-medium">Description</Label>
             <Textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Description détaillée..."
               rows={4}
+              className="mt-1 text-base"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Status */}
             <div>
-              <Label>Statut</Label>
+              <Label className="text-sm font-medium">Statut</Label>
               <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                <SelectTrigger>
+                <SelectTrigger className="mt-1 h-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -344,9 +289,9 @@ export default function JobDialog({ open, onClose, job, users, currentUser }) {
 
             {/* Priority */}
             <div>
-              <Label>Priorité</Label>
+              <Label className="text-sm font-medium">Priorité</Label>
               <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
-                <SelectTrigger>
+                <SelectTrigger className="mt-1 h-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -360,86 +305,60 @@ export default function JobDialog({ open, onClose, job, users, currentUser }) {
 
             {/* Due Date */}
             <div>
-              <Label>Date d'échéance</Label>
+              <Label className="text-sm font-medium">Date d'échéance</Label>
               <Input
                 type="date"
                 value={formData.due_date}
                 onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                className="mt-1 h-11"
               />
             </div>
 
-            {/* Trello Reference */}
+            {/* Technician */}
             <div>
-              <Label>Référence Trello</Label>
-              <Input
-                value={formData.trello_card_reference}
-                onChange={(e) => setFormData({ ...formData, trello_card_reference: e.target.value })}
-                placeholder="URL ou ID Trello"
-              />
-            </div>
-          </div>
-
-          {/* Labels */}
-          <div>
-            <Label>Labels</Label>
-            <div className="flex gap-2 flex-wrap mb-2">
-              {formData.labels.map((label, idx) => (
-                <Badge key={idx} variant="outline" className="gap-1">
-                  {label}
-                  <X className="w-3 h-3 cursor-pointer" onClick={() => removeLabel(label)} />
-                </Badge>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                value={newLabel}
-                onChange={(e) => setNewLabel(e.target.value)}
-                placeholder="Nouveau label"
-                onKeyDown={(e) => e.key === 'Enter' && addLabel()}
-              />
-              <Button onClick={addLabel} size="sm">
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Members */}
-          <div>
-            <Label>Membres assignés</Label>
-            <div className="flex gap-2 flex-wrap mt-2">
-              {users.map(user => {
-                const isAssigned = formData.assigned_to.includes(user.id);
-                return (
-                  <Badge
-                    key={user.id}
-                    variant={isAssigned ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => toggleMember(user.id, user.full_name)}
-                  >
-                    {user.full_name}
-                  </Badge>
-                );
-              })}
+              <Label className="text-sm font-medium">Technicien assigné</Label>
+              <Select 
+                value={formData.technician_id} 
+                onValueChange={(value) => {
+                  const tech = technicians.find(t => t.id === value);
+                  setFormData({ 
+                    ...formData, 
+                    technician_id: value,
+                    technician_name: tech ? `${tech.first_name} ${tech.last_name}` : ''
+                  });
+                }}
+              >
+                <SelectTrigger className="mt-1 h-11">
+                  <SelectValue placeholder="Sélectionner un technicien" />
+                </SelectTrigger>
+                <SelectContent>
+                  {technicians.map(tech => (
+                    <SelectItem key={tech.id} value={tech.id}>
+                      {tech.first_name} {tech.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <Tabs defaultValue="checklist" className="w-full">
-            <TabsList>
-              <TabsTrigger value="checklist" className="flex items-center gap-2">
+            <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full h-auto">
+              <TabsTrigger value="checklist" className="flex items-center gap-1 sm:gap-2 py-2.5">
                 <CheckSquare className="w-4 h-4" />
-                Checklist
+                <span className="text-xs sm:text-sm">Checklist</span>
               </TabsTrigger>
-              <TabsTrigger value="attachments" className="flex items-center gap-2">
+              <TabsTrigger value="attachments" className="flex items-center gap-1 sm:gap-2 py-2.5">
                 <Paperclip className="w-4 h-4" />
-                Pièces jointes ({formData.attachments?.length || 0})
+                <span className="text-xs sm:text-sm">Fichiers ({formData.attachments?.length || 0})</span>
               </TabsTrigger>
-              <TabsTrigger value="comments" className="flex items-center gap-2">
+              <TabsTrigger value="comments" className="flex items-center gap-1 sm:gap-2 py-2.5">
                 <MessageSquare className="w-4 h-4" />
-                Commentaires ({formData.comments?.length || 0})
+                <span className="text-xs sm:text-sm">Commentaires ({formData.comments?.length || 0})</span>
               </TabsTrigger>
-              <TabsTrigger value="activity" className="flex items-center gap-2">
+              <TabsTrigger value="activity" className="flex items-center gap-1 sm:gap-2 py-2.5">
                 <Activity className="w-4 h-4" />
-                Activité
+                <span className="text-xs sm:text-sm">Activité</span>
               </TabsTrigger>
             </TabsList>
 
@@ -566,11 +485,11 @@ export default function JobDialog({ open, onClose, job, users, currentUser }) {
             </TabsContent>
           </Tabs>
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={onClose}>
+          <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={onClose} className="h-11 text-base">
               Annuler
             </Button>
-            <Button onClick={handleSave} disabled={!formData.title}>
+            <Button onClick={handleSave} disabled={!formData.title} className="h-11 text-base">
               {job ? 'Sauvegarder' : 'Créer'}
             </Button>
           </div>

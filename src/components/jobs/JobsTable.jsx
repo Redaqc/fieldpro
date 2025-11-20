@@ -100,8 +100,7 @@ export default function JobsTable({ jobs, onEditJob }) {
                     <ArrowUpDown className="w-4 h-4" />
                   </div>
                 </th>
-                <th className="text-left p-3">Assignés</th>
-                <th className="text-left p-3">Labels</th>
+                <th className="text-left p-3">Technicien</th>
                 <th className="text-left p-3">Progression</th>
               </tr>
             </thead>
@@ -147,27 +146,13 @@ export default function JobsTable({ jobs, onEditJob }) {
                       )}
                     </td>
                     <td className="p-3">
-                      <div className="flex flex-wrap gap-1">
-                        {job.assigned_names?.map((name, idx) => (
-                          <Badge key={idx} variant="outline" className="text-xs">
-                            {name}
-                          </Badge>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex flex-wrap gap-1">
-                        {job.labels?.slice(0, 2).map((label, idx) => (
-                          <Badge key={idx} variant="outline" className="text-xs">
-                            {label}
-                          </Badge>
-                        ))}
-                        {job.labels?.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{job.labels.length - 2}
-                          </Badge>
-                        )}
-                      </div>
+                      {job.technician_name ? (
+                        <Badge variant="outline" className="text-xs">
+                          {job.technician_name}
+                        </Badge>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
                     </td>
                     <td className="p-3">
                       {allChecklistItems.length > 0 ? (

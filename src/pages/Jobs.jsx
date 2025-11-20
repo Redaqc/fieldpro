@@ -27,9 +27,9 @@ export default function Jobs() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: users = [] } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => base44.entities.User.list(),
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['technicians'],
+    queryFn: () => base44.entities.Technician.list(),
     initialData: [],
   });
 
@@ -101,7 +101,7 @@ export default function Jobs() {
           setSelectedJob(null);
         }}
         job={selectedJob}
-        users={users}
+        technicians={technicians}
         currentUser={currentUser}
       />
     </div>

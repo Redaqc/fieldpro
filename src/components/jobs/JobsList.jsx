@@ -123,10 +123,10 @@ export default function JobsList({ jobs, onEditJob }) {
                       </div>
                     )}
 
-                    {job.assigned_names && job.assigned_names.length > 0 && (
+                    {job.technician_name && (
                       <div className="flex items-center gap-1">
                         <User className="w-4 h-4" />
-                        <span>{job.assigned_names.join(', ')}</span>
+                        <span>{job.technician_name}</span>
                       </div>
                     )}
 
@@ -142,15 +142,7 @@ export default function JobsList({ jobs, onEditJob }) {
                   </div>
                 </div>
 
-                {job.labels && job.labels.length > 0 && (
-                  <div className="flex flex-wrap gap-1 ml-4">
-                    {job.labels.map((label, idx) => (
-                      <Badge key={idx} variant="outline" className="text-xs">
-                        {label}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
+
               </div>
             </Card>
           );
