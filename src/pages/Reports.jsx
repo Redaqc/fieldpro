@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { BarChart3, TrendingUp, Clock, DollarSign, Users, FileText, MapPin, AlertTriangle, Download, BarChart2, PhoneCall } from "lucide-react";
+import { BarChart3, TrendingUp, Clock, DollarSign, Users, FileText, MapPin, AlertTriangle, Download, BarChart2, PhoneCall, Briefcase, Package, Percent, Wrench, Calendar, CheckSquare, Receipt, CreditCard, Activity } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
@@ -14,15 +14,22 @@ import { format, endOfDay, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 
-const REPORTS = [
-  { id: 'time_tracking', name: 'Rapports de Temps', description: 'Analyse du temps passé par technicien et projet', icon: Clock, color: 'bg-blue-500', isTab: true },
-  { id: 'profitability', name: 'Rentabilité', description: 'Analyse de rentabilité des projets', icon: TrendingUp, color: 'bg-green-500', page: 'ProfitabilityReports' },
-  { id: 'costs', name: 'Gestion des Coûts', description: 'Suivi des dépenses et factures fournisseurs', icon: DollarSign, color: 'bg-orange-500', page: 'CostsManagement' },
-  { id: 'team_performance', name: 'Performance Équipe', description: 'Statistiques de performance des techniciens', icon: Users, color: 'bg-purple-500', page: 'Team' },
-  { id: 'invoices', name: 'Facturation', description: 'Rapports de facturation et paiements', icon: FileText, color: 'bg-indigo-500', page: 'Invoices' },
-  { id: 'gps_tracking', name: 'Suivi GPS', description: 'Rapports de localisation et déplacements', icon: MapPin, color: 'bg-teal-500', page: 'GPSTracking' },
-  { id: 'safety_forms', name: 'Formulaires Sécurité', description: 'Rapports des inspections et incidents', icon: AlertTriangle, color: 'bg-red-500', page: 'Forms' },
-  { id: 'documents', name: 'Documents', description: 'Vue d\'ensemble des documents', icon: FileText, color: 'bg-cyan-500', page: 'Documents' },
+const WORKIZ_REPORTS = [
+  { id: 'jobs', name: 'Jobs', description: 'Rapports complets sur les jobs', icon: Briefcase, color: 'from-blue-500 to-blue-600', isTab: true },
+  { id: 'sales', name: 'Ventes', description: 'Analyse des ventes et revenus', icon: DollarSign, color: 'from-green-500 to-green-600', isTab: true },
+  { id: 'job_statistics', name: 'Statistiques Jobs', description: 'Métriques détaillées des jobs', icon: BarChart3, color: 'from-purple-500 to-purple-600', isTab: true },
+  { id: 'payments', name: 'Paiements', description: 'Suivi des paiements reçus', icon: CreditCard, color: 'from-indigo-500 to-indigo-600', isTab: true },
+  { id: 'activity', name: 'Activité', description: 'Journal d\'activité du système', icon: Activity, color: 'from-pink-500 to-pink-600', isTab: true },
+  { id: 'estimates', name: 'Soumissions', description: 'Rapports sur les soumissions', icon: FileText, color: 'from-orange-500 to-orange-600', page: 'Quotations' },
+  { id: 'invoices', name: 'Factures', description: 'Rapports de facturation', icon: Receipt, color: 'from-cyan-500 to-cyan-600', page: 'Invoices' },
+  { id: 'aging_invoices', name: 'Factures en souffrance', description: 'Factures impayées', icon: AlertTriangle, color: 'from-red-500 to-red-600', isTab: true },
+  { id: 'timesheets', name: 'Feuilles de temps', description: 'Rapports de temps', icon: Clock, color: 'from-teal-500 to-teal-600', page: 'TimeTracking' },
+  { id: 'items_services', name: 'Items et services', description: 'Inventaire et services', icon: Package, color: 'from-amber-500 to-amber-600', page: 'Materials' },
+  { id: 'tasks', name: 'Tâches', description: 'Suivi des tâches', icon: CheckSquare, color: 'from-lime-500 to-lime-600', isTab: true },
+  { id: 'tax', name: 'Taxes', description: 'Rapports fiscaux', icon: Percent, color: 'from-rose-500 to-rose-600', isTab: true },
+  { id: 'equipment', name: 'Équipement', description: 'Gestion équipement', icon: Wrench, color: 'from-sky-500 to-sky-600', page: 'Assets' },
+  { id: 'profitability', name: 'Rentabilité', description: 'Analyse rentabilité', icon: TrendingUp, color: 'from-emerald-500 to-emerald-600', page: 'ProfitabilityReports' },
+  { id: 'costs', name: 'Coûts', description: 'Gestion des coûts', icon: DollarSign, color: 'from-violet-500 to-violet-600', page: 'CostsManagement' },
 ];
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
@@ -238,65 +245,52 @@ export default function Reports() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Rapports</h1>
-        <p className="text-slate-500 mt-1">Rapports analytiques et suivi du temps</p>
+        <p className="text-slate-500 mt-1">Centre de rapports et analyses</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="hub" className="flex items-center gap-2">
+        <TabsList className="flex-wrap h-auto bg-white border shadow-sm p-1">
+          <TabsTrigger value="workiz" className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
             <BarChart2 className="w-4 h-4" />
-            Hub
+            Rapports Workiz
           </TabsTrigger>
-          <TabsTrigger value="jobs" className="flex items-center gap-2">
+          <TabsTrigger value="custom" className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
             <FileText className="w-4 h-4" />
-            Jobs
-          </TabsTrigger>
-          <TabsTrigger value="servicecalls" className="flex items-center gap-2">
-            <PhoneCall className="w-4 h-4" />
-            Appels
-          </TabsTrigger>
-          <TabsTrigger value="time" className="flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            Temps
-          </TabsTrigger>
-          <TabsTrigger value="profitability" className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Rentabilité
+            Rapports personnalisés
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="hub" className="space-y-6 mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {REPORTS.map(report => {
+        <TabsContent value="workiz" className="space-y-6 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {WORKIZ_REPORTS.map(report => {
               const Icon = report.icon;
-              const handleClick = () => {
-                if (report.isTab) {
-                  setActiveTab('time');
-                }
-              };
               
-              return report.isTab ? (
-                <Card key={report.id} onClick={handleClick} className="hover:shadow-xl transition-all duration-200 cursor-pointer group h-full">
-                  <CardContent className="p-6 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`${report.color} w-12 h-12 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-6 h-6 text-white" />
+              if (report.isTab) {
+                return (
+                  <Card 
+                    key={report.id} 
+                    onClick={() => setActiveTab(report.id)}
+                    className="cursor-pointer hover:shadow-xl transition-all duration-200 group border-2 hover:border-blue-300 hover:scale-105"
+                  >
+                    <CardContent className="p-6">
+                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${report.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg`}>
+                        <Icon className="w-8 h-8 text-white" />
                       </div>
-                      <h3 className="text-lg font-semibold">{report.name}</h3>
-                    </div>
-                    <p className="text-sm text-slate-600">{report.description}</p>
-                  </CardContent>
-                </Card>
-              ) : (
+                      <h3 className="text-lg font-bold text-slate-900 mb-2">{report.name}</h3>
+                      <p className="text-sm text-slate-600">{report.description}</p>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              
+              return (
                 <Link key={report.id} to={createPageUrl(report.page)}>
-                  <Card className="hover:shadow-xl transition-all duration-200 cursor-pointer group h-full">
-                    <CardContent className="p-6 space-y-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`${report.color} w-12 h-12 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                          <Icon className="w-6 h-6 text-white" />
-                        </div>
-                        <h3 className="text-lg font-semibold">{report.name}</h3>
+                  <Card className="cursor-pointer hover:shadow-xl transition-all duration-200 group border-2 hover:border-blue-300 hover:scale-105 h-full">
+                    <CardContent className="p-6">
+                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${report.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg`}>
+                        <Icon className="w-8 h-8 text-white" />
                       </div>
+                      <h3 className="text-lg font-bold text-slate-900 mb-2">{report.name}</h3>
                       <p className="text-sm text-slate-600">{report.description}</p>
                     </CardContent>
                   </Card>
@@ -304,30 +298,187 @@ export default function Reports() {
               );
             })}
           </div>
+        </TabsContent>
 
-          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <TabsContent value="custom" className="space-y-6 mt-6">
+          <Card className="border-2 border-dashed border-slate-300">
+            <CardContent className="p-12 text-center">
+              <BarChart2 className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+              <h3 className="text-xl font-bold text-slate-700 mb-2">Rapports personnalisés</h3>
+              <p className="text-slate-500 mb-6">Créez vos propres rapports personnalisés avec les données dont vous avez besoin</p>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                Créer un rapport
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+
+
+        <TabsContent value="sales" className="space-y-6 mt-6">
+          <Card>
             <CardContent className="p-6">
-              <h3 className="text-xl font-bold text-blue-900 mb-4">Export de Données</h3>
-              <p className="text-blue-700 mb-4">
-                Tous les rapports peuvent être exportés au format CSV pour une analyse approfondie dans Excel ou d'autres outils.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white rounded-lg p-4 border border-blue-200">
-                  <p className="font-semibold text-blue-900 mb-1">Temps</p>
-                  <p className="text-sm text-blue-600">Filtrez par date, technicien, job</p>
-                </div>
-                <div className="bg-white rounded-lg p-4 border border-blue-200">
-                  <p className="font-semibold text-blue-900 mb-1">Factures</p>
-                  <p className="text-sm text-blue-600">Export par client, payé/non payé</p>
-                </div>
-                <div className="bg-white rounded-lg p-4 border border-blue-200">
-                  <p className="font-semibold text-blue-900 mb-1">Visualisations</p>
-                  <p className="text-sm text-blue-600">Graphiques interactifs</p>
-                </div>
-                <div className="bg-white rounded-lg p-4 border border-blue-200">
-                  <p className="font-semibold text-blue-900 mb-1">Export CSV</p>
-                  <p className="text-sm text-blue-600">Téléchargement instantané</p>
-                </div>
+              <h2 className="text-2xl font-bold mb-6">Rapport des ventes</h2>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <Card className="border-l-4 border-green-500">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-slate-500">Ventes totales</p>
+                    <p className="text-2xl font-bold text-green-600">{totalRevenue.toFixed(2)} $</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-l-4 border-blue-500">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-slate-500">Factures payées</p>
+                    <p className="text-2xl font-bold text-blue-600">{invoices.filter(i => i.status === 'paid').length}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-l-4 border-orange-500">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-slate-500">En attente</p>
+                    <p className="text-2xl font-bold text-orange-600">{invoices.filter(i => i.status === 'pending').length}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-l-4 border-purple-500">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-slate-500">Marge moyenne</p>
+                    <p className="text-2xl font-bold text-purple-600">{avgMargin.toFixed(1)} %</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="job_statistics" className="space-y-6 mt-6">
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-bold mb-6">Statistiques des jobs</h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie data={jobsByStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                    {jobsByStatus.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="payments" className="space-y-6 mt-6">
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-bold mb-6">Paiements reçus</h2>
+              <div className="space-y-3">
+                {invoices.filter(i => i.status === 'paid').slice(0, 10).map(invoice => (
+                  <div key={invoice.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50">
+                    <div>
+                      <p className="font-semibold">{invoice.invoice_number}</p>
+                      <p className="text-sm text-slate-600">{invoice.customer_name}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-green-600">{invoice.total} $</p>
+                      <p className="text-xs text-slate-500">{invoice.paid_date && format(new Date(invoice.paid_date), 'dd MMM yyyy')}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="activity" className="space-y-6 mt-6">
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-bold mb-6">Activité système</h2>
+              <div className="space-y-2">
+                {jobs.slice(0, 20).map(job => (
+                  <div key={job.id} className="flex items-center gap-3 p-3 border-l-4 border-blue-500 bg-slate-50 rounded">
+                    <Activity className="w-4 h-4 text-blue-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{job.title}</p>
+                      <p className="text-xs text-slate-600">Statut: {job.status}</p>
+                    </div>
+                    <p className="text-xs text-slate-500">{job.updated_date && format(new Date(job.updated_date), 'dd/MM HH:mm')}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="aging_invoices" className="space-y-6 mt-6">
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-bold mb-6">Factures en souffrance</h2>
+              <div className="space-y-3">
+                {invoices.filter(i => i.status === 'overdue').map(invoice => (
+                  <div key={invoice.id} className="flex items-center justify-between p-4 border-l-4 border-red-500 bg-red-50 rounded-lg">
+                    <div>
+                      <p className="font-semibold">{invoice.invoice_number}</p>
+                      <p className="text-sm text-slate-600">{invoice.customer_name}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-red-600">{invoice.total} $</p>
+                      <p className="text-xs text-red-500">En retard depuis {invoice.due_date && Math.floor((new Date() - new Date(invoice.due_date)) / (1000 * 60 * 60 * 24))} jours</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="tasks" className="space-y-6 mt-6">
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-bold mb-6">Rapport des tâches</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {jobs.flatMap(j => j.checklist || []).slice(0, 20).map((group, idx) => (
+                  <Card key={idx} className="border">
+                    <CardContent className="p-4">
+                      <p className="font-semibold mb-2">{group.name}</p>
+                      <p className="text-sm text-slate-600">{group.items?.filter(i => i.completed).length || 0} / {group.items?.length || 0} complétées</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="tax" className="space-y-6 mt-6">
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-bold mb-6">Rapport fiscal</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="border-l-4 border-blue-500">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-slate-500">TPS collectée</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {invoices.reduce((sum, i) => sum + (i.tps || 0), 0).toFixed(2)} $
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="border-l-4 border-green-500">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-slate-500">TVQ collectée</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {invoices.reduce((sum, i) => sum + (i.tvq || 0), 0).toFixed(2)} $
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="border-l-4 border-purple-500">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-slate-500">Total taxes</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {invoices.reduce((sum, i) => sum + (i.tps || 0) + (i.tvq || 0), 0).toFixed(2)} $
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
             </CardContent>
           </Card>
