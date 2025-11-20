@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, CheckSquare, AlertCircle } from "lucide-react";
+import { Calendar, User, CheckSquare, AlertCircle, MapPin, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
@@ -103,80 +103,113 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
 
                       return (
                         <Draggable key={call.id} draggableId={call.id} index={index}>
-                          {(provided, snapshot) => (
-                            <Card
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`mb-3 p-4 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02] border-l-4 ${
-                                snapshot.isDragging ? 'shadow-2xl rotate-3 scale-105 ring-2 ring-blue-400' : ''
-                              }`}
-                              style={{
-                                borderLeftColor: call.work_type_color || '#0074D9',
-                                ...provided.draggableProps.style
-                              }}
-                              onClick={() => onEditCall(call)}
-                            >
-                              <div className="space-y-3">
-                                {call.work_type_name && (
-                                  <Badge 
-                                    className="text-white text-xs font-medium shadow-sm"
-                                    style={{ backgroundColor: call.work_type_color || '#0074D9' }}
-                                  >
-                                    {call.work_type_name}
-                                  </Badge>
-                                )}
+                         {(provided, snapshot) => (
+                           <Card
+                             ref={provided.innerRef}
+                             {...provided.draggableProps}
+                             {...provided.dragHandleProps}
+                             className={`mb-3 cursor-pointer hover:shadow-lg transition-all duration-200 ${
+                               snapshot.isDragging ? 'shadow-xl ring-2 ring-blue-400 scale-105' : ''
+                             } bg-white`}
+                             style={provided.draggableProps.style}
+                             onClick={() => onEditCall(call)}
+                           >
+                             {/* Header with Job ID and edit icon */}
+                             <div className="px-3 pt-3 pb-2 border-b border-slate-100">
+                               <div className="flex items-center justify-between">
+                                 <span className="text-xs text-slate-500 font-semibold">Job ID: {call.call_number || call.id.slice(0, 5)}</span>
+                                 <Edit className="w-3 h-3 text-slate-400" />
+                               </div>
+                             </div>
 
-                                <h4 className="font-bold text-base mb-2 line-clamp-2 leading-tight text-slate-900">
-                                  {call.title}
-                                </h4>
+                             {/* Content */}
+                             <div className="p-3 space-y-3">
+                               {/* Client */}
+                               {call.customer_name && (
+                                 <div>
+                                   <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wide mb-1">CLIENT</p>
+                                   <div className="flex items-center gap-2 text-sm text-slate-700">
+                                     <User className="w-4 h-4 text-slate-400" />
+                                     <span className="font-medium">{call.customer_name}</span>
+                                   </div>
+                                 </div>
+                               )}
 
-                                {call.customer_name && (
-                                  <p className="text-xs text-slate-600 font-medium">
-                                    👤 {call.customer_name}
-                                  </p>
-                                )}
+                               {/* Scheduled */}
+                               {(call.start_date || call.due_date) && (
+                                 <div>
+                                   <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wide mb-1">SCHEDULED</p>
+                                   <div className="flex items-center gap-2 text-xs text-slate-600">
+                                     <Calendar className="w-4 h-4 text-slate-400" />
+                                     <span>
+                                       {call.start_date && format(new Date(call.start_date), 'EEE MMM d h:mm a')}
+                                       {call.start_date && call.due_date && ' - '}
+                                       {call.due_date && !call.start_date && format(new Date(call.due_date), 'EEE MMM d h:mm a')}
+                                       {call.due_date && call.start_date && format(new Date(call.due_date), 'h:mm a')}
+                                     </span>
+                                   </div>
+                                 </div>
+                               )}
 
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    {call.priority && (
-                                      <Badge className={`${priorityColors[call.priority]} text-xs font-medium`}>
-                                        {call.priority === 'low' ? '🔵 Basse' : 
-                                         call.priority === 'medium' ? '🟡 Moyenne' : 
-                                         call.priority === 'high' ? '🟠 Haute' : '🔴 Urgente'}
-                                      </Badge>
-                                    )}
-                                    {overdue && (
-                                      <Badge className="bg-red-500 text-white flex items-center gap-1 shadow-sm">
-                                        <AlertCircle className="w-3 h-3" />
-                                        En retard
-                                      </Badge>
-                                    )}
-                                  </div>
+                               {/* Status */}
+                               <div>
+                                 <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wide mb-1">STATUS</p>
+                                 <Badge className={`${
+                                   call.status === 'in_progress' ? 'bg-orange-500' :
+                                   call.status === 'completed' ? 'bg-green-500' :
+                                   call.status === 'review' ? 'bg-purple-500' : 'bg-slate-400'
+                                 } text-white text-xs font-medium`}>
+                                   {call.status === 'todo' ? 'À faire' :
+                                    call.status === 'in_progress' ? 'En cours' :
+                                    call.status === 'review' ? 'En révision' : 
+                                    call.status === 'completed' ? 'Terminé' : 'Archivé'}
+                                 </Badge>
+                               </div>
 
-                                  {call.due_date && (
-                                    <div className={`flex items-center gap-1.5 text-xs ${overdue ? 'text-red-600 font-semibold' : 'text-slate-600'}`}>
-                                      <Calendar className="w-3.5 h-3.5" />
-                                      {format(new Date(call.due_date), 'dd MMM yyyy')}
-                                    </div>
-                                  )}
+                               {/* Title */}
+                               <h4 className="font-bold text-base text-slate-900 line-clamp-2 leading-tight">
+                                 {call.title}
+                               </h4>
 
-                                  {call.technicians && call.technicians.length > 0 && (
-                                    <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                                      <User className="w-3.5 h-3.5" />
-                                      <span className="font-medium">{call.technicians.length} technicien{call.technicians.length > 1 ? 's' : ''}</span>
-                                    </div>
-                                  )}
+                               {/* Address */}
+                               {(call.location || call.project_addresses?.[0]) && (
+                                 <div>
+                                   <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wide mb-1">ADDRESS</p>
+                                   <div className="flex items-start gap-2 text-xs text-slate-600">
+                                     <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                                     <span className="line-clamp-2">{call.location || call.project_addresses[0]}</span>
+                                   </div>
+                                 </div>
+                               )}
 
-                                  {call.total_time_spent > 0 && (
-                                    <div className="flex items-center gap-1.5 text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-1 rounded">
-                                      ⏱️ {call.total_time_spent}h
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </Card>
-                          )}
+                               {/* Assigned Tech */}
+                               {call.technicians && call.technicians.length > 0 && (
+                                 <div>
+                                   <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wide mb-1">ASSIGNED TECH</p>
+                                   <div className="flex items-center gap-2 text-xs text-slate-600">
+                                     <User className="w-4 h-4 text-slate-400" />
+                                     <span className="font-medium">{call.technicians.map(t => t.name).join(', ')}</span>
+                                   </div>
+                                 </div>
+                               )}
+                             </div>
+
+                             {/* Footer with Labels */}
+                             {call.labels && call.labels.length > 0 && (
+                               <div className="px-3 pb-3 flex flex-wrap gap-1">
+                                 {call.labels.map((label, idx) => (
+                                   <Badge 
+                                     key={idx}
+                                     className="text-white text-xs font-medium"
+                                     style={{ backgroundColor: label.color }}
+                                   >
+                                     {label.name}
+                                   </Badge>
+                                 ))}
+                               </div>
+                             )}
+                           </Card>
+                         )}
                         </Draggable>
                       );
                     })}
