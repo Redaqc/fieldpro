@@ -685,19 +685,36 @@ export default function Layout({ children, currentPageName }) {
                 <div className="h-6 w-px bg-slate-200 mx-1" />
 
                 {/* User Profile */}
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                    {user?.full_name?.[0] || 'U'}
-                  </div>
-                  <div className="hidden sm:block">
-                    <p className="text-sm font-medium text-slate-900 leading-none">
-                      {user?.full_name || 'User'}
-                    </p>
-                    <p className="text-xs text-slate-500 leading-none mt-0.5">
-                      {user?.role === 'admin' ? 'Super Admin' : currentTech?.role || 'User'}
-                    </p>
-                  </div>
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-auto p-1.5 hover:bg-slate-50">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                          {user?.full_name?.[0] || 'U'}
+                        </div>
+                        <div className="hidden sm:block text-left">
+                          <p className="text-sm font-medium text-slate-900 leading-none">
+                            {user?.full_name || 'User'}
+                          </p>
+                          <p className="text-xs text-slate-500 leading-none mt-0.5">
+                            {user?.role === 'admin' ? 'Super Admin' : currentTech?.role || 'User'}
+                          </p>
+                        </div>
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onClick={() => window.location.href = createPageUrl("Settings")} className="cursor-pointer">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Paramètres
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => base44.auth.logout()} className="text-red-600 cursor-pointer">
+                      <X className="w-4 h-4 mr-2" />
+                      Déconnexion
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </header>
