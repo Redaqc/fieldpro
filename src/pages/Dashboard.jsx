@@ -17,11 +17,19 @@ import WidgetProjectProgress from "@/components/dashboard/WidgetProjectProgress"
 import WidgetFinancialIndicators from "@/components/dashboard/WidgetFinancialIndicators";
 import AlertsPanel from "@/components/shared/AlertsPanel";
 import WidgetAlerts from "@/components/dashboard/WidgetAlerts";
+import InvoicesDueWidget from "@/components/dashboard/InvoicesDueWidget";
+import JobsByStatusWidget from "@/components/dashboard/JobsByStatusWidget";
+import RecentActivitiesWidget from "@/components/dashboard/RecentActivitiesWidget";
+import PaymentsChartWidget from "@/components/dashboard/PaymentsChartWidget";
+import TopClientsWidget from "@/components/dashboard/TopClientsWidget";
+import StockAlertWidget from "@/components/dashboard/StockAlertWidget";
+import SalesVsCostWidget from "@/components/dashboard/SalesVsCostWidget";
+import OverdueJobsWidget from "@/components/dashboard/OverdueJobsWidget";
 
 const DEFAULT_VIEWS = {
-  admin: ['alerts', 'urgent_jobs', 'financial_indicators', 'project_progress', 'tasks_by_technician', 'jobs_by_status', 'monthly_revenue', 'technician_performance', 'invoice_summary'],
-  manager: ['alerts', 'urgent_jobs', 'project_progress', 'tasks_by_technician', 'jobs_by_status', 'financial_indicators', 'technician_performance'],
-  technician: ['urgent_jobs', 'tasks_by_technician', 'jobs_by_status', 'project_progress'],
+  admin: ['invoices_due', 'jobs_by_status_new', 'recent_activities', 'payments_chart', 'top_clients', 'stock_alert', 'sales_vs_cost', 'overdue_jobs_new', 'financial_indicators', 'tasks_by_technician', 'technician_performance'],
+  manager: ['invoices_due', 'jobs_by_status_new', 'overdue_jobs_new', 'sales_vs_cost', 'tasks_by_technician', 'payments_chart', 'stock_alert'],
+  technician: ['tasks_by_technician', 'jobs_by_status_new', 'overdue_jobs_new', 'recent_activities'],
 };
 
 export default function Dashboard() {
@@ -59,6 +67,24 @@ export default function Dashboard() {
   const { data: supplierInvoices = [] } = useQuery({
     queryKey: ['supplierInvoices'],
     queryFn: () => base44.entities.SupplierInvoice.list(),
+    initialData: [],
+  });
+
+  const { data: payments = [] } = useQuery({
+    queryKey: ['payments'],
+    queryFn: () => base44.entities.Payment.list(),
+    initialData: [],
+  });
+
+  const { data: quotations = [] } = useQuery({
+    queryKey: ['quotations'],
+    queryFn: () => base44.entities.Quotation.list(),
+    initialData: [],
+  });
+
+  const { data: materials = [] } = useQuery({
+    queryKey: ['materials'],
+    queryFn: () => base44.entities.Material.list(),
     initialData: [],
   });
 
@@ -114,6 +140,22 @@ export default function Dashboard() {
 
   const renderWidget = (widgetType) => {
     switch (widgetType) {
+      case 'invoices_due':
+        return <InvoicesDueWidget key={widgetType} invoices={invoices} />;
+      case 'jobs_by_status_new':
+        return <JobsByStatusWidget key={widgetType} jobs={jobs} />;
+      case 'recent_activities':
+        return <RecentActivitiesWidget key={widgetType} invoices={invoices} quotations={quotations} expenses={supplierInvoices} />;
+      case 'payments_chart':
+        return <PaymentsChartWidget key={widgetType} payments={payments} />;
+      case 'top_clients':
+        return <TopClientsWidget key={widgetType} customers={customers} invoices={invoices} />;
+      case 'stock_alert':
+        return <StockAlertWidget key={widgetType} materials={materials} />;
+      case 'sales_vs_cost':
+        return <SalesVsCostWidget key={widgetType} invoices={invoices} jobs={jobs} />;
+      case 'overdue_jobs_new':
+        return <OverdueJobsWidget key={widgetType} jobs={jobs} />;
       case 'alerts':
         return <WidgetAlerts key={widgetType} />;
       case 'urgent_jobs':
