@@ -116,6 +116,7 @@ export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -177,7 +178,102 @@ export default function Layout({ children, currentPageName }) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-slate-50">
-        <Sidebar className="border-r border-slate-200 bg-white">
+        {/* Mobile Overlay */}
+        {mobileMenuOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+
+        {/* Mobile Sidebar */}
+        <div className={`
+          fixed inset-y-0 left-0 z-50 w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out lg:hidden
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}>
+          <div className="flex flex-col h-full">
+            {/* Mobile Header */}
+            <div className="border-b border-slate-100 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <Briefcase className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-lg text-slate-900">FieldPro</h2>
+                    <p className="text-xs text-slate-500">FSM System</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="h-10 w-10 rounded-full"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+              
+              {/* User Profile in Mobile */}
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50">
+                <div className="w-12 h-12 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full flex items-center justify-center">
+                  <span className="text-slate-700 font-semibold text-base">
+                    {user?.full_name?.[0] || 'U'}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-900 text-sm truncate">
+                    {user?.full_name || 'User'}
+                  </p>
+                  <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Mobile Menu Items */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <nav className="space-y-1">
+                {filteredNavigation.map((item) => {
+                  const isActive = location.pathname === item.url;
+                  return (
+                    <Link
+                      key={item.title}
+                      to={item.url}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`
+                        flex items-center gap-4 px-4 py-4 rounded-xl transition-all duration-200 touch-manipulation
+                        ${isActive 
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30' 
+                          : 'text-slate-700 hover:bg-slate-100 active:bg-slate-200'
+                        }
+                      `}
+                    >
+                      <item.icon className={`w-6 h-6 ${isActive ? 'text-white' : 'text-slate-600'}`} />
+                      <span className={`font-medium text-base ${isActive ? 'text-white' : 'text-slate-900'}`}>
+                        {item.title}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* Mobile Footer */}
+            <div className="border-t border-slate-100 p-4">
+              <Button
+                variant="ghost"
+                onClick={() => base44.auth.logout()}
+                className="w-full justify-start gap-3 h-12 text-base"
+              >
+                <Settings className="w-5 h-5 text-slate-600" />
+                <span>Déconnexion</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Sidebar */}
+        <Sidebar className="border-r border-slate-200 bg-white hidden lg:flex">
           <SidebarHeader className="border-b border-slate-100 p-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm">
@@ -243,14 +339,22 @@ export default function Layout({ children, currentPageName }) {
         </Sidebar>
 
         <main className="flex-1 flex flex-col">
-          <header className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10">
+          <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 sticky top-0 z-30">
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <SidebarTrigger className="lg:hidden hover:bg-slate-100 p-2 rounded-lg transition-colors duration-200" />
-                <h1 className="text-xl font-bold text-slate-900 hidden sm:block">{currentPageName}</h1>
+              <div className="flex items-center gap-3">
+                {/* Mobile Hamburger */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="lg:hidden h-10 w-10 rounded-lg hover:bg-slate-100 active:bg-slate-200 transition-colors"
+                >
+                  <Menu className="w-6 h-6 text-slate-700" />
+                </Button>
+                <h1 className="text-lg sm:text-xl font-bold text-slate-900">{currentPageName}</h1>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div className="relative hidden md:block">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <Input 
@@ -261,12 +365,12 @@ export default function Layout({ children, currentPageName }) {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="relative"
+                  className="relative h-10 w-10 rounded-lg hover:bg-slate-100"
                   onClick={() => setNotificationOpen(true)}
                 >
                   <Bell className="w-5 h-5 text-slate-600" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center font-semibold">
+                    <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center font-semibold shadow-sm">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
