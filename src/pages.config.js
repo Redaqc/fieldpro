@@ -23,7 +23,6 @@ import Reports from './pages/Reports';
 import FormAutomations from './pages/FormAutomations';
 import RoleManager from './pages/RoleManager';
 import ServiceCalls from './pages/ServiceCalls';
-import IntegrationSettings from './pages/IntegrationSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -53,7 +52,6 @@ export const PAGES = {
     "FormAutomations": FormAutomations,
     "RoleManager": RoleManager,
     "ServiceCalls": ServiceCalls,
-    "IntegrationSettings": IntegrationSettings,
 }
 
 export const pagesConfig = {
