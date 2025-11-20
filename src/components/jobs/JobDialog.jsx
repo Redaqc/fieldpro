@@ -21,6 +21,7 @@ import GanttChart from "./GanttChart";
 import MaterialUsageTab from "./MaterialUsageTab";
 import AssetAssignmentTab from "./AssetAssignmentTab";
 import JobProfitabilityPanel from "../profitability/JobProfitabilityPanel";
+import JobTemplates from "./JobTemplates";
 
 export default function JobDialog({ open, onClose, job, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
@@ -558,9 +559,12 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Title */}
+          {/* Title with Template Button */}
           <div>
-            <Label className="text-sm font-medium">Titre *</Label>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-sm font-medium">Titre *</Label>
+              {!job && <JobTemplates onApply={(template) => setFormData({ ...formData, ...template })} />}
+            </div>
             <Input
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -1399,7 +1403,6 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               {job ? 'Sauvegarder' : 'Créer'}
             </Button>
           </div>
-        </div>
         </div>
       </DialogContent>
 
