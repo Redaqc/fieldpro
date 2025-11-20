@@ -356,30 +356,31 @@ export default function InvoicingTab({ job, formData, setFormData }) {
       <div className="flex items-center justify-between">
         <h3 className="text-base font-bold">Éléments de Facturation</h3>
         <div className="flex gap-2 flex-wrap">
-          {customerPriceList && (
+          {customerPriceList && customerPriceList.items && customerPriceList.items.length > 0 ? (
             <Select onValueChange={(value) => addPriceListItem(parseInt(value))}>
-              <SelectTrigger className="w-40 h-8 font-semibold bg-blue-50 border-blue-200">
-                <SelectValue placeholder="Liste de prix" />
+              <SelectTrigger className="w-40 h-8 font-semibold">
+                <SelectValue placeholder="Item" />
               </SelectTrigger>
               <SelectContent>
-                {(customerPriceList.items || []).map((item, idx) => (
+                {customerPriceList.items.map((item, idx) => (
                   <SelectItem key={idx} value={idx.toString()}>
                     {item.service_name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8"
+              onClick={addItem}
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Item
+            </Button>
           )}
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-8"
-            onClick={addItem}
-          >
-            <Plus className="w-3 h-3 mr-1" />
-            Item
-          </Button>
           <Button
             type="button"
             size="sm"
