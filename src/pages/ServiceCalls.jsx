@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Plus, Phone } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-import ServiceCallDialog from "@/components/servicecalls/ServiceCallDialog";
-import ServiceCallKanban from "@/components/servicecalls/ServiceCallKanban";
-import ServiceCallsList from "@/components/servicecalls/ServiceCallsList";
+import ServiceCallDialog from "../components/servicecalls/ServiceCallDialog";
+import ServiceCallKanban from "../components/servicecalls/ServiceCallKanban";
+import ServiceCallsList from "../components/servicecalls/ServiceCallsList";
 
 export default function ServiceCalls() {
   const [showDialog, setShowDialog] = useState(false);
