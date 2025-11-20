@@ -168,6 +168,7 @@ export default function Layout({ children, currentPageName }) {
 
   // If user is admin or has no tech profile, show all
   const isAdmin = user?.role === 'admin' || !currentTech;
+  const isAdminOrManager = isAdmin || currentTech?.role === 'admin' || currentTech?.role === 'manager';
   const visibleModules = isAdmin 
     ? ['dashboard', 'jobs', 'schedule', 'calendar', 'customers', 'team', 'time_tracking', 'quotations', 'invoices', 'assets', 'price_lists', 'materials', 'gpstracking', 'settings']
     : (currentTech?.visible_modules || ['dashboard', 'jobs', 'schedule', 'calendar', 'time_tracking']);
@@ -178,7 +179,12 @@ export default function Layout({ children, currentPageName }) {
 
     // GPS Tracking visibility - only for managers and admins
     if (moduleName === 'gpstracking') {
-      return isAdmin || currentTech?.role === 'admin' || currentTech?.role === 'manager';
+      return isAdminOrManager;
+    }
+
+    // Costs Management, Profitability Reports - only for managers and admins
+    if (moduleName === 'costsmanagement' || moduleName === 'profitabilityreports') {
+      return isAdminOrManager;
     }
 
     // Settings always visible for admins
