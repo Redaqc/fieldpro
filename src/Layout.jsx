@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { useTranslation } from "@/utils/translations";
+import { useTranslation } from "@/components/shared/LanguageProvider";
 import { 
                   LayoutDashboard, 
                   Briefcase, 
@@ -197,15 +197,7 @@ export default function Layout({ children, currentPageName }) {
     refetchInterval: 30000,
   });
 
-  const { data: languageSettings } = useQuery({
-    queryKey: ['languageSettings'],
-    queryFn: async () => {
-      const settings = await base44.entities.LanguageSettings.list();
-      return settings[0] || { language: 'fr' };
-    },
-  });
-
-  const { t } = useTranslation(languageSettings);
+  const { t } = useTranslation();
 
   // Find current user's technician profile to check permissions
   const currentTech = technicians.find(t => t.email === user?.email);
