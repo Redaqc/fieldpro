@@ -21,6 +21,7 @@ import Documents from './pages/Documents';
 import FormBuilder from './pages/FormBuilder';
 import Forms from './pages/Forms';
 import Reports from './pages/Reports';
+import FormSubmissions from './pages/FormSubmissions';
 import __Layout from './Layout.jsx';
 
 
@@ -48,6 +49,7 @@ export const PAGES = {
     "FormBuilder": FormBuilder,
     "Forms": Forms,
     "Reports": Reports,
+    "FormSubmissions": FormSubmissions,
 }
 
 export const pagesConfig = {

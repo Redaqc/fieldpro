@@ -93,6 +93,11 @@ const navigationItems = [
     icon: FileCheck,
   },
   {
+    title: "Soumissions",
+    url: createPageUrl("FormSubmissions"),
+    icon: FileText,
+  },
+  {
     title: "Rapports",
     url: createPageUrl("Reports"),
     icon: BarChart3,
