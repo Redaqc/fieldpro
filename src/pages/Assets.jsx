@@ -3,8 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Download, Upload, QrCode } from "lucide-react";
-import BarcodeScannerDialog from "@/components/mobile/BarcodeScannerDialog";
+import { Plus, Search, Download, Upload } from "lucide-react";
 
 import AssetsList from "../components/assets/AssetsList";
 import AssetDialog from "../components/assets/AssetDialog";
@@ -90,16 +89,6 @@ export default function Assets() {
       alert('Erreur: ' + error.message);
     } finally {
       setImporting(false);
-    }
-  };
-
-  const handleScan = (code) => {
-    const asset = assets.find(a => a.asset_tag === code || a.serial_number === code);
-    if (asset) {
-      setSelectedAsset(asset);
-      setDialogOpen(true);
-    } else {
-      alert(`Asset not found: ${code}`);
     }
   };
 
