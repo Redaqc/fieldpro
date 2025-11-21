@@ -11,7 +11,7 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import useTaxCalculation from "@/components/shared/useTaxCalculation";
+import { useTaxCalculation } from "@/components/shared/useTaxCalculation";
 
 export default function TimeInvoiceGenerator({ entries, technicians, jobs, lang = 'fr' }) {
   const [selectedJob, setSelectedJob] = useState("");
@@ -69,8 +69,8 @@ export default function TimeInvoiceGenerator({ entries, technicians, jobs, lang 
     return { totalHours: hours, totalAmount: amount, lineItems: items };
   }, [filteredEntries, selectedEntries, technicians, hourlyRate, lang]);
 
-  const { calculateTaxes } = useTaxCalculation();
-  const { taxes, subtotal, total } = calculateTaxes(totalAmount);
+  const taxData = useTaxCalculation(totalAmount);
+  const { taxes, subtotal, total } = taxData;
 
   const toggleEntry = (entryId) => {
     setSelectedEntries(prev => {
