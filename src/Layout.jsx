@@ -2,31 +2,32 @@ import React, { useState, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-                                        LayoutDashboard, 
-                                        Briefcase, 
-                                        Users, 
-                                        Calendar,
-                                        FileText,
-                                        UserCircle,
-                                        Menu,
-                                        X,
-                                        Settings,
-                                        Bell,
-                                        Search,
-                                        Package,
-                                        FileCheck,
-                                        DollarSign,
-                                        Clock,
-                                        MapPin,
-                                        BarChart3,
-                                        TrendingUp,
-                                        Zap,
-                                        RefreshCw,
-                                        Wrench,
-                                        MessageCircle,
-                                        Activity,
-                                        Shield
-                                      } from "lucide-react";
+                                            LayoutDashboard, 
+                                            Briefcase, 
+                                            Users, 
+                                            Calendar,
+                                            FileText,
+                                            UserCircle,
+                                            Menu,
+                                            X,
+                                            Settings,
+                                            Bell,
+                                            Search,
+                                            Package,
+                                            FileCheck,
+                                            DollarSign,
+                                            Clock,
+                                            MapPin,
+                                            BarChart3,
+                                            TrendingUp,
+                                            Zap,
+                                            RefreshCw,
+                                            Wrench,
+                                            MessageCircle,
+                                            Activity,
+                                            Shield,
+                                            Download
+                                          } from "lucide-react";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 import GlobalSearch from "@/components/shared/GlobalSearch";
 import QuickActionsMenu from "@/components/shared/QuickActionsMenu";
@@ -670,10 +671,32 @@ export default function Layout({ children, currentPageName }) {
                       {lang === 'fr' ? 'Paramètres' : 'Settings'}
                     </DropdownMenuItem>
                     {user?.role === 'admin' && (
-                      <DropdownMenuItem onClick={() => window.open('https://base44.app/dashboard', '_blank')} className="cursor-pointer">
-                        <Shield className="w-4 h-4 mr-2" />
-                        Admin Backend
-                      </DropdownMenuItem>
+                      <>
+                        <DropdownMenuItem onClick={() => window.open('https://base44.app/dashboard', '_blank')} className="cursor-pointer">
+                          <Shield className="w-4 h-4 mr-2" />
+                          Admin Backend
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={async () => {
+                            try {
+                              const response = await base44.functions.invoke('exportDatabase');
+                              const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `database_export_${new Date().toISOString().split('T')[0]}.json`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            } catch (error) {
+                              alert('Erreur lors de l\'export: ' + error.message);
+                            }
+                          }} 
+                          className="cursor-pointer"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          {lang === 'fr' ? 'Télécharger BDD' : 'Download Database'}
+                        </DropdownMenuItem>
+                      </>
                     )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => base44.auth.logout()} className="text-red-600 cursor-pointer">
