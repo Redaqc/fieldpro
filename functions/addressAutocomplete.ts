@@ -19,30 +19,45 @@ Deno.serve(async (req) => {
     const settingsList = await base44.asServiceRole.entities.IntegrationSettings.filter({ 
       integration_type: 'address_autocomplete' 
     });
-    const settings = settingsList[0];
+    let settings = settingsList[0];
 
-    if (!settings || !settings.is_active) {
+    // Auto-create settings with default API key if not exists
+    if (!settings) {
+      try {
+        settings = await base44.asServiceRole.entities.IntegrationSettings.create({
+          integration_type: 'address_autocomplete',
+          provider_type: 'google',
+          api_key: 'AIzaSyAhVb41m9MwDmI_D0YelvxdNNkAdfTJBc4',
+          country_bias: 'ca',
+          language: 'fr',
+          is_active: true,
+          max_results: 8
+        });
+        console.log('Auto-created address autocomplete settings');
+      } catch (error) {
+        console.error('Failed to auto-create settings:', error);
+        return Response.json({ 
+          error: 'Impossible de créer la configuration automatiquement',
+          instruction: error.message,
+          suggestions: []
+        });
+      }
+    }
+
+    if (!settings.is_active) {
       return Response.json({ 
-        error: 'Aucune configuration trouvée.',
-        instruction: 'Veuillez configurer l\'API d\'autocomplétion dans : Paramètres → Address Autocomplete',
+        error: 'L\'autocomplétion est désactivée.',
+        instruction: 'Activez-la dans : Paramètres → Address Autocomplete',
         suggestions: []
       });
     }
 
-    const apiKey = settings.api_key;
+    const apiKey = settings.api_key || 'AIzaSyAhVb41m9MwDmI_D0YelvxdNNkAdfTJBc4';
     const providerType = settings.provider_type || 'google';
     const countryBias = settings.country_bias || 'ca';
     const language = settings.language || 'fr';
 
     console.log('Address autocomplete settings:', { providerType, countryBias, language, hasApiKey: !!apiKey });
-
-    if (!apiKey) {
-      return Response.json({ 
-        error: 'Clé API manquante',
-        instruction: 'Veuillez configurer votre clé API dans : Paramètres → Address Autocomplete',
-        suggestions: [] 
-      });
-    }
 
     let suggestions = [];
 
