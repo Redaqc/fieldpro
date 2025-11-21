@@ -1,23 +1,42 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, LogIn, LogOut, Coffee, Calendar, Filter, Download } from "lucide-react";
-import { format, differenceInMinutes, startOfWeek, endOfWeek, parseISO } from "date-fns";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Clock, LogIn, LogOut, Calendar, Download, FileText, DollarSign, BarChart3, CalendarDays } from "lucide-react";
+import { format, differenceInMinutes, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
-import TimeEntryDialog from "../components/timetracking/TimeEntryDialog";
-import TimeEntriesList from "../components/timetracking/TimeEntriesList";
+import TimeEntryDialog from "@/components/timetracking/TimeEntryDialog";
+import TimeEntriesList from "@/components/timetracking/TimeEntriesList";
+import TimeCalendarView from "@/components/timetracking/TimeCalendarView";
+import TimeReportsPanel from "@/components/timetracking/TimeReportsPanel";
+import TimeInvoiceGenerator from "@/components/timetracking/TimeInvoiceGenerator";
+import { useTranslation } from "@/components/shared/translations";
 
 export default function TimeTracking() {
   const [selectedTechnician, setSelectedTechnician] = useState("all");
-  const [selectedWeek, setSelectedWeek] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [dateRange, setDateRange] = useState("week");
+  const [customStartDate, setCustomStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [customEndDate, setCustomEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [showDialog, setShowDialog] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
+  const [activeTab, setActiveTab] = useState("list");
   
   const queryClient = useQueryClient();
+
+  const { data: languageSettings } = useQuery({
+    queryKey: ['languageSettings'],
+    queryFn: async () => {
+      const settings = await base44.entities.LanguageSettings.list();
+      return settings[0] || { language: 'fr' };
+    },
+  });
+
+  const lang = languageSettings?.language || 'fr';
+  const t = useTranslation(lang);
 
   const { data: technicians = [] } = useQuery({
     queryKey: ['technicians'],
@@ -28,6 +47,12 @@ export default function TimeTracking() {
   const { data: timeEntries = [] } = useQuery({
     queryKey: ['timeEntries'],
     queryFn: () => base44.entities.TimeEntry.list('-clock_in'),
+    initialData: [],
+  });
+
+  const { data: jobs = [] } = useQuery({
+    queryKey: ['jobs'],
+    queryFn: () => base44.entities.Job.list(),
     initialData: [],
   });
 
@@ -46,14 +71,12 @@ export default function TimeTracking() {
   const checkGPSZone = (position, zones) => {
     for (const zone of zones) {
       if (!zone.active) continue;
-      
       const distance = getDistanceFromLatLonInMeters(
         position.latitude,
         position.longitude,
         zone.latitude,
         zone.longitude
       );
-      
       if (distance <= zone.radius) {
         return { inZone: true, zone };
       }
@@ -62,7 +85,7 @@ export default function TimeTracking() {
   };
 
   const getDistanceFromLatLonInMeters = (lat1, lon1, lat2, lon2) => {
-    const R = 6371000; // Radius of earth in meters
+    const R = 6371000;
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a = 
@@ -95,7 +118,6 @@ export default function TimeTracking() {
                 return;
               }
 
-              // Create time entry
               const timeEntry = await base44.entities.TimeEntry.create({
                 technician_id: technicianId,
                 technician_name: `${tech.first_name} ${tech.last_name}`,
@@ -104,7 +126,6 @@ export default function TimeTracking() {
                 location_in: inZone ? zone.name : "Hors zone",
               });
 
-              // Log GPS tracking
               await base44.entities.GPSTracking.create({
                 technician_id: technicianId,
                 technician_name: `${tech.first_name} ${tech.last_name}`,
@@ -121,7 +142,6 @@ export default function TimeTracking() {
               if (!tech.gps_punch_outside_zone) {
                 reject(new Error('Impossible d\'obtenir votre localisation GPS'));
               } else {
-                // Allow punch without GPS if permitted
                 base44.entities.TimeEntry.create({
                   technician_id: technicianId,
                   technician_name: `${tech.first_name} ${tech.last_name}`,
@@ -166,7 +186,6 @@ export default function TimeTracking() {
               const totalMinutes = differenceInMinutes(new Date(clockOut), new Date(entry.clock_in));
               const totalHours = ((totalMinutes - (entry.break_minutes || 0)) / 60).toFixed(2);
               
-              // Update time entry
               const updated = await base44.entities.TimeEntry.update(entryId, {
                 clock_out: clockOut,
                 total_hours: parseFloat(totalHours),
@@ -174,7 +193,6 @@ export default function TimeTracking() {
                 location_out: "GPS enregistré",
               });
 
-              // Log GPS tracking
               await base44.entities.GPSTracking.create({
                 technician_id: entry.technician_id,
                 technician_name: entry.technician_name,
@@ -188,7 +206,6 @@ export default function TimeTracking() {
               resolve(updated);
             },
             (error) => {
-              // Allow punch out even without GPS
               const clockOut = new Date().toISOString();
               const totalMinutes = differenceInMinutes(new Date(clockOut), new Date(entry.clock_in));
               const totalHours = ((totalMinutes - (entry.break_minutes || 0)) / 60).toFixed(2);
@@ -240,26 +257,41 @@ export default function TimeTracking() {
   };
 
   const handleClockOut = (entryId) => {
-    if (confirm('Confirmer le poinçon de sortie?')) {
+    if (confirm(lang === 'fr' ? 'Confirmer le poinçon de sortie?' : 'Confirm clock out?')) {
       clockOutMutation.mutate(entryId);
     }
   };
 
   const activeEntries = timeEntries.filter(e => e.status === 'in_progress');
-  const weekStart = startOfWeek(new Date(selectedWeek), { locale: fr });
-  const weekEnd = endOfWeek(new Date(selectedWeek), { locale: fr });
 
-  const filteredEntries = timeEntries.filter(entry => {
-    const entryDate = new Date(entry.clock_in);
-    const matchesWeek = entryDate >= weekStart && entryDate <= weekEnd;
-    const matchesTech = selectedTechnician === 'all' || entry.technician_id === selectedTechnician;
-    return matchesWeek && matchesTech;
-  });
+  // Calculate date range
+  const { startDate, endDate } = useMemo(() => {
+    const now = new Date();
+    switch (dateRange) {
+      case 'week':
+        return { startDate: startOfWeek(now, { locale: fr }), endDate: endOfWeek(now, { locale: fr }) };
+      case 'month':
+        return { startDate: startOfMonth(now), endDate: endOfMonth(now) };
+      case 'custom':
+        return { startDate: new Date(customStartDate), endDate: new Date(customEndDate) };
+      default:
+        return { startDate: startOfWeek(now, { locale: fr }), endDate: endOfWeek(now, { locale: fr }) };
+    }
+  }, [dateRange, customStartDate, customEndDate]);
+
+  const filteredEntries = useMemo(() => {
+    return timeEntries.filter(entry => {
+      const entryDate = new Date(entry.clock_in);
+      const matchesDate = entryDate >= startDate && entryDate <= endDate;
+      const matchesTech = selectedTechnician === 'all' || entry.technician_id === selectedTechnician;
+      return matchesDate && matchesTech;
+    });
+  }, [timeEntries, startDate, endDate, selectedTechnician]);
 
   const totalHours = filteredEntries.reduce((sum, entry) => sum + (entry.total_hours || 0), 0);
 
   const exportToCSV = () => {
-    const headers = ['Date', 'Technicien', 'Arrivée', 'Départ', 'Pause (min)', 'Total Heures', 'Statut'];
+    const headers = ['Date', 'Technicien', 'Arrivée', 'Départ', 'Pause (min)', 'Total Heures', 'Job', 'Statut'];
     const rows = filteredEntries.map(entry => [
       format(new Date(entry.clock_in), 'yyyy-MM-dd'),
       entry.technician_name,
@@ -267,6 +299,7 @@ export default function TimeTracking() {
       entry.clock_out ? format(new Date(entry.clock_out), 'HH:mm') : '-',
       entry.break_minutes || 0,
       entry.total_hours || 0,
+      entry.job_id ? jobs.find(j => j.id === entry.job_id)?.title || '-' : '-',
       entry.status === 'in_progress' ? 'En cours' : 'Complété'
     ]);
 
@@ -278,7 +311,7 @@ export default function TimeTracking() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `pointage_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.download = `pointage_${format(startDate, 'yyyy-MM-dd')}_to_${format(endDate, 'yyyy-MM-dd')}.csv`;
     link.click();
   };
 
@@ -286,8 +319,10 @@ export default function TimeTracking() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Gestion du Temps</h1>
-          <p className="text-slate-500 mt-1">Suivi des heures et poinçons des techniciens</p>
+          <h1 className="text-3xl font-bold text-slate-900">{t('timeTracking')}</h1>
+          <p className="text-slate-500 mt-1">
+            {lang === 'fr' ? 'Suivi des heures et poinçons des techniciens' : 'Time tracking and technician punches'}
+          </p>
         </div>
       </div>
 
@@ -297,7 +332,7 @@ export default function TimeTracking() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Clock className="w-5 h-5 text-green-600 animate-pulse" />
-              Poinçons Actifs ({activeEntries.length})
+              {lang === 'fr' ? 'Poinçons Actifs' : 'Active Punches'} ({activeEntries.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -308,7 +343,7 @@ export default function TimeTracking() {
                     <div>
                       <p className="font-semibold">{entry.technician_name}</p>
                       <p className="text-xs text-slate-500">
-                        Arrivée: {format(new Date(entry.clock_in), 'HH:mm')}
+                        {lang === 'fr' ? 'Arrivée' : 'Started'}: {format(new Date(entry.clock_in), 'HH:mm')}
                       </p>
                       {entry.location_in && (
                         <p className="text-xs text-green-600 mt-1">📍 {entry.location_in}</p>
@@ -322,7 +357,7 @@ export default function TimeTracking() {
                     size="sm"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
-                    Poinçon Sortie
+                    {lang === 'fr' ? 'Poinçon Sortie' : 'Clock Out'}
                   </Button>
                 </div>
               ))}
@@ -331,14 +366,18 @@ export default function TimeTracking() {
         </Card>
       )}
 
-      {/* Quick Actions */}
+      {/* Quick Punch */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Poinçon Rapide (GPS)</CardTitle>
+          <CardTitle className="text-lg">
+            {lang === 'fr' ? 'Poinçon Rapide (GPS)' : 'Quick Punch (GPS)'}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-slate-600 mb-4">
-            Les poinçons utilisent automatiquement le GPS pour enregistrer la localisation et vérifier les zones autorisées.
+            {lang === 'fr' 
+              ? 'Les poinçons utilisent automatiquement le GPS pour enregistrer la localisation.' 
+              : 'Punches automatically use GPS to record location.'}
           </p>
           <div className="flex flex-wrap gap-2">
             {technicians.map(tech => {
@@ -353,7 +392,7 @@ export default function TimeTracking() {
                 >
                   <LogIn className="w-4 h-4 mr-2" />
                   {tech.first_name} {tech.last_name}
-                  {hasActiveEntry && " (En cours)"}
+                  {hasActiveEntry && ` (${lang === 'fr' ? 'En cours' : 'Active'})`}
                 </Button>
               );
             })}
@@ -364,13 +403,13 @@ export default function TimeTracking() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4 items-end">
         <div className="flex-1 min-w-[200px]">
-          <label className="text-sm font-medium text-slate-700">Technicien</label>
+          <label className="text-sm font-medium text-slate-700">{t('technician')}</label>
           <Select value={selectedTechnician} onValueChange={setSelectedTechnician}>
             <SelectTrigger className="mt-1">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tous les techniciens</SelectItem>
+              <SelectItem value="all">{lang === 'fr' ? 'Tous les techniciens' : 'All technicians'}</SelectItem>
               {technicians.map(tech => (
                 <SelectItem key={tech.id} value={tech.id}>
                   {tech.first_name} {tech.last_name}
@@ -381,18 +420,45 @@ export default function TimeTracking() {
         </div>
 
         <div className="flex-1 min-w-[200px]">
-          <label className="text-sm font-medium text-slate-700">Semaine</label>
-          <Input
-            type="date"
-            value={selectedWeek}
-            onChange={(e) => setSelectedWeek(e.target.value)}
-            className="mt-1"
-          />
+          <label className="text-sm font-medium text-slate-700">{lang === 'fr' ? 'Période' : 'Period'}</label>
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">{lang === 'fr' ? 'Cette semaine' : 'This week'}</SelectItem>
+              <SelectItem value="month">{lang === 'fr' ? 'Ce mois' : 'This month'}</SelectItem>
+              <SelectItem value="custom">{lang === 'fr' ? 'Personnalisé' : 'Custom'}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
+        {dateRange === 'custom' && (
+          <>
+            <div className="flex-1 min-w-[150px]">
+              <label className="text-sm font-medium text-slate-700">{lang === 'fr' ? 'De' : 'From'}</label>
+              <Input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div className="flex-1 min-w-[150px]">
+              <label className="text-sm font-medium text-slate-700">{lang === 'fr' ? 'À' : 'To'}</label>
+              <Input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </>
+        )}
 
         <Button onClick={exportToCSV} variant="outline">
           <Download className="w-4 h-4 mr-2" />
-          Exporter CSV
+          {lang === 'fr' ? 'Exporter CSV' : 'Export CSV'}
         </Button>
       </div>
 
@@ -402,7 +468,7 @@ export default function TimeTracking() {
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-3xl font-bold text-blue-600">{filteredEntries.length}</p>
-              <p className="text-sm text-slate-600 mt-1">Entrées</p>
+              <p className="text-sm text-slate-600 mt-1">{lang === 'fr' ? 'Entrées' : 'Entries'}</p>
             </div>
           </CardContent>
         </Card>
@@ -410,7 +476,7 @@ export default function TimeTracking() {
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-3xl font-bold text-green-600">{totalHours.toFixed(2)}</p>
-              <p className="text-sm text-slate-600 mt-1">Heures Totales</p>
+              <p className="text-sm text-slate-600 mt-1">{lang === 'fr' ? 'Heures Totales' : 'Total Hours'}</p>
             </div>
           </CardContent>
         </Card>
@@ -418,7 +484,7 @@ export default function TimeTracking() {
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-3xl font-bold text-orange-600">{activeEntries.length}</p>
-              <p className="text-sm text-slate-600 mt-1">En Cours</p>
+              <p className="text-sm text-slate-600 mt-1">{lang === 'fr' ? 'En Cours' : 'Active'}</p>
             </div>
           </CardContent>
         </Card>
@@ -428,25 +494,79 @@ export default function TimeTracking() {
               <p className="text-3xl font-bold text-purple-600">
                 {filteredEntries.filter(e => e.status === 'completed').length}
               </p>
-              <p className="text-sm text-slate-600 mt-1">Complétés</p>
+              <p className="text-sm text-slate-600 mt-1">{lang === 'fr' ? 'Complétés' : 'Completed'}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Time Entries List */}
-      <TimeEntriesList
-        entries={filteredEntries}
-        onEdit={(entry) => {
-          setSelectedEntry(entry);
-          setShowDialog(true);
-        }}
-        onDelete={(id) => {
-          if (confirm('Supprimer cette entrée?')) {
-            deleteEntryMutation.mutate(id);
-          }
-        }}
-      />
+      {/* Tabs for different views */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="list" className="flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            {lang === 'fr' ? 'Liste' : 'List'}
+          </TabsTrigger>
+          <TabsTrigger value="calendar" className="flex items-center gap-2">
+            <CalendarDays className="w-4 h-4" />
+            {lang === 'fr' ? 'Calendrier' : 'Calendar'}
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            {lang === 'fr' ? 'Rapports' : 'Reports'}
+          </TabsTrigger>
+          <TabsTrigger value="invoice" className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4" />
+            {lang === 'fr' ? 'Facturation' : 'Invoicing'}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="list" className="mt-6">
+          <TimeEntriesList
+            entries={filteredEntries}
+            onEdit={(entry) => {
+              setSelectedEntry(entry);
+              setShowDialog(true);
+            }}
+            onDelete={(id) => {
+              if (confirm(lang === 'fr' ? 'Supprimer cette entrée?' : 'Delete this entry?')) {
+                deleteEntryMutation.mutate(id);
+              }
+            }}
+            lang={lang}
+          />
+        </TabsContent>
+
+        <TabsContent value="calendar" className="mt-6">
+          <TimeCalendarView
+            entries={filteredEntries}
+            technicians={technicians}
+            startDate={startDate}
+            endDate={endDate}
+            lang={lang}
+          />
+        </TabsContent>
+
+        <TabsContent value="reports" className="mt-6">
+          <TimeReportsPanel
+            entries={filteredEntries}
+            technicians={technicians}
+            jobs={jobs}
+            startDate={startDate}
+            endDate={endDate}
+            lang={lang}
+          />
+        </TabsContent>
+
+        <TabsContent value="invoice" className="mt-6">
+          <TimeInvoiceGenerator
+            entries={filteredEntries}
+            technicians={technicians}
+            jobs={jobs}
+            lang={lang}
+          />
+        </TabsContent>
+      </Tabs>
 
       {showDialog && (
         <TimeEntryDialog
@@ -462,6 +582,7 @@ export default function TimeTracking() {
           }}
           entry={selectedEntry}
           technicians={technicians}
+          lang={lang}
         />
       )}
     </div>

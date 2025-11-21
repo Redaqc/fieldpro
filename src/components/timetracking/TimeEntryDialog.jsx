@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Save, X } from "lucide-react";
 import { format, differenceInMinutes } from "date-fns";
 
-export default function TimeEntryDialog({ open, onClose, onSave, entry, technicians }) {
+export default function TimeEntryDialog({ open, onClose, onSave, entry, technicians, lang = 'fr' }) {
   const [formData, setFormData] = useState(entry || {
     technician_id: "",
     technician_name: "",
@@ -55,7 +55,9 @@ export default function TimeEntryDialog({ open, onClose, onSave, entry, technici
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Modifier Entrée de Temps</DialogTitle>
+          <DialogTitle>
+            {lang === 'fr' ? 'Modifier Entrée de Temps' : 'Edit Time Entry'}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

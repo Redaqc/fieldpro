@@ -19,12 +19,14 @@ const statusColors = {
   approved: "bg-purple-100 text-purple-800"
 };
 
-export default function TimeEntriesList({ entries, onEdit, onDelete }) {
+export default function TimeEntriesList({ entries, onEdit, onDelete, lang = 'fr' }) {
   if (entries.length === 0) {
     return (
       <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
         <Clock className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-        <p className="text-slate-500">Aucune entrée trouvée pour cette période</p>
+        <p className="text-slate-500">
+          {lang === 'fr' ? 'Aucune entrée trouvée pour cette période' : 'No entries found for this period'}
+        </p>
       </div>
     );
   }
@@ -34,13 +36,13 @@ export default function TimeEntriesList({ entries, onEdit, onDelete }) {
       <Table>
         <TableHeader>
           <TableRow className="bg-slate-50">
-            <TableHead className="font-semibold">Date</TableHead>
-            <TableHead className="font-semibold">Technicien</TableHead>
-            <TableHead className="font-semibold">Arrivée</TableHead>
-            <TableHead className="font-semibold">Départ</TableHead>
-            <TableHead className="font-semibold">Pause</TableHead>
-            <TableHead className="font-semibold">Total Heures</TableHead>
-            <TableHead className="font-semibold">Statut</TableHead>
+            <TableHead className="font-semibold">{lang === 'fr' ? 'Date' : 'Date'}</TableHead>
+            <TableHead className="font-semibold">{lang === 'fr' ? 'Technicien' : 'Technician'}</TableHead>
+            <TableHead className="font-semibold">{lang === 'fr' ? 'Arrivée' : 'Clock In'}</TableHead>
+            <TableHead className="font-semibold">{lang === 'fr' ? 'Départ' : 'Clock Out'}</TableHead>
+            <TableHead className="font-semibold">{lang === 'fr' ? 'Pause' : 'Break'}</TableHead>
+            <TableHead className="font-semibold">{lang === 'fr' ? 'Total Heures' : 'Total Hours'}</TableHead>
+            <TableHead className="font-semibold">{lang === 'fr' ? 'Statut' : 'Status'}</TableHead>
             <TableHead className="w-24"></TableHead>
           </TableRow>
         </TableHeader>
@@ -58,7 +60,9 @@ export default function TimeEntriesList({ entries, onEdit, onDelete }) {
               </TableCell>
               <TableCell>
                 {entry.clock_out ? format(new Date(entry.clock_out), 'HH:mm') : (
-                  <span className="text-green-600 font-semibold">En cours...</span>
+                  <span className="text-green-600 font-semibold">
+                    {lang === 'fr' ? 'En cours...' : 'Active...'}
+                  </span>
                 )}
               </TableCell>
               <TableCell>
