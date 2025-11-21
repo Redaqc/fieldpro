@@ -670,9 +670,9 @@ export default function Layout({ children, currentPageName }) {
                       {lang === 'fr' ? 'Paramètres' : 'Settings'}
                     </DropdownMenuItem>
                     {user?.role === 'admin' && (
-                      <DropdownMenuItem onClick={() => window.open('https://app.base44.com/dashboard', '_blank')} className="cursor-pointer">
+                      <DropdownMenuItem onClick={() => window.open('https://base44.app/dashboard', '_blank')} className="cursor-pointer">
                         <Shield className="w-4 h-4 mr-2" />
-                        Base44 Dashboard
+                        Admin Backend
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
