@@ -30,6 +30,12 @@ Deno.serve(async (req) => {
     const countryBias = settings.country_bias || 'ca';
     const language = settings.language || 'fr';
 
+    console.log('Address autocomplete settings:', { providerType, countryBias, language, hasApiKey: !!apiKey });
+
+    if (!apiKey) {
+      return Response.json({ error: 'API key not configured', suggestions: [] });
+    }
+
     let suggestions = [];
 
     if (providerType === 'google') {
@@ -43,8 +49,12 @@ Deno.serve(async (req) => {
         url.searchParams.append('sessiontoken', sessionToken);
       }
 
+      console.log('Calling Google API:', url.toString().replace(apiKey, 'API_KEY_HIDDEN'));
+
       const response = await fetch(url.toString());
       const data = await response.json();
+
+      console.log('Google API response:', { status: data.status, error_message: data.error_message, predictions_count: data.predictions?.length || 0 });
 
       if (data.status === 'OK' && data.predictions) {
         suggestions = data.predictions.map(p => ({
@@ -52,6 +62,8 @@ Deno.serve(async (req) => {
           description: p.description,
           place_id: p.place_id
         }));
+      } else if (data.error_message) {
+        return Response.json({ error: data.error_message, status: data.status, suggestions: [] });
       }
     } else if (providerType === 'mapbox') {
       // Mapbox Geocoding API
