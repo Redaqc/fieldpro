@@ -1,15 +1,33 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
+/**
+ * Address Details API Function
+ * Fetches full address details from placeId
+ * Supports Google Places and Mapbox providers
+ */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
     
+    // Authentication check
+    const user = await base44.auth.me();
     if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      return Response.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
+    // Parse request body
     const { placeId, provider } = await req.json();
+
+    // Validate placeId
+    if (!placeId || typeof placeId !== 'string') {
+      return Response.json(
+        { error: 'Invalid placeId' },
+        { status: 400 }
+      );
+    }
 
     // Get provider settings
     const settingsList = await base44.asServiceRole.entities.IntegrationSettings.filter({ 
@@ -19,45 +37,50 @@ Deno.serve(async (req) => {
 
     if (!settings || !settings.is_active) {
       return Response.json({ 
-        error: 'Aucune configuration trouvée.',
-        instruction: 'Veuillez configurer l\'API d\'autocomplétion dans : Paramètres → Address Autocomplete'
+        error: 'No configuration found',
+        instruction: 'Configure API in: Settings → Address Autocomplete'
       }, { status: 400 });
     }
 
     const apiKey = settings.api_key;
-    const providerType = settings.provider_type || 'google';
+    const providerType = provider || settings.provider_type || 'google';
 
     if (!apiKey) {
       return Response.json({ 
-        error: 'Clé API manquante',
-        instruction: 'Veuillez configurer votre clé API dans : Paramètres → Address Autocomplete'
+        error: 'Missing API key',
+        instruction: 'Configure API key in: Settings → Address Autocomplete'
       }, { status: 400 });
     }
 
     let addressData = {};
 
-    if (providerType === 'google' && placeId) {
-      // Google Places Details API
+    // Google Places Details API
+    if (providerType === 'google') {
       const url = new URL('https://maps.googleapis.com/maps/api/place/details/json');
       url.searchParams.append('place_id', placeId);
       url.searchParams.append('key', apiKey);
       url.searchParams.append('fields', 'address_components,formatted_address,geometry');
 
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), {
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
+
+      if (!response.ok) {
+        throw new Error(`Google API returned ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (data.status === 'OK' && data.result) {
         const result = data.result;
         const components = result.address_components || [];
 
-        const getComponent = (types) => {
-          const comp = components.find(c => types.some(t => c.types.includes(t)));
-          return comp ? comp.long_name : '';
-        };
-
-        const getShortComponent = (types) => {
-          const comp = components.find(c => types.some(t => c.types.includes(t)));
-          return comp ? comp.short_name : '';
+        // Helper to get component by type
+        const getComponent = (types, shortName = false) => {
+          const comp = components.find(c => 
+            types.some(t => c.types.includes(t))
+          );
+          return comp ? (shortName ? comp.short_name : comp.long_name) : '';
         };
 
         addressData = {
@@ -65,26 +88,39 @@ Deno.serve(async (req) => {
           street_number: getComponent(['street_number']),
           street_name: getComponent(['route']),
           city: getComponent(['locality', 'sublocality', 'postal_town']),
-          province: getShortComponent(['administrative_area_level_1']),
+          province: getComponent(['administrative_area_level_1'], true),
           postal_code: getComponent(['postal_code']),
           country: getComponent(['country']),
           latitude: result.geometry?.location?.lat || null,
           longitude: result.geometry?.location?.lng || null
         };
+      } else if (data.status === 'REQUEST_DENIED' || data.error_message) {
+        return Response.json({ 
+          error: 'Invalid API key or missing permissions',
+          instruction: 'Enable Places API in Google Cloud Console'
+        }, { status: 400 });
       }
-    } else if (providerType === 'mapbox' && placeId) {
-      // Mapbox already provides details in the search response
-      // But we can fetch full details if needed
+    } 
+    // Mapbox Geocoding API
+    else if (providerType === 'mapbox') {
       const url = new URL(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(placeId)}.json`);
       url.searchParams.append('access_token', apiKey);
 
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), {
+        signal: AbortSignal.timeout(5000)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Mapbox API returned ${response.status}`);
+      }
+
       const data = await response.json();
 
-      if (data.features && data.features[0]) {
+      if (Array.isArray(data.features) && data.features[0]) {
         const feature = data.features[0];
         const context = feature.context || [];
 
+        // Helper to get context by ID prefix
         const getContext = (id) => {
           const item = context.find(c => c.id.startsWith(id));
           return item ? item.text : '';
@@ -98,15 +134,26 @@ Deno.serve(async (req) => {
           province: getContext('region'),
           postal_code: getContext('postcode'),
           country: getContext('country'),
-          latitude: feature.center[1] || null,
-          longitude: feature.center[0] || null
+          latitude: feature.center?.[1] || null,
+          longitude: feature.center?.[0] || null
         };
       }
     }
 
     return Response.json({ address: addressData });
+
   } catch (error) {
-    console.error('Address details error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('[addressDetails] Error:', error);
+    
+    // Handle timeout errors
+    if (error.name === 'TimeoutError') {
+      return Response.json({ 
+        error: 'Request timeout'
+      }, { status: 504 });
+    }
+
+    return Response.json({ 
+      error: error.message || 'Internal server error'
+    }, { status: 500 });
   }
 });

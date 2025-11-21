@@ -1,111 +1,139 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
+const DEFAULT_API_KEY = 'AIzaSyAhVb41m9MwDmI_D0YelvxdNNkAdfTJBc4';
+const MIN_QUERY_LENGTH = 3;
+const MAX_SUGGESTIONS = 20;
+
+/**
+ * Address Autocomplete API Function
+ * Supports Google Places and Mapbox providers
+ */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
     
+    // Authentication check
+    const user = await base44.auth.me();
     if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      return Response.json(
+        { error: 'Unauthorized', suggestions: [] },
+        { status: 401 }
+      );
     }
 
-    const { query, provider, sessionToken } = await req.json();
+    // Parse request body
+    const { query, sessionToken } = await req.json();
 
-    if (!query || query.length < 3) {
+    // Validate query
+    if (!query || typeof query !== 'string' || query.length < MIN_QUERY_LENGTH) {
       return Response.json({ suggestions: [] });
     }
 
-    // Get provider settings
+    // Get or create provider settings
     const settingsList = await base44.asServiceRole.entities.IntegrationSettings.filter({ 
       integration_type: 'address_autocomplete' 
     });
     let settings = settingsList[0];
 
-    // Auto-create settings with default API key if not exists
+    // Auto-create settings with default configuration
     if (!settings) {
       try {
         settings = await base44.asServiceRole.entities.IntegrationSettings.create({
           integration_type: 'address_autocomplete',
           provider_type: 'google',
-          api_key: 'AIzaSyAhVb41m9MwDmI_D0YelvxdNNkAdfTJBc4',
+          api_key: DEFAULT_API_KEY,
           country_bias: 'ca',
           language: 'fr',
           is_active: true,
           max_results: 8
         });
-        console.log('Auto-created address autocomplete settings');
-      } catch (error) {
-        console.error('Failed to auto-create settings:', error);
+      } catch (createError) {
+        console.error('[addressAutocomplete] Failed to create settings:', createError);
         return Response.json({ 
-          error: 'Impossible de créer la configuration automatiquement',
-          instruction: error.message,
+          error: 'Configuration initialization failed',
+          instruction: 'Please contact support',
           suggestions: []
-        });
+        }, { status: 500 });
       }
     }
 
+    // Check if autocomplete is active
     if (!settings.is_active) {
       return Response.json({ 
-        error: 'L\'autocomplétion est désactivée.',
-        instruction: 'Activez-la dans : Paramètres → Address Autocomplete',
+        error: 'Address autocomplete is disabled',
+        instruction: 'Enable in: Settings → Address Autocomplete',
         suggestions: []
       });
     }
 
-    const apiKey = settings.api_key || 'AIzaSyAhVb41m9MwDmI_D0YelvxdNNkAdfTJBc4';
+    // Extract settings
+    const apiKey = settings.api_key || DEFAULT_API_KEY;
     const providerType = settings.provider_type || 'google';
     const countryBias = settings.country_bias || 'ca';
     const language = settings.language || 'fr';
-
-    console.log('Address autocomplete settings:', { providerType, countryBias, language, hasApiKey: !!apiKey });
+    const maxResults = Math.min(settings.max_results || 8, MAX_SUGGESTIONS);
 
     let suggestions = [];
 
+    // Google Places API
     if (providerType === 'google') {
-      // Google Places Autocomplete API
       const url = new URL('https://maps.googleapis.com/maps/api/place/autocomplete/json');
       url.searchParams.append('input', query);
       url.searchParams.append('key', apiKey);
       url.searchParams.append('language', language);
       url.searchParams.append('components', `country:${countryBias}`);
+      
       if (sessionToken) {
         url.searchParams.append('sessiontoken', sessionToken);
       }
 
-      console.log('Calling Google API:', url.toString().replace(apiKey, 'API_KEY_HIDDEN'));
+      const response = await fetch(url.toString(), {
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Google API returned ${response.status}`);
+      }
 
-      const response = await fetch(url.toString());
       const data = await response.json();
 
-      console.log('Google API response:', { status: data.status, error_message: data.error_message, predictions_count: data.predictions?.length || 0 });
-
-      if (data.status === 'OK' && data.predictions) {
-        suggestions = data.predictions.map(p => ({
+      if (data.status === 'OK' && Array.isArray(data.predictions)) {
+        suggestions = data.predictions.slice(0, maxResults).map(p => ({
           id: p.place_id,
           description: p.description,
           place_id: p.place_id
         }));
-      } else if (data.error_message) {
+      } else if (data.status === 'REQUEST_DENIED' || data.error_message) {
         return Response.json({ 
-          error: 'Votre clé API semble incorrecte ou n\'a pas les permissions nécessaires.',
-          instruction: 'Vérifiez que l\'API Places est activée dans votre projet Google Cloud.',
-          status: data.status, 
+          error: 'Invalid API key or missing permissions',
+          instruction: 'Enable Places API in Google Cloud Console',
+          status: data.status,
           suggestions: [] 
         });
+      } else if (data.status === 'ZERO_RESULTS') {
+        suggestions = [];
       }
-    } else if (providerType === 'mapbox') {
-      // Mapbox Geocoding API
+    } 
+    // Mapbox Geocoding API
+    else if (providerType === 'mapbox') {
       const url = new URL(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`);
       url.searchParams.append('access_token', apiKey);
       url.searchParams.append('country', countryBias);
       url.searchParams.append('language', language);
       url.searchParams.append('types', 'address');
-      url.searchParams.append('limit', '10');
+      url.searchParams.append('limit', maxResults.toString());
 
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), {
+        signal: AbortSignal.timeout(5000)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Mapbox API returned ${response.status}`);
+      }
+
       const data = await response.json();
 
-      if (data.features) {
+      if (Array.isArray(data.features)) {
         suggestions = data.features.map(f => ({
           id: f.id,
           description: f.place_name,
@@ -115,9 +143,25 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ suggestions, provider: providerType });
+    return Response.json({ 
+      suggestions, 
+      provider: providerType 
+    });
+
   } catch (error) {
-    console.error('Address autocomplete error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('[addressAutocomplete] Error:', error);
+    
+    // Handle timeout errors
+    if (error.name === 'TimeoutError') {
+      return Response.json({ 
+        error: 'Request timeout',
+        suggestions: []
+      }, { status: 504 });
+    }
+
+    return Response.json({ 
+      error: error.message || 'Internal server error',
+      suggestions: []
+    }, { status: 500 });
   }
 });

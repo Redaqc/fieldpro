@@ -27,16 +27,20 @@ export function useAddressAutocomplete(config = {}) {
   const abortControllerRef = useRef(null);
   const debounceTimerRef = useRef(null);
   const cacheRef = useRef(new Map());
-  const sessionTokenRef = useRef(Math.random().toString(36).substring(7));
+  const sessionTokenRef = useRef(`session-${Date.now()}-${Math.random().toString(36).substring(7)}`);
 
   // Clean up cache entries older than expiry time
   const cleanCache = useCallback(() => {
     const now = Date.now();
+    const entriesToDelete = [];
+    
     for (const [key, value] of cacheRef.current.entries()) {
       if (now - value.timestamp > cacheExpiry) {
-        cacheRef.current.delete(key);
+        entriesToDelete.push(key);
       }
     }
+    
+    entriesToDelete.forEach(key => cacheRef.current.delete(key));
   }, [cacheExpiry]);
 
   // Get from cache
@@ -68,8 +72,8 @@ export function useAddressAutocomplete(config = {}) {
     // Check cache first
     const cached = getCached(query);
     if (cached) {
-      setSuggestions(cached.suggestions);
-      setProvider(cached.provider);
+      setSuggestions(cached.suggestions || []);
+      setProvider(cached.provider || '');
       setError(null);
       return;
     }
@@ -87,25 +91,25 @@ export function useAddressAutocomplete(config = {}) {
 
     try {
       const response = await base44.functions.invoke('addressAutocomplete', {
-        query,
+        query: query.trim(),
         sessionToken: sessionTokenRef.current,
       });
 
       // Check if request was aborted
-      if (abortControllerRef.current.signal.aborted) {
+      if (abortControllerRef.current?.signal?.aborted) {
         return;
       }
 
       if (response?.data?.error) {
         const errorMsg = response.data.error;
         // Provide helpful message for configuration errors
-        if (errorMsg.includes('not configured') || errorMsg.includes('API key')) {
-          setError('Veuillez configurer l\'API d\'autocomplétion dans Paramètres > Address Autocomplete');
+        if (errorMsg.includes('not configured') || errorMsg.includes('API key') || errorMsg.includes('désactivée')) {
+          setError('Configuration requise. Allez dans Paramètres > Address Autocomplete');
         } else {
           setError(errorMsg);
         }
         setSuggestions([]);
-      } else if (response?.data?.suggestions) {
+      } else if (response?.data?.suggestions && Array.isArray(response.data.suggestions)) {
         const limitedSuggestions = response.data.suggestions.slice(0, maxResults);
         setSuggestions(limitedSuggestions);
         setProvider(response.data.provider || '');
@@ -119,12 +123,14 @@ export function useAddressAutocomplete(config = {}) {
         setSuggestions([]);
       }
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        setError(err.message || 'Failed to fetch suggestions');
+      if (err.name !== 'AbortError' && !abortControllerRef.current?.signal?.aborted) {
+        const errorMessage = err.message || 'Échec de la récupération des suggestions';
+        console.error('[useAddressAutocomplete] Error:', errorMessage);
+        setError(errorMessage);
         setSuggestions([]);
       }
     } finally {
-      if (!abortControllerRef.current?.signal.aborted) {
+      if (!abortControllerRef.current?.signal?.aborted) {
         setIsLoading(false);
       }
     }
@@ -143,10 +149,14 @@ export function useAddressAutocomplete(config = {}) {
 
   // Fetch address details
   const fetchAddressDetails = useCallback(async (placeId) => {
+    if (!placeId) {
+      throw new Error('Place ID is required');
+    }
+
     try {
       const response = await base44.functions.invoke('addressDetails', {
         placeId,
-        provider,
+        provider: provider || 'google',
       });
 
       if (response?.data?.error) {
@@ -155,13 +165,25 @@ export function useAddressAutocomplete(config = {}) {
 
       return response?.data?.address || null;
     } catch (err) {
-      throw new Error(err.message || 'Failed to fetch address details');
+      const errorMessage = err.message || 'Échec de la récupération des détails';
+      console.error('[useAddressAutocomplete] Address details error:', errorMessage);
+      throw new Error(errorMessage);
     }
   }, [provider]);
 
   // Clear cache
   const clearCache = useCallback(() => {
     cacheRef.current.clear();
+  }, []);
+
+  // Clear suggestions
+  const clearSuggestions = useCallback(() => {
+    setSuggestions([]);
+  }, []);
+
+  // Clear error
+  const clearError = useCallback(() => {
+    setError(null);
   }, []);
 
   // Cleanup on unmount
@@ -183,8 +205,8 @@ export function useAddressAutocomplete(config = {}) {
     provider,
     search: debouncedSearch,
     fetchAddressDetails,
-    clearSuggestions: () => setSuggestions([]),
-    clearError: () => setError(null),
+    clearSuggestions,
+    clearError,
     clearCache,
   };
 }
