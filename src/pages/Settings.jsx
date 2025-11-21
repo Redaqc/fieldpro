@@ -1719,7 +1719,13 @@ export default function Settings() {
                   <CardTitle>Modèles de checklist</CardTitle>
                   <p className="text-sm text-slate-500 mt-1">Créez des modèles réutilisables pour vos jobs et appels de service</p>
                 </div>
-                <Button onClick={handleCreateTemplate} className="bg-blue-600 hover:bg-blue-700">
+                <Button 
+                  onClick={() => {
+                    setEditingTemplate(null);
+                    setChecklistDialogOpen(true);
+                  }} 
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Nouveau modèle
                 </Button>
