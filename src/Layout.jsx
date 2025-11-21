@@ -2,84 +2,37 @@ import React, { useState, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-                                  LayoutDashboard, 
-                                  Briefcase, 
-                                  Users, 
-                                  Calendar,
-                                  FileText,
-                                  UserCircle,
-                                  Menu,
-                                  X,
-                                  Settings,
-                                  Bell,
-                                  Search,
-                                  Package,
-                                  FileCheck,
-                                  DollarSign,
-                                  Clock,
-                                  MapPin,
-                                  BarChart3,
-                                  TrendingUp,
-                                  Zap,
-                                  RefreshCw,
-                                  Wrench,
-                                  MessageCircle,
-                                  Activity
-                                } from "lucide-react";
+                                        LayoutDashboard, 
+                                        Briefcase, 
+                                        Users, 
+                                        Calendar,
+                                        FileText,
+                                        UserCircle,
+                                        Menu,
+                                        X,
+                                        Settings,
+                                        Bell,
+                                        Search,
+                                        Package,
+                                        FileCheck,
+                                        DollarSign,
+                                        Clock,
+                                        MapPin,
+                                        BarChart3,
+                                        TrendingUp,
+                                        Zap,
+                                        RefreshCw,
+                                        Wrench,
+                                        MessageCircle,
+                                        Activity,
+                                        Shield
+                                      } from "lucide-react";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 import GlobalSearch from "@/components/shared/GlobalSearch";
 import QuickActionsMenu from "@/components/shared/QuickActionsMenu";
+import { translations } from "@/components/shared/translations";
 
-const translations = {
-  fr: {
-    dashboard: "Tableau de bord",
-    jobs: "Jobs",
-    serviceCalls: "Appels de Service",
-    schedule: "Horaire",
-    calendar: "Calendrier",
-    customers: "Clients",
-    team: "Équipe",
-    timeTracking: "Gestion du Temps",
-    documents: "Documents",
-    forms: "Formulaires",
-    automations: "Automatisations",
-    reports: "Rapports",
-    profitability: "Rentabilité",
-    costsManagement: "Gestion Coûts",
-    gpsTracking: "Suivi GPS",
-    quotations: "Soumissions",
-    invoices: "Factures",
-    assets: "Actifs",
-    priceLists: "Listes de Prix",
-    materials: "Matériaux",
-    settings: "Paramètres",
-    roles: "Rôles",
-  },
-  en: {
-    dashboard: "Dashboard",
-    jobs: "Jobs",
-    serviceCalls: "Service Calls",
-    schedule: "Schedule",
-    calendar: "Calendar",
-    customers: "Customers",
-    team: "Team",
-    timeTracking: "Time Tracking",
-    documents: "Documents",
-    forms: "Forms",
-    automations: "Automations",
-    reports: "Reports",
-    profitability: "Profitability",
-    costsManagement: "Costs Management",
-    gpsTracking: "GPS Tracking",
-    quotations: "Quotations",
-    invoices: "Invoices",
-    assets: "Assets",
-    priceLists: "Price Lists",
-    materials: "Materials",
-    settings: "Settings",
-    roles: "Roles",
-  }
-};
+import { translations } from "@/components/shared/translations";
 import {
               Sidebar,
               SidebarContent,
@@ -92,8 +45,7 @@ import {
               SidebarFooter,
               SidebarProvider,
               SidebarTrigger,
-            } from "@/components/ui/sidebar";
-            import { Shield } from "lucide-react";
+              } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -107,17 +59,17 @@ const getNavigationItems = (t) => [
     icon: LayoutDashboard,
   },
   {
-    title: "Dispatcher",
+    title: t('dispatcherDashboard'),
     url: createPageUrl("DispatcherDashboard"),
     icon: Zap,
   },
   {
-    title: "Manager",
+    title: t('managerDashboard'),
     url: createPageUrl("ManagerDashboard"),
     icon: BarChart3,
   },
   {
-    title: "Mobile Tech",
+    title: t('technicianMobile'),
     url: createPageUrl("TechnicianMobile"),
     icon: MapPin,
     mobileOnly: true,
@@ -138,7 +90,7 @@ const getNavigationItems = (t) => [
     icon: Calendar,
   },
   {
-    title: 'Analytics',
+    title: t('scheduleAnalytics'),
     url: createPageUrl("ScheduleAnalytics"),
     icon: BarChart3,
   },
@@ -173,17 +125,17 @@ const getNavigationItems = (t) => [
     icon: FileCheck,
   },
   {
-    title: t('automations'),
+    title: t('formAutomations'),
     url: createPageUrl("FormAutomations"),
     icon: Zap,
   },
   {
-    title: "Recurring Jobs",
+    title: t('recurringJobs'),
     url: createPageUrl("RecurringJobs"),
     icon: RefreshCw,
   },
   {
-    title: "Automation Rules",
+    title: t('automationRules'),
     url: createPageUrl("AutomationRules"),
     icon: Zap,
   },
@@ -193,52 +145,52 @@ const getNavigationItems = (t) => [
     icon: BarChart3,
   },
   {
-    title: "Advanced Analytics",
+    title: t('advancedReports'),
     url: createPageUrl("AdvancedReports"),
     icon: TrendingUp,
   },
   {
-    title: "Customer Portal",
+    title: t('customerPortal'),
     url: createPageUrl("CustomerPortal"),
     icon: Users,
   },
   {
-    title: "Maintenance Tracker",
+    title: t('maintenanceTracker'),
     url: createPageUrl("MaintenanceTracker"),
     icon: Wrench,
   },
   {
-    title: "Team Chat",
+    title: t('teamChat'),
     url: createPageUrl("TeamChat"),
     icon: MessageCircle,
   },
   {
-    title: "Notifications",
+    title: t('notificationCenter'),
     url: createPageUrl("NotificationCenter"),
     icon: Bell,
   },
   {
-    title: "BI Dashboard",
+    title: t('biDashboard'),
     url: createPageUrl("BIDashboard"),
     icon: BarChart3,
   },
   {
-    title: "Integrations",
+    title: t('integrationMarketplace'),
     url: createPageUrl("IntegrationMarketplace"),
     icon: Zap,
   },
   {
-    title: "Custom Fields",
+    title: t('customFields'),
     url: createPageUrl("CustomFields"),
     icon: Settings,
   },
   {
-    title: "Webhooks",
+    title: t('webhookManager'),
     url: createPageUrl("WebhookManager"),
     icon: Zap,
   },
   {
-    title: t('profitability'),
+    title: t('profitabilityReports'),
     url: createPageUrl("ProfitabilityReports"),
     icon: TrendingUp,
   },
@@ -283,12 +235,12 @@ const getNavigationItems = (t) => [
     icon: Settings,
   },
   {
-    title: t('roles'),
+    title: t('roleManager'),
     url: createPageUrl("RoleManager"),
     icon: Shield,
   },
   {
-    title: "Workflow Overview",
+    title: t('workflowOverview'),
     url: createPageUrl("WorkflowOverview"),
     icon: Activity,
   },
@@ -346,7 +298,15 @@ export default function Layout({ children, currentPageName }) {
   });
 
   const lang = languageSettings?.language || 'fr';
-  const t = useMemo(() => (key) => translations[lang]?.[key] || translations.fr[key] || key, [lang]);
+  const t = useMemo(() => (key) => {
+    const keys = key.split('.');
+    let value = translations[lang] || translations.fr;
+    for (const k of keys) {
+      value = value?.[k];
+      if (value === undefined) break;
+    }
+    return value || translations.fr[key] || key;
+  }, [lang]);
 
   // Find current user's technician profile to check permissions
   const currentTech = technicians.find(t => t.email === user?.email);
@@ -564,8 +524,8 @@ export default function Layout({ children, currentPageName }) {
                 onClick={() => base44.auth.logout()}
                 className="w-full justify-start gap-3 h-12 text-base"
               >
-                <Settings className="w-5 h-5 text-slate-600" />
-                <span>Déconnexion</span>
+                <X className="w-5 h-5 text-slate-600" />
+                <span>{lang === 'fr' ? 'Déconnexion' : 'Logout'}</span>
               </Button>
             </div>
           </div>
@@ -709,7 +669,7 @@ export default function Layout({ children, currentPageName }) {
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuItem onClick={() => window.location.href = createPageUrl("Settings")} className="cursor-pointer">
                       <Settings className="w-4 h-4 mr-2" />
-                      Paramètres
+                      {lang === 'fr' ? 'Paramètres' : 'Settings'}
                     </DropdownMenuItem>
                     {user?.role === 'admin' && (
                       <DropdownMenuItem onClick={() => window.open('https://base44.app/dashboard', '_blank')} className="cursor-pointer">
@@ -720,7 +680,7 @@ export default function Layout({ children, currentPageName }) {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => base44.auth.logout()} className="text-red-600 cursor-pointer">
                       <X className="w-4 h-4 mr-2" />
-                      Déconnexion
+                      {lang === 'fr' ? 'Déconnexion' : 'Logout'}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
