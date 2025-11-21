@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 
 export default function AddressAutocompleteSettings() {
   const queryClient = useQueryClient();
-  const [apiKey, setApiKey] = useState('');
+  const [localApiKey, setLocalApiKey] = useState('');
 
-  const { data: addressSettings } = useQuery({
+  const { data: addressSettings, isLoading } = useQuery({
     queryKey: ['integrationSettings', 'address_autocomplete'],
     queryFn: async () => {
       const settings = await base44.entities.IntegrationSettings.filter({ integration_type: 'address_autocomplete' });
@@ -19,33 +19,38 @@ export default function AddressAutocompleteSettings() {
     },
   });
 
+  // Synchronize local state with fetched settings
   useEffect(() => {
-    if (addressSettings?.api_key) {
-      setApiKey(addressSettings.api_key);
+    if (addressSettings) {
+      setLocalApiKey(addressSettings.api_key || '');
     }
-  }, [addressSettings?.id, addressSettings?.api_key]);
+  }, [addressSettings?.id]);
 
   const updateMutation = useMutation({
     mutationFn: async (updates) => {
-      const currentData = addressSettings || {};
-      const fullData = {
+      // Build complete data object
+      const dataToSave = {
         integration_type: 'address_autocomplete',
-        provider_type: currentData.provider_type || 'google',
-        country_bias: currentData.country_bias || 'ca',
-        language: currentData.language || 'fr',
-        is_active: currentData.is_active || false,
-        api_key: currentData.api_key || '',
+        provider_type: addressSettings?.provider_type || 'google',
+        country_bias: addressSettings?.country_bias || 'ca',
+        language: addressSettings?.language || 'fr',
+        is_active: addressSettings?.is_active !== undefined ? addressSettings.is_active : false,
+        api_key: addressSettings?.api_key || '',
         ...updates
       };
 
       if (addressSettings?.id) {
-        return await base44.entities.IntegrationSettings.update(addressSettings.id, fullData);
+        return await base44.entities.IntegrationSettings.update(addressSettings.id, dataToSave);
       } else {
-        return await base44.entities.IntegrationSettings.create(fullData);
+        return await base44.entities.IntegrationSettings.create(dataToSave);
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+      // Update local state with saved data
+      if (data.api_key) {
+        setLocalApiKey(data.api_key);
+      }
       alert('Paramètres sauvegardés avec succès!');
     },
     onError: (error) => {
@@ -53,6 +58,18 @@ export default function AddressAutocompleteSettings() {
       alert('Erreur lors de la sauvegarde: ' + error.message);
     }
   });
+
+  const handleSaveApiKey = () => {
+    if (!localApiKey.trim()) {
+      alert('Veuillez entrer une clé API valide');
+      return;
+    }
+    updateMutation.mutate({ api_key: localApiKey });
+  };
+
+  if (isLoading) {
+    return <div className="text-center py-4">Chargement...</div>;
+  }
 
   return (
     <>
@@ -87,8 +104,8 @@ export default function AddressAutocompleteSettings() {
         <Label>API Key</Label>
         <Input
           type="text"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
+          value={localApiKey}
+          onChange={(e) => setLocalApiKey(e.target.value)}
           placeholder="Enter your API key"
           className="mt-1"
         />
@@ -98,6 +115,11 @@ export default function AddressAutocompleteSettings() {
             : 'Get your key from: https://console.cloud.google.com/apis/credentials'
           }
         </p>
+        {addressSettings?.api_key && (
+          <p className="text-xs text-green-600 mt-1">
+            ✓ Clé API enregistrée
+          </p>
+        )}
       </div>
 
       <div>
@@ -142,8 +164,8 @@ export default function AddressAutocompleteSettings() {
       </div>
 
       <Button 
-        onClick={() => updateMutation.mutate({ api_key: apiKey })}
-        disabled={updateMutation.isPending}
+        onClick={handleSaveApiKey}
+        disabled={updateMutation.isPending || !localApiKey.trim()}
         className="w-full bg-blue-600 hover:bg-blue-700"
       >
         {updateMutation.isPending ? 'Saving...' : 'Save API Key'}
