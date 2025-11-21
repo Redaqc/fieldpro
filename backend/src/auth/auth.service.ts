@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -8,6 +8,8 @@ import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -113,6 +115,8 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(password, passwordHash);
 
     if (!user || !user.password_hash || !isPasswordValid) {
+      // ✅ SECURITY LOGGING: Log failed login attempts
+      this.logger.warn(`Failed login attempt for email: ${email}, tenant: ${tenant_slug}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -121,10 +125,14 @@ export class AuthService {
     });
 
     if (!tenant) {
+      // ✅ SECURITY LOGGING: Log tenant not found
+      this.logger.warn(`Login attempt for non-existent tenant: ${tenant_slug}, user: ${email}`);
       throw new UnauthorizedException('Tenant not found');
     }
 
     if (tenant.status !== 'active') {
+      // ✅ SECURITY LOGGING: Log inactive tenant access attempt
+      this.logger.warn(`Login attempt for inactive tenant: ${tenant_slug}, user: ${email}`);
       throw new UnauthorizedException('Tenant is not active');
     }
 
@@ -137,10 +145,15 @@ export class AuthService {
     });
 
     if (!tenantUser) {
+      // ✅ SECURITY LOGGING: Log unauthorized tenant access
+      this.logger.warn(`Unauthorized tenant access attempt: user ${email} → tenant ${tenant_slug}`);
       throw new UnauthorizedException('User not authorized for this tenant');
     }
 
     const tokens = await this.generateTokens(user, tenant, tenantUser);
+
+    // ✅ SECURITY LOGGING: Log successful login
+    this.logger.log(`Successful login: ${email} → ${tenant_slug} (${tenantUser.role})`);
 
     return {
       user: {

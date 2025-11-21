@@ -33,8 +33,11 @@ export class CustomersService {
   }
 
   async create(tenantId: string, createCustomerDto: CreateCustomerDto) {
-    const count = await this.tenantPrisma.count(tenantId, 'Customer', {});
-    const customerNumber = `CUST-${String(count + 1).padStart(6, '0')}`;
+    // ✅ RACE CONDITION FIX: Use database sequence instead of count+1
+    const result = await this.tenantPrisma.queryRaw<Array<{ nextval: number }>>(
+      `SELECT nextval('{schema}.customer_number_seq') as nextval`
+    );
+    const customerNumber = `CUST-${String(result[0].nextval).padStart(6, '0')}`;
 
     return this.tenantPrisma.create(tenantId, 'Customer', {
       data: {

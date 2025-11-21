@@ -1,15 +1,18 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
+import { TenantThrottlerGuard } from '../common/guards/tenant-throttler.guard';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
 
 @ApiTags('customers')
 @Controller('customers')
-@UseGuards(JwtAuthGuard, TenantGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, TenantThrottlerGuard)
+@Throttle({ default: { ttl: 60000, limit: 100 } }) // ✅ 100 requests per minute per tenant
 @ApiBearerAuth()
 export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}

@@ -40,6 +40,9 @@ BEGIN
     )
   ', schema_name);
 
+  -- ✅ RACE CONDITION FIX: Create sequence for customer numbers
+  EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I.customer_number_seq START 1', schema_name);
+
   -- ============================================
   -- TECHNICIANS TABLE
   -- ============================================
@@ -138,6 +141,9 @@ BEGIN
     )
   ', schema_name, schema_name, schema_name, schema_name);
 
+  -- ✅ RACE CONDITION FIX: Create sequence for job numbers
+  EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I.job_number_seq START 1', schema_name);
+
   -- ============================================
   -- SERVICE CALLS TABLE
   -- ============================================
@@ -162,6 +168,9 @@ BEGIN
       FOREIGN KEY (assigned_to) REFERENCES %I.technicians(id) ON DELETE SET NULL
     )
   ', schema_name, schema_name, schema_name, schema_name);
+
+  -- ✅ RACE CONDITION FIX: Create sequence for service call numbers
+  EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I.service_call_number_seq START 1', schema_name);
 
   -- ============================================
   -- QUOTATIONS TABLE
@@ -193,6 +202,9 @@ BEGIN
     )
   ', schema_name, schema_name, schema_name);
 
+  -- ✅ RACE CONDITION FIX: Create sequence for quotation numbers
+  EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I.quotation_number_seq START 1', schema_name);
+
   -- ============================================
   -- INVOICES TABLE
   -- ============================================
@@ -220,6 +232,9 @@ BEGIN
       FOREIGN KEY (job_id) REFERENCES %I.jobs(id) ON DELETE SET NULL
     )
   ', schema_name, schema_name, schema_name);
+
+  -- ✅ RACE CONDITION FIX: Create sequence for invoice numbers
+  EXECUTE format('CREATE SEQUENCE IF NOT EXISTS %I.invoice_number_seq START 1', schema_name);
 
   -- ============================================
   -- PAYMENTS TABLE

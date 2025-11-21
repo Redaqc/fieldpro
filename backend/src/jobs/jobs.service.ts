@@ -41,8 +41,11 @@ export class JobsService {
   }
 
   async create(tenantId: string, createJobDto: CreateJobDto) {
-    const count = await this.tenantPrisma.count(tenantId, 'Job', {});
-    const jobNumber = `JOB-${String(count + 1).padStart(6, '0')}`;
+    // ✅ RACE CONDITION FIX: Use database sequence instead of count+1
+    const result = await this.tenantPrisma.queryRaw<Array<{ nextval: number }>>(
+      `SELECT nextval('{schema}.job_number_seq') as nextval`
+    );
+    const jobNumber = `JOB-${String(result[0].nextval).padStart(6, '0')}`;
 
     return this.tenantPrisma.create(tenantId, 'Job', {
       data: {

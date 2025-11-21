@@ -8,9 +8,11 @@ export class InvoicesService {
   constructor(private tenantPrisma: TenantPrismaService) {}
 
   async create(tenantId: string, createDto: CreateInvoiceDto) {
-    // Generate invoice number
-    const count = await this.tenantPrisma.count(tenantId, 'Invoice', {});
-    const invoiceNumber = `INV-${String(count + 1).padStart(6, '0')}`;
+    // ✅ RACE CONDITION FIX: Use database sequence instead of count+1
+    const result = await this.tenantPrisma.queryRaw<Array<{ nextval: number }>>(
+      `SELECT nextval('{schema}.invoice_number_seq') as nextval`
+    );
+    const invoiceNumber = `INV-${String(result[0].nextval).padStart(6, '0')}`;
 
     // Calculate totals
     const subtotal = createDto.line_items.reduce((sum, item) => {

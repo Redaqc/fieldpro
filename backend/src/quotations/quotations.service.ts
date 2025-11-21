@@ -8,9 +8,11 @@ export class QuotationsService {
   constructor(private tenantPrisma: TenantPrismaService) {}
 
   async create(tenantId: string, createDto: CreateQuotationDto) {
-    // Generate quotation number
-    const count = await this.tenantPrisma.count(tenantId, 'Quotation', {});
-    const quotationNumber = `QUO-${String(count + 1).padStart(6, '0')}`;
+    // ✅ RACE CONDITION FIX: Use database sequence instead of count+1
+    const result = await this.tenantPrisma.queryRaw<Array<{ nextval: number }>>(
+      `SELECT nextval('{schema}.quotation_number_seq') as nextval`
+    );
+    const quotationNumber = `QUO-${String(result[0].nextval).padStart(6, '0')}`;
 
     // Calculate totals
     const subtotal = createDto.line_items.reduce((sum, item) => {
@@ -158,8 +160,11 @@ export class QuotationsService {
       }
 
       // Create job from quotation
-      const jobCount = await this.tenantPrisma.count(tenantId, 'Job', {});
-      const jobNumber = `JOB-${String(jobCount + 1).padStart(6, '0')}`;
+      // ✅ RACE CONDITION FIX: Use database sequence
+      const jobResult = await this.tenantPrisma.queryRaw<Array<{ nextval: number }>>(
+        `SELECT nextval('{schema}.job_number_seq') as nextval`
+      );
+      const jobNumber = `JOB-${String(jobResult[0].nextval).padStart(6, '0')}`;
 
       const job = await this.tenantPrisma.create(tenantId, 'Job', {
         data: {
