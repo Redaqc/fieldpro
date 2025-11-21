@@ -7,65 +7,58 @@ import { UpdateCustomerDto } from './dto/update-customer.dto';
 export class CustomersService {
   constructor(private tenantPrisma: TenantPrismaService) {}
 
-  async findAll() {
-    return this.tenantPrisma.queryRaw(`
-      SELECT * FROM {schema}.customers
-      WHERE is_sample = false
-      ORDER BY created_date DESC
-    `);
+  async findAll(tenantId: string, filters?: any) {
+    const where: any = {};
+
+    if (filters?.is_active !== undefined) {
+      where.is_active = filters.is_active === 'true';
+    }
+
+    return this.tenantPrisma.findMany(tenantId, 'Customer', {
+      where,
+      orderBy: { created_at: 'desc' },
+    });
   }
 
-  async findOne(id: string) {
-    const customer = await this.tenantPrisma.findOne('customers', id);
+  async findOne(tenantId: string, id: string) {
+    const customer = await this.tenantPrisma.findOne(tenantId, 'Customer', {
+      where: { id },
+    });
+
     if (!customer) {
       throw new NotFoundException('Customer not found');
     }
+
     return customer;
   }
 
-  async create(createCustomerDto: CreateCustomerDto, userId: string, userEmail: string) {
-    const data = {
-      ...createCustomerDto,
-      id: this.generateUUID(),
-      tags: JSON.stringify(createCustomerDto.tags || []),
-      status: createCustomerDto.status || 'active',
-      created_date: new Date(),
-      updated_date: new Date(),
-      created_by_id: userId,
-      created_by: userEmail,
-      is_sample: false,
-    };
+  async create(tenantId: string, createCustomerDto: CreateCustomerDto) {
+    const count = await this.tenantPrisma.count(tenantId, 'Customer', {});
+    const customerNumber = `CUST-${String(count + 1).padStart(6, '0')}`;
 
-    return this.tenantPrisma.create('customers', data);
-  }
-
-  async update(id: string, updateCustomerDto: UpdateCustomerDto) {
-    await this.findOne(id);
-    
-    const data: any = {};
-    Object.keys(updateCustomerDto).forEach(key => {
-      if (updateCustomerDto[key] !== undefined) {
-        if (key === 'tags') {
-          data[key] = JSON.stringify(updateCustomerDto[key]);
-        } else {
-          data[key] = updateCustomerDto[key];
-        }
-      }
+    return this.tenantPrisma.create(tenantId, 'Customer', {
+      data: {
+        customer_number: customerNumber,
+        ...createCustomerDto,
+        is_active: createCustomerDto.is_active !== false,
+      },
     });
-
-    return this.tenantPrisma.update('customers', id, data);
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
-    return this.tenantPrisma.delete('customers', id);
+  async update(tenantId: string, id: string, updateCustomerDto: UpdateCustomerDto) {
+    await this.findOne(tenantId, id);
+
+    return this.tenantPrisma.update(tenantId, 'Customer', {
+      where: { id },
+      data: updateCustomerDto,
+    });
   }
 
-  private generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === 'x' ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
+  async delete(tenantId: string, id: string) {
+    await this.findOne(tenantId, id);
+
+    return this.tenantPrisma.delete(tenantId, 'Customer', {
+      where: { id },
     });
   }
 }

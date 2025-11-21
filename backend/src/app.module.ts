@@ -17,6 +17,7 @@ import { QuotationsModule } from './quotations/quotations.module';
 import { TechniciansModule } from './technicians/technicians.module';
 import { MaterialsModule } from './materials/materials.module';
 import { AssetsModule } from './assets/assets.module';
+import { HealthModule } from './health/health.module';
 
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
@@ -33,12 +34,23 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     BullModule.forRoot({
       redis: {
         host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT) || 6379,
+        port: parseInt(process.env.REDIS_PORT || '6379'),
       },
     }),
 
     ThrottlerModule.forRoot([
       {
+        name: 'short',
+        ttl: 1000,
+        limit: 3,
+      },
+      {
+        name: 'medium',
+        ttl: 60000,
+        limit: 20,
+      },
+      {
+        name: 'long',
         ttl: 60000,
         limit: 100,
       },
@@ -46,8 +58,21 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET || 'dev-secret',
-      signOptions: { expiresIn: '15m' },
+      secret: (() => {
+        const secret = process.env.JWT_SECRET;
+        if (!secret || secret === 'your-super-secret-jwt-key-change-in-production') {
+          if (process.env.NODE_ENV === 'production') {
+            throw new Error('JWT_SECRET must be set to a strong secret in production');
+          }
+          console.warn('⚠️  WARNING: Using default JWT secret. Set JWT_SECRET in production!');
+          return 'dev-secret-only-for-development';
+        }
+        if (secret.length < 32) {
+          throw new Error('JWT_SECRET must be at least 32 characters long');
+        }
+        return secret;
+      })(),
+      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '15m' },
     }),
 
     PrismaModule,
@@ -62,6 +87,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     TechniciansModule,
     MaterialsModule,
     AssetsModule,
+    HealthModule,
   ],
 })
 export class AppModule implements NestModule {

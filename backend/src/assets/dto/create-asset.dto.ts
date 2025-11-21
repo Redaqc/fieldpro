@@ -5,7 +5,7 @@ export class CreateAssetDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  name: string;
+  name!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

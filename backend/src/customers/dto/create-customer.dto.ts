@@ -4,19 +4,19 @@ import { IsEmail, IsString, IsOptional, IsArray } from 'class-validator';
 export class CreateCustomerDto {
   @ApiProperty()
   @IsString()
-  first_name: string;
+  first_name!: string;
 
   @ApiProperty()
   @IsString()
-  last_name: string;
+  last_name!: string;
 
   @ApiProperty()
   @IsEmail()
-  email: string;
+  email!: string;
 
   @ApiProperty()
   @IsString()
-  phone: string;
+  phone!: string;
 
   @ApiPropertyOptional()
   @IsString()
@@ -37,4 +37,8 @@ export class CreateCustomerDto {
   @IsString()
   @IsOptional()
   status?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  is_active?: boolean;
 }

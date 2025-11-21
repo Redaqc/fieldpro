@@ -13,17 +13,17 @@ export class QuotationLineItemDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  description: string;
+  description!: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  quantity: number;
+  quantity!: number;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  unit_price: number;
+  unit_price!: number;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -45,7 +45,7 @@ export class CreateQuotationDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  customer_id: string;
+  customer_id!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -55,11 +55,11 @@ export class CreateQuotationDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  title: string;
+  title!: string;
 
   @ApiProperty()
   @IsArray()
-  line_items: QuotationLineItemDto[];
+  line_items!: QuotationLineItemDto[];
 
   @ApiProperty({ enum: QuotationStatus, default: QuotationStatus.DRAFT })
   @IsOptional()
@@ -69,12 +69,12 @@ export class CreateQuotationDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsDateString()
-  issue_date: string;
+  issue_date!: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsDateString()
-  valid_until: string;
+  valid_until!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

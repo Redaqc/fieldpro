@@ -4,7 +4,7 @@ import { IsString, IsOptional, IsArray, IsDateString } from 'class-validator';
 export class CreateJobDto {
   @ApiProperty()
   @IsString()
-  title: string;
+  title!: string;
 
   @ApiPropertyOptional()
   @IsString()
@@ -55,4 +55,9 @@ export class CreateJobDto {
   @IsDateString()
   @IsOptional()
   due_date?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  assigned_to?: string;
 }

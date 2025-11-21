@@ -20,7 +20,7 @@ export class CreateServiceCallDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  customer_id: string;
+  customer_id!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -30,7 +30,7 @@ export class CreateServiceCallDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  title: string;
+  title!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

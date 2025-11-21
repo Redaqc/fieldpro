@@ -118,7 +118,7 @@ export class TechniciansService {
     const technicians = await this.findAll(tenantId, { is_active: true });
 
     // For each technician, check their schedule for the given date
-    const availabilityPromises = technicians.map(async (tech) => {
+    const availabilityPromises = technicians.map(async (tech: any) => {
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
 

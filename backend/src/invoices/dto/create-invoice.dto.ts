@@ -13,17 +13,17 @@ export class InvoiceLineItemDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  description: string;
+  description!: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  quantity: number;
+  quantity!: number;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  unit_price: number;
+  unit_price!: number;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -45,7 +45,7 @@ export class CreateInvoiceDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  customer_id: string;
+  customer_id!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -54,7 +54,7 @@ export class CreateInvoiceDto {
 
   @ApiProperty()
   @IsArray()
-  line_items: InvoiceLineItemDto[];
+  line_items!: InvoiceLineItemDto[];
 
   @ApiProperty({ enum: InvoiceStatus, default: InvoiceStatus.DRAFT })
   @IsOptional()
@@ -64,12 +64,12 @@ export class CreateInvoiceDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsDateString()
-  issue_date: string;
+  issue_date!: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsDateString()
-  due_date: string;
+  due_date!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

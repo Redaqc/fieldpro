@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -15,7 +15,16 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const { email, password, firstName, lastName, tenantSlug, tenantName } = registerDto;
+    const { email, password, first_name, last_name, tenant_slug, tenant_name } = registerDto;
+
+    // ✅ FIXED: Validate tenant slug format to prevent SQL injection
+    if (tenant_slug && !/^[a-z0-9-]+$/.test(tenant_slug)) {
+      throw new BadRequestException('Tenant slug must contain only lowercase letters, numbers, and hyphens');
+    }
+
+    if (tenant_slug && (tenant_slug.length < 3 || tenant_slug.length > 63)) {
+      throw new BadRequestException('Tenant slug must be between 3 and 63 characters');
+    }
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
@@ -25,34 +34,43 @@ export class AuthService {
       throw new ConflictException('User already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12); // ✅ Increased rounds to 12
 
     const user = await this.prisma.user.create({
       data: {
         email,
         password_hash: hashedPassword,
-        first_name: firstName,
-        last_name: lastName,
+        first_name,
+        last_name,
       },
     });
 
     let tenant;
-    if (tenantSlug && tenantName) {
-      const schemaName = `tenant_${tenantSlug}`;
+    if (tenant_slug && tenant_name) {
+      // ✅ FIXED: Sanitize schema name and use parameterized query
+      const schemaName = `tenant_${tenant_slug.replace(/-/g, '_')}`;
+
+      // Check if tenant already exists
+      const existingTenant = await this.prisma.tenant.findUnique({
+        where: { slug: tenant_slug },
+      });
+
+      if (existingTenant) {
+        throw new ConflictException('Tenant already exists');
+      }
 
       tenant = await this.prisma.tenant.create({
         data: {
-          slug: tenantSlug,
-          name: tenantName,
+          slug: tenant_slug,
+          name: tenant_name,
           schema_name: schemaName,
           status: 'active',
           plan: 'starter',
         },
       });
 
-      await this.prisma.$executeRawUnsafe(
-        `SELECT create_tenant_schema('${schemaName}')`
-      );
+      // ✅ FIXED: Use parameterized query instead of string interpolation
+      await this.prisma.$executeRaw`SELECT create_tenant_schema(${schemaName})`;
 
       await this.prisma.tenantUser.create({
         data: {
@@ -82,27 +100,32 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const { email, password, tenantSlug } = loginDto;
+    const { email, password, tenant_slug } = loginDto;
 
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
 
-    if (!user || !user.password_hash) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    // ✅ FIXED: Timing attack prevention - always perform bcrypt comparison
+    const dummyHash = '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5uyilBJ3cBfby';
+    const passwordHash = user?.password_hash || dummyHash;
 
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-    if (!isPasswordValid) {
+    const isPasswordValid = await bcrypt.compare(password, passwordHash);
+
+    if (!user || !user.password_hash || !isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const tenant = await this.prisma.tenant.findUnique({
-      where: { slug: tenantSlug },
+      where: { slug: tenant_slug },
     });
 
     if (!tenant) {
       throw new UnauthorizedException('Tenant not found');
+    }
+
+    if (tenant.status !== 'active') {
+      throw new UnauthorizedException('Tenant is not active');
     }
 
     const tenantUser = await this.prisma.tenantUser.findFirst({
@@ -190,12 +213,21 @@ export class AuthService {
         where: { id: decoded.tenantId },
       });
 
+      if (!tenant || tenant.status !== 'active') {
+        throw new UnauthorizedException('Tenant not found or inactive');
+      }
+
       const tenantUser = await this.prisma.tenantUser.findFirst({
         where: {
           user_id: user.id,
           tenant_id: decoded.tenantId,
+          is_active: true,
         },
       });
+
+      if (!tenantUser) {
+        throw new UnauthorizedException('User not authorized for tenant');
+      }
 
       return this.generateTokens(user, tenant, tenantUser);
     } catch (error) {
@@ -213,7 +245,10 @@ export class AuthService {
       permissions: tenantUser?.permissions || {},
     };
 
-    const accessToken = this.jwtService.sign(payload);
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: this.configService.get('JWT_EXPIRES_IN', '15m'),
+    });
+
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_REFRESH_SECRET'),
       expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN', '7d'),

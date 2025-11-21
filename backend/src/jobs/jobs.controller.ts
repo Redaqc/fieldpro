@@ -1,11 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JobsService } from './jobs.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
 
 @ApiTags('jobs')
 @Controller('jobs')
@@ -16,35 +16,35 @@ export class JobsController {
 
   @Post()
   @ApiOperation({ summary: 'Create job' })
-  create(@Body() createJobDto: CreateJobDto, @CurrentUser() user: any) {
-    return this.jobsService.create(createJobDto, user.sub, user.email);
+  create(@CurrentTenant() tenantId: string, @Body() createJobDto: CreateJobDto) {
+    return this.jobsService.create(tenantId, createJobDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all jobs' })
-  findAll() {
-    return this.jobsService.findAll();
+  findAll(@CurrentTenant() tenantId: string, @Query() filters: any) {
+    return this.jobsService.findAll(tenantId, filters);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get job by ID' })
-  findOne(@Param('id') id: string) {
-    return this.jobsService.findOne(id);
+  findOne(@CurrentTenant() tenantId: string, @Param('id') id: string) {
+    return this.jobsService.findOne(tenantId, id);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update job' })
   update(
+    @CurrentTenant() tenantId: string,
     @Param('id') id: string,
     @Body() updateJobDto: UpdateJobDto,
-    @CurrentUser() user: any,
   ) {
-    return this.jobsService.update(id, updateJobDto, user.email);
+    return this.jobsService.update(tenantId, id, updateJobDto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete job' })
-  remove(@Param('id') id: string) {
-    return this.jobsService.remove(id);
+  delete(@CurrentTenant() tenantId: string, @Param('id') id: string) {
+    return this.jobsService.delete(tenantId, id);
   }
 }

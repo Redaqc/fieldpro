@@ -5,7 +5,7 @@ export class CreateMaterialDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  name: string;
+  name!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -25,12 +25,12 @@ export class CreateMaterialDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  cost_price: number;
+  cost_price!: number;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  sell_price: number;
+  sell_price!: number;
 
   @ApiProperty({ required: false })
   @IsOptional()

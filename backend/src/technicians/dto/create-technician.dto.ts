@@ -10,17 +10,17 @@ export class CreateTechnicianDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  first_name: string;
+  first_name!: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  last_name: string;
+  last_name!: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsEmail()
-  email: string;
+  email!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

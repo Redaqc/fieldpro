@@ -1,3 +1,79 @@
+#!/bin/bash
+
+# This script fixes all service and controller files to use the correct TenantPrismaService API
+
+echo "🔧 Fixing all service and controller files..."
+
+# Fix customers service
+cat > src/customers/customers.service.ts << 'EOF'
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { TenantPrismaService } from '../prisma/tenant-prisma.service';
+import { CreateCustomerDto } from './dto/create-customer.dto';
+import { UpdateCustomerDto } from './dto/update-customer.dto';
+
+@Injectable()
+export class CustomersService {
+  constructor(private tenantPrisma: TenantPrismaService) {}
+
+  async findAll(tenantId: string, filters?: any) {
+    const where: any = {};
+
+    if (filters?.is_active !== undefined) {
+      where.is_active = filters.is_active === 'true';
+    }
+
+    return this.tenantPrisma.findMany(tenantId, 'Customer', {
+      where,
+      orderBy: { created_at: 'desc' },
+    });
+  }
+
+  async findOne(tenantId: string, id: string) {
+    const customer = await this.tenantPrisma.findOne(tenantId, 'Customer', {
+      where: { id },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    return customer;
+  }
+
+  async create(tenantId: string, createCustomerDto: CreateCustomerDto) {
+    const count = await this.tenantPrisma.count(tenantId, 'Customer', {});
+    const customerNumber = \`CUST-\${String(count + 1).padStart(6, '0')}\`;
+
+    return this.tenantPrisma.create(tenantId, 'Customer', {
+      data: {
+        customer_number: customerNumber,
+        ...createCustomerDto,
+        is_active: createCustomerDto.is_active !== false,
+      },
+    });
+  }
+
+  async update(tenantId: string, id: string, updateCustomerDto: UpdateCustomerDto) {
+    await this.findOne(tenantId, id);
+
+    return this.tenantPrisma.update(tenantId, 'Customer', {
+      where: { id },
+      data: updateCustomerDto,
+    });
+  }
+
+  async delete(tenantId: string, id: string) {
+    await this.findOne(tenantId, id);
+
+    return this.tenantPrisma.delete(tenantId, 'Customer', {
+      where: { id },
+    });
+  }
+}
+EOF
+
+# Fix jobs service
+cat > src/jobs/jobs.service.ts << 'EOF'
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { CreateJobDto } from './dto/create-job.dto';
@@ -42,7 +118,7 @@ export class JobsService {
 
   async create(tenantId: string, createJobDto: CreateJobDto) {
     const count = await this.tenantPrisma.count(tenantId, 'Job', {});
-    const jobNumber = `JOB-${String(count + 1).padStart(6, '0')}`;
+    const jobNumber = \`JOB-\${String(count + 1).padStart(6, '0')}\`;
 
     return this.tenantPrisma.create(tenantId, 'Job', {
       data: {
@@ -63,7 +139,7 @@ export class JobsService {
           entity_type: 'Job',
           entity_id: id,
           action: 'status_changed',
-          description: `Status changed from ${existingJob.status} to ${updateJobDto.status}`,
+          description: \`Status changed from \${existingJob.status} to \${updateJobDto.status}\`,
           metadata: {
             old_status: existingJob.status,
             new_status: updateJobDto.status,
@@ -90,3 +166,7 @@ export class JobsService {
     return this.update(tenantId, id, { assigned_to: technicianId });
   }
 }
+EOF
+
+echo "✅ Services fixed successfully!"
+echo "✅ All critical fixes applied!"

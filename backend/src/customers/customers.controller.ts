@@ -1,11 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
 
 @ApiTags('customers')
 @Controller('customers')
@@ -16,31 +16,31 @@ export class CustomersController {
 
   @Post()
   @ApiOperation({ summary: 'Create customer' })
-  create(@Body() createCustomerDto: CreateCustomerDto, @CurrentUser() user: any) {
-    return this.customersService.create(createCustomerDto, user.sub, user.email);
+  create(@CurrentTenant() tenantId: string, @Body() createCustomerDto: CreateCustomerDto) {
+    return this.customersService.create(tenantId, createCustomerDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all customers' })
-  findAll() {
-    return this.customersService.findAll();
+  findAll(@CurrentTenant() tenantId: string, @Query() filters: any) {
+    return this.customersService.findAll(tenantId, filters);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get customer by ID' })
-  findOne(@Param('id') id: string) {
-    return this.customersService.findOne(id);
+  findOne(@CurrentTenant() tenantId: string, @Param('id') id: string) {
+    return this.customersService.findOne(tenantId, id);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update customer' })
-  update(@Param('id') id: string, @Body() updateCustomerDto: UpdateCustomerDto) {
-    return this.customersService.update(id, updateCustomerDto);
+  update(@CurrentTenant() tenantId: string, @Param('id') id: string, @Body() updateCustomerDto: UpdateCustomerDto) {
+    return this.customersService.update(tenantId, id, updateCustomerDto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete customer' })
-  remove(@Param('id') id: string) {
-    return this.customersService.remove(id);
+  delete(@CurrentTenant() tenantId: string, @Param('id') id: string) {
+    return this.customersService.delete(tenantId, id);
   }
 }

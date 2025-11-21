@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
-import { CreateQuotationDto } from './dto/create-quotation.dto';
+import { CreateQuotationDto, QuotationStatus } from './dto/create-quotation.dto';
 import { UpdateQuotationDto } from './dto/update-quotation.dto';
 
 @Injectable()
@@ -163,7 +163,7 @@ export class QuotationsService {
     });
 
     // Update quotation
-    await this.update(tenantId, id, { status: 'accepted', job_id: job.id });
+    await this.update(tenantId, id, { status: QuotationStatus.ACCEPTED as any, job_id: job.id });
 
     return job;
   }
