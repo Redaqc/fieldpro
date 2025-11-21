@@ -1052,71 +1052,232 @@ export default function Settings() {
           <Card>
             <CardHeader>
               <CardTitle>Information de la compagnie</CardTitle>
+              <p className="text-sm text-slate-500 mt-2">
+                Ces informations apparaîtront sur vos documents, factures et soumissions
+              </p>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* Company Name */}
               <div>
-                <Label>Nom de l'entreprise</Label>
+                <Label className="text-base font-semibold">Nom de l'entreprise</Label>
                 <Input
                   value={companyInfo?.company_name || ''}
                   onChange={(e) => updateCompanyInfoMutation.mutate({ company_name: e.target.value })}
                   placeholder="Nom de l'entreprise"
-                  className="mt-1"
+                  className="mt-2 h-11"
                 />
               </div>
 
-              <div>
-                <Label>Adresse</Label>
-                <Textarea
-                  value={companyInfo?.address || ''}
-                  onChange={(e) => updateCompanyInfoMutation.mutate({ address: e.target.value })}
-                  placeholder="Adresse complète"
-                  rows={3}
-                  className="mt-1"
-                />
+              {/* Contact Information */}
+              <div className="space-y-4">
+                <h3 className="text-base font-semibold border-b pb-2">Coordonnées</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Téléphone principal</Label>
+                    <Input
+                      value={companyInfo?.phone || ''}
+                      onChange={(e) => updateCompanyInfoMutation.mutate({ phone: e.target.value })}
+                      placeholder="(514) 123-4567"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Email de contact</Label>
+                    <Input
+                      type="email"
+                      value={companyInfo?.email || ''}
+                      onChange={(e) => updateCompanyInfoMutation.mutate({ email: e.target.value })}
+                      placeholder="contact@entreprise.com"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Télécopieur (Fax)</Label>
+                    <Input
+                      value={companyInfo?.fax || ''}
+                      onChange={(e) => updateCompanyInfoMutation.mutate({ fax: e.target.value })}
+                      placeholder="(514) 123-4568"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Site web</Label>
+                    <Input
+                      value={companyInfo?.website || ''}
+                      onChange={(e) => updateCompanyInfoMutation.mutate({ website: e.target.value })}
+                      placeholder="https://www.entreprise.com"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Address */}
+              <div className="space-y-4">
+                <h3 className="text-base font-semibold border-b pb-2">Adresse</h3>
+
                 <div>
-                  <Label>Téléphone</Label>
-                  <Input
-                    value={companyInfo?.phone || ''}
-                    onChange={(e) => updateCompanyInfoMutation.mutate({ phone: e.target.value })}
-                    placeholder="(123) 456-7890"
+                  <Label>Adresse complète</Label>
+                  <Textarea
+                    value={companyInfo?.address || ''}
+                    onChange={(e) => updateCompanyInfoMutation.mutate({ address: e.target.value })}
+                    placeholder="123 rue Principale&#10;Bureau 100"
+                    rows={3}
                     className="mt-1"
                   />
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label>Ville</Label>
+                    <Input
+                      value={companyInfo?.city || ''}
+                      onChange={(e) => updateCompanyInfoMutation.mutate({ city: e.target.value })}
+                      placeholder="Montréal"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Province</Label>
+                    <Select
+                      value={companyInfo?.province || ''}
+                      onValueChange={(value) => updateCompanyInfoMutation.mutate({ province: value })}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Sélectionner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="QC">Québec</SelectItem>
+                        <SelectItem value="ON">Ontario</SelectItem>
+                        <SelectItem value="BC">Colombie-Britannique</SelectItem>
+                        <SelectItem value="AB">Alberta</SelectItem>
+                        <SelectItem value="MB">Manitoba</SelectItem>
+                        <SelectItem value="SK">Saskatchewan</SelectItem>
+                        <SelectItem value="NS">Nouvelle-Écosse</SelectItem>
+                        <SelectItem value="NB">Nouveau-Brunswick</SelectItem>
+                        <SelectItem value="PE">Île-du-Prince-Édouard</SelectItem>
+                        <SelectItem value="NL">Terre-Neuve-et-Labrador</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Code postal</Label>
+                    <Input
+                      value={companyInfo?.postal_code || ''}
+                      onChange={(e) => updateCompanyInfoMutation.mutate({ postal_code: e.target.value.toUpperCase() })}
+                      placeholder="H1A 1A1"
+                      className="mt-1"
+                      maxLength={7}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Legal Information */}
+              <div className="space-y-4">
+                <h3 className="text-base font-semibold border-b pb-2">Informations légales</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Numéro de licence RBQ</Label>
+                    <Input
+                      value={companyInfo?.license || ''}
+                      onChange={(e) => updateCompanyInfoMutation.mutate({ license: e.target.value })}
+                      placeholder="1234-5678-01"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>NEQ (Numéro d'entreprise du Québec)</Label>
+                    <Input
+                      value={companyInfo?.neq || ''}
+                      onChange={(e) => updateCompanyInfoMutation.mutate({ neq: e.target.value })}
+                      placeholder="1234567890"
+                      className="mt-1"
+                      maxLength={10}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Numéro TPS</Label>
+                    <Input
+                      value={companyInfo?.gst_number || ''}
+                      onChange={(e) => updateCompanyInfoMutation.mutate({ gst_number: e.target.value })}
+                      placeholder="123456789 RT 0001"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Numéro TVQ</Label>
+                    <Input
+                      value={companyInfo?.qst_number || ''}
+                      onChange={(e) => updateCompanyInfoMutation.mutate({ qst_number: e.target.value })}
+                      placeholder="1234567890 TQ 0001"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Info */}
+              <div className="space-y-4">
+                <h3 className="text-base font-semibold border-b pb-2">Informations additionnelles</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Année de fondation</Label>
+                    <Input
+                      type="number"
+                      value={companyInfo?.founding_year || ''}
+                      onChange={(e) => updateCompanyInfoMutation.mutate({ founding_year: e.target.value })}
+                      placeholder="2020"
+                      className="mt-1"
+                      min="1900"
+                      max={new Date().getFullYear()}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Nombre d'employés</Label>
+                    <Input
+                      type="number"
+                      value={companyInfo?.employee_count || ''}
+                      onChange={(e) => updateCompanyInfoMutation.mutate({ employee_count: e.target.value })}
+                      placeholder="10"
+                      className="mt-1"
+                      min="1"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={companyInfo?.email || ''}
-                    onChange={(e) => updateCompanyInfoMutation.mutate({ email: e.target.value })}
-                    placeholder="info@entreprise.com"
+                  <Label>Description de l'entreprise</Label>
+                  <Textarea
+                    value={companyInfo?.description || ''}
+                    onChange={(e) => updateCompanyInfoMutation.mutate({ description: e.target.value })}
+                    placeholder="Décrivez votre entreprise, vos services et votre expertise..."
+                    rows={4}
                     className="mt-1"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Site web</Label>
-                  <Input
-                    value={companyInfo?.website || ''}
-                    onChange={(e) => updateCompanyInfoMutation.mutate({ website: e.target.value })}
-                    placeholder="https://www.entreprise.com"
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label>Licence</Label>
-                  <Input
-                    value={companyInfo?.license || ''}
-                    onChange={(e) => updateCompanyInfoMutation.mutate({ license: e.target.value })}
-                    placeholder="Numéro de licence"
-                    className="mt-1"
-                  />
+              {/* Info Box */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-900">
+                    <p className="font-medium mb-1">💡 Conseil</p>
+                    <p>Ces informations seront automatiquement incluses dans vos factures, soumissions et autres documents officiels. Assurez-vous qu'elles sont à jour et exactes.</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
