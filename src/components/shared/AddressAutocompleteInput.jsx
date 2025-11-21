@@ -23,6 +23,11 @@ export default function AddressAutocompleteInput({
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
 
+  // Synchroniser le state avec defaultValue
+  useEffect(() => {
+    setQuery(defaultValue || '');
+  }, [defaultValue]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
