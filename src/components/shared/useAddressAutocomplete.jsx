@@ -97,7 +97,13 @@ export function useAddressAutocomplete(config = {}) {
       }
 
       if (response?.data?.error) {
-        setError(response.data.error);
+        const errorMsg = response.data.error;
+        // Provide helpful message for configuration errors
+        if (errorMsg.includes('not configured') || errorMsg.includes('API key')) {
+          setError('Veuillez configurer l\'API d\'autocomplétion dans Paramètres > Address Autocomplete');
+        } else {
+          setError(errorMsg);
+        }
         setSuggestions([]);
       } else if (response?.data?.suggestions) {
         const limitedSuggestions = response.data.suggestions.slice(0, maxResults);
