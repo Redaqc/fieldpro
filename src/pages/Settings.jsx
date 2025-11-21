@@ -12,7 +12,182 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import AddressAutocompleteSettings from "../components/settings/AddressAutocompleteSettings";
+
+
+// Address Autocomplete Tab Component
+function AddressAutocompleteTab() {
+  const queryClient = useQueryClient();
+  const [apiKey, setApiKey] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const { data: addressSettings, isLoading } = useQuery({
+    queryKey: ['integrationSettings', 'address_autocomplete'],
+    queryFn: async () => {
+      const settings = await base44.entities.IntegrationSettings.filter({ 
+        integration_type: 'address_autocomplete' 
+      });
+      return settings[0] || null;
+    },
+  });
+
+  // Sync local state with DB
+  React.useEffect(() => {
+    if (addressSettings?.api_key) {
+      setApiKey(addressSettings.api_key);
+    }
+  }, [addressSettings?.id]);
+
+  const saveSettings = async (updates) => {
+    setIsSaving(true);
+    try {
+      const fullData = {
+        integration_type: 'address_autocomplete',
+        provider_type: addressSettings?.provider_type || 'google',
+        country_bias: addressSettings?.country_bias || 'ca',
+        language: addressSettings?.language || 'fr',
+        is_active: addressSettings?.is_active || false,
+        api_key: addressSettings?.api_key || '',
+        ...updates
+      };
+
+      if (addressSettings?.id) {
+        await base44.entities.IntegrationSettings.update(addressSettings.id, fullData);
+      } else {
+        await base44.entities.IntegrationSettings.create(fullData);
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+      alert('Paramètres sauvegardés!');
+    } catch (error) {
+      alert('Erreur: ' + error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center">
+          <p className="text-slate-500">Chargement...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Configuration Address Autocomplete</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Enable/Disable */}
+        <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div>
+            <p className="font-medium">Activer l'autocomplétion d'adresse</p>
+            <p className="text-sm text-slate-500">Suggestions automatiques d'adresses</p>
+          </div>
+          <Switch
+            checked={addressSettings?.is_active || false}
+            onCheckedChange={(checked) => saveSettings({ is_active: checked })}
+          />
+        </div>
+
+        {/* Provider */}
+        <div>
+          <Label>Fournisseur API</Label>
+          <Select
+            value={addressSettings?.provider_type || 'google'}
+            onValueChange={(value) => saveSettings({ provider_type: value })}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="google">Google Places API</SelectItem>
+              <SelectItem value="mapbox">Mapbox Geocoding API</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* API Key */}
+        <div>
+          <Label>Clé API</Label>
+          <div className="flex gap-2 mt-1">
+            <Input
+              type="text"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Entrez votre clé API"
+              className="flex-1"
+            />
+            <Button
+              onClick={() => saveSettings({ api_key: apiKey })}
+              disabled={isSaving || !apiKey.trim()}
+            >
+              {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+            </Button>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            {addressSettings?.provider_type === 'mapbox' 
+              ? 'Obtenez votre clé: https://account.mapbox.com/access-tokens/'
+              : 'Obtenez votre clé: https://console.cloud.google.com/apis/credentials'
+            }
+          </p>
+          {addressSettings?.api_key && (
+            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" /> Clé API enregistrée
+            </p>
+          )}
+        </div>
+
+        {/* Country Bias */}
+        <div>
+          <Label>Pays prioritaire</Label>
+          <Select
+            value={addressSettings?.country_bias || 'ca'}
+            onValueChange={(value) => saveSettings({ country_bias: value })}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ca">Canada</SelectItem>
+              <SelectItem value="us">États-Unis</SelectItem>
+              <SelectItem value="fr">France</SelectItem>
+              <SelectItem value="gb">Royaume-Uni</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Language */}
+        <div>
+          <Label>Langue des résultats</Label>
+          <Select
+            value={addressSettings?.language || 'fr'}
+            onValueChange={(value) => saveSettings({ language: value })}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fr">Français</SelectItem>
+              <SelectItem value="en">English</SelectItem>
+              <SelectItem value="es">Español</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Info */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-900">
+            <strong>Note:</strong> L'autocomplétion sera disponible dans les formulaires Clients, Emplacements de Jobs et Adresses d'Appels de Service.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Settings() {
   const [editingType, setEditingType] = useState(null);
@@ -1093,14 +1268,7 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="address-autocomplete">
-          <Card>
-            <CardHeader>
-              <CardTitle>Address Autocomplete Configuration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <AddressAutocompleteSettings />
-            </CardContent>
-          </Card>
+          <AddressAutocompleteTab />
         </TabsContent>
 
         <TabsContent value="menu">
