@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import JSZip from 'npm:jszip@3.10.1';
 
 Deno.serve(async (req) => {
   try {
@@ -11,52 +10,22 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized - Admin access required' }, { status: 403 });
     }
 
-    // Create ZIP archive
-    const zip = new JSZip();
-
-    // Add README
-    const readme = `# FieldPro FSM - Application Export
-    
-Exported: ${new Date().toISOString()}
-By: ${user.email}
-
-## Structure:
-- /database/ - All database records in JSON format
-- /entities/ - Entity schemas (JSON Schema format)
-- README.txt - This file
-
-## Important Notes:
-1. Frontend code (pages & components) and backend functions are stored in Base44 platform
-2. To access the source code:
-   - Go to https://base44.app/dashboard
-   - Navigate to your app
-   - Use the "Code" tab to view/download individual files
-   
-3. This export contains:
-   ✓ Complete database (all records)
-   ✓ Entity schemas
-   ✓ Application structure documentation
-   
-## Restore Instructions:
-1. Create a new Base44 app
-2. Import entity schemas from /entities/ folder
-3. Import database records using CSV or API
-4. Manually recreate pages/components/functions from Base44 dashboard backup
-
-For complete source code backup, use Base44 dashboard export feature.
-`;
-    
-    zip.file('README.txt', readme);
-
-    // Export full application metadata
-    const manifest = {
+    // Export full application package
+    const fullExport = {
       exported_at: new Date().toISOString(),
       exported_by: user.email,
       version: '1.0',
-      app_name: 'FieldPro FSM',
-      description: 'Complete field service management application export',
-      platform: 'Base44',
-      export_type: 'full_application_archive'
+      database: {},
+      entities: {},
+      functions: {},
+      pages: {},
+      components: {},
+      metadata: {
+        app_name: 'FieldPro FSM',
+        description: 'Complete field service management application export',
+        platform: 'Base44',
+        export_type: 'full_application'
+      }
     };
 
     // Export all database records
@@ -73,72 +42,70 @@ For complete source code backup, use Base44 dashboard export feature.
       'ProfitabilityRecord'
     ];
 
-    // Create database folder structure
-    const databaseFolder = zip.folder('database');
-    const entitiesFolder = zip.folder('entities');
-    
     for (const entityName of entities) {
       try {
-        // Export records
         const records = await base44.asServiceRole.entities[entityName].list();
-        databaseFolder.file(`${entityName}.json`, JSON.stringify(records, null, 2));
-        manifest[`database_${entityName}_count`] = records.length;
+        fullExport.database[entityName] = records;
         
-        // Export schema
+        // Also get entity schema
         try {
           const schema = await base44.asServiceRole.entities[entityName].schema();
-          entitiesFolder.file(`${entityName}.json`, JSON.stringify(schema, null, 2));
+          fullExport.entities[entityName] = schema;
         } catch (e) {
           console.log(`[exportFullApp] Could not get schema for ${entityName}`);
         }
       } catch (error) {
         console.log(`[exportFullApp] Could not export ${entityName}:`, error.message);
-        databaseFolder.file(`${entityName}.json`, JSON.stringify([], null, 2));
+        fullExport.database[entityName] = [];
       }
     }
 
-    // Add application structure documentation
-    manifest.functions = {
-      available: [
-        'exportDatabase', 'exportFullApp', 'addressAutocomplete', 'addressDetails',
-        'zohoAuth', 'zohoSyncCustomers', 'zohoSyncInvoices', 'zohoCreateInvoice',
-        'sage50Sync', 'csvExport', 'csvImport', 'syncScheduler', 'automatedNotifications',
-        'sendNotification', 'aiScheduleOptimizer', 'autoCompleteJob', 'gpsAutoTimeTracking',
-        'calculateProfitability', 'automationEngine', 'smartInventoryTracking', 'routeOptimizer',
-        'predictMaintenance', 'sendEmail', 'sendSMS', 'stripePayment', 'stripeWebhook',
-        'quickbooksSync', 'googleCalendarSync', 'webhookDispatcher', 'sendSecurityNotification',
-        'executeFormAutomations'
-      ],
-      count: 29
+    // List available backend functions
+    const availableFunctions = [
+      'exportDatabase', 'exportFullApp', 'addressAutocomplete', 'addressDetails',
+      'zohoAuth', 'zohoSyncCustomers', 'zohoSyncInvoices', 'zohoCreateInvoice',
+      'sage50Sync', 'csvExport', 'csvImport', 'syncScheduler', 'automatedNotifications',
+      'sendNotification', 'aiScheduleOptimizer', 'autoCompleteJob', 'gpsAutoTimeTracking',
+      'calculateProfitability', 'automationEngine', 'smartInventoryTracking', 'routeOptimizer',
+      'predictMaintenance', 'sendEmail', 'sendSMS', 'stripePayment', 'stripeWebhook',
+      'quickbooksSync', 'googleCalendarSync', 'webhookDispatcher', 'sendSecurityNotification',
+      'executeFormAutomations'
+    ];
+    
+    fullExport.functions = {
+      available: availableFunctions,
+      count: availableFunctions.length,
+      note: 'Function source code is stored in Base44 backend and can be accessed via dashboard'
     };
 
-    manifest.pages = [
-      'Dashboard', 'Jobs', 'ServiceCalls', 'Customers', 'Team', 'Schedule', 'Calendar',
-      'TimeTracking', 'Invoices', 'Quotations', 'Assets', 'Materials', 'PriceLists',
-      'GPSTracking', 'Documents', 'Forms', 'Reports', 'Settings', 'DispatcherDashboard',
-      'ManagerDashboard', 'TechnicianMobile', 'RoleManager', 'FormAutomations',
-      'RecurringJobs', 'AutomationRules', 'CustomerPortal', 'AdvancedReports',
-      'MaintenanceTracker', 'TeamChat', 'NotificationCenter', 'BIDashboard',
-      'IntegrationMarketplace', 'CustomFields', 'WebhookManager', 'ProfitabilityReports',
-      'CostsManagement', 'ScheduleAnalytics', 'WorkflowOverview'
-    ];
+    // List frontend structure
+    fullExport.pages = {
+      available: [
+        'Dashboard', 'Jobs', 'ServiceCalls', 'Customers', 'Team', 'Schedule', 'Calendar',
+        'TimeTracking', 'Invoices', 'Quotations', 'Assets', 'Materials', 'PriceLists',
+        'GPSTracking', 'Documents', 'Forms', 'Reports', 'Settings', 'DispatcherDashboard',
+        'ManagerDashboard', 'TechnicianMobile', 'RoleManager', 'FormAutomations',
+        'RecurringJobs', 'AutomationRules', 'CustomerPortal', 'AdvancedReports',
+        'MaintenanceTracker', 'TeamChat', 'NotificationCenter', 'BIDashboard',
+        'IntegrationMarketplace', 'CustomFields', 'WebhookManager', 'ProfitabilityReports',
+        'CostsManagement', 'ScheduleAnalytics', 'WorkflowOverview'
+      ],
+      note: 'Page source code is stored in Base44 frontend and can be accessed via dashboard'
+    };
 
-    manifest.component_categories = [
-      'dashboard', 'jobs', 'customers', 'team', 'schedule', 'invoices', 'quotations',
-      'timetracking', 'mobile', 'notifications', 'gps', 'forms', 'documents',
-      'settings', 'shared', 'assets', 'materials', 'pricelists'
-    ];
+    fullExport.components = {
+      note: 'Component source code is stored in Base44 frontend and can be accessed via dashboard',
+      categories: [
+        'dashboard', 'jobs', 'customers', 'team', 'schedule', 'invoices', 'quotations',
+        'timetracking', 'mobile', 'notifications', 'gps', 'forms', 'documents',
+        'settings', 'shared', 'assets', 'materials', 'pricelists'
+      ]
+    };
 
-    zip.file('manifest.json', JSON.stringify(manifest, null, 2));
-
-    // Generate ZIP file
-    const zipBlob = await zip.generateAsync({ type: 'uint8array' });
-
-    // Return ZIP file
-    return new Response(zipBlob, {
+    // Return complete export as JSON
+    return Response.json(fullExport, {
       headers: {
-        'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="fieldpro_complete_export_${new Date().toISOString().split('T')[0]}.zip"`
+        'Content-Disposition': `attachment; filename="fieldpro_full_export_${new Date().toISOString().split('T')[0]}.json"`
       }
     });
 
