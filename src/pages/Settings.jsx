@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AddressAutocompleteInput from "@/components/shared/AddressAutocompleteInput";
+import ChecklistTemplateDialog from "@/components/settings/ChecklistTemplateDialog";
 
 
 // Address Autocomplete Tab Component
@@ -478,6 +479,8 @@ export default function Settings() {
   const [newType, setNewType] = useState({ name: "", label_fr: "", label_en: "", color: "#0074D9" });
   const [csvFile, setCsvFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [checklistDialogOpen, setChecklistDialogOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: workTypes = [] } = useQuery({
@@ -601,6 +604,17 @@ export default function Settings() {
     mutationFn: (data) => base44.entities.ChecklistTemplate.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checklistTemplates'] });
+      setChecklistDialogOpen(false);
+      setEditingTemplate(null);
+    },
+  });
+
+  const updateChecklistMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.ChecklistTemplate.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['checklistTemplates'] });
+      setChecklistDialogOpen(false);
+      setEditingTemplate(null);
     },
   });
 
@@ -781,25 +795,15 @@ export default function Settings() {
   const zohoConnected = zohoSettings?.is_active && zohoSettings?.zoho_access_token;
   const sage50Connected = sage50Settings?.is_active;
 
-  const handleCreateTemplate = () => {
-    const name = prompt('Nom du modèle de checklist:');
-    if (!name) return;
-
-    const template = {
-      name,
-      checklist_data: [
-        {
-          name: 'Nouvelle section',
-          items: [
-            { text: 'Élément 1' },
-            { text: 'Élément 2' },
-          ]
-        }
-      ],
-      active: true
-    };
-
-    createChecklistMutation.mutate(template);
+  const handleSaveChecklistTemplate = (data) => {
+    if (editingTemplate) {
+      updateChecklistMutation.mutate({
+        id: editingTemplate.id,
+        data
+      });
+    } else {
+      createChecklistMutation.mutate(data);
+    }
   };
 
   return (
@@ -1727,7 +1731,13 @@ export default function Settings() {
                   <List className="w-16 h-16 mx-auto mb-4 text-slate-300" />
                   <p className="text-lg font-medium text-slate-700 mb-2">Aucun modèle de checklist</p>
                   <p className="text-sm text-slate-500 mb-4">Créez des modèles pour standardiser vos processus</p>
-                  <Button onClick={handleCreateTemplate} variant="outline">
+                  <Button 
+                    onClick={() => {
+                      setEditingTemplate(null);
+                      setChecklistDialogOpen(true);
+                    }} 
+                    variant="outline"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Créer votre premier modèle
                   </Button>
@@ -1766,27 +1776,12 @@ export default function Settings() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
                                 onClick={() => {
-                                  const newName = prompt('Nouveau nom:', template.name);
-                                  if (newName && newName !== template.name) {
-                                    base44.entities.ChecklistTemplate.update(template.id, { name: newName })
-                                      .then(() => queryClient.invalidateQueries({ queryKey: ['checklistTemplates'] }));
-                                  }
+                                  setEditingTemplate(template);
+                                  setChecklistDialogOpen(true);
                                 }}
                               >
                                 <Edit className="w-4 h-4 mr-2" />
-                                Renommer
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  const newDesc = prompt('Description:', template.description || '');
-                                  if (newDesc !== null) {
-                                    base44.entities.ChecklistTemplate.update(template.id, { description: newDesc })
-                                      .then(() => queryClient.invalidateQueries({ queryKey: ['checklistTemplates'] }));
-                                  }
-                                }}
-                              >
-                                <FileText className="w-4 h-4 mr-2" />
-                                Description
+                                Modifier
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => {
@@ -2029,6 +2024,16 @@ export default function Settings() {
 
 
         </Tabs>
+
+        <ChecklistTemplateDialog
+          open={checklistDialogOpen}
+          onClose={() => {
+            setChecklistDialogOpen(false);
+            setEditingTemplate(null);
+          }}
+          template={editingTemplate}
+          onSave={handleSaveChecklistTemplate}
+        />
         </div>
         );
         }
