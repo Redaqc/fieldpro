@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useId } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin, X } from 'lucide-react';
-import { useAddressAutocomplete } from '@/hooks/useAddressAutocomplete';
+import { useAddressAutocomplete } from './useAddressAutocomplete';
 import AddressSuggestionsDropdown from './AddressSuggestionsDropdown';
 import { useToast } from '@/components/ui/use-toast';
 
