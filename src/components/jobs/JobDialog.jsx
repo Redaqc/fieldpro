@@ -634,7 +634,12 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
               <div key={index} className="flex gap-2">
                 <AddressAutocompleteInput
                   label=""
-                  defaultValue={address}
+                  value={address}
+                  onChange={(e) => {
+                    const addresses = [...(formData.project_addresses || [])];
+                    addresses[index] = e.target.value;
+                    setFormData({ ...formData, project_addresses: addresses });
+                  }}
                   placeholder={`Adresse ${index + 1}...`}
                   onAddressSelected={(addr) => {
                     const addresses = [...(formData.project_addresses || [])];

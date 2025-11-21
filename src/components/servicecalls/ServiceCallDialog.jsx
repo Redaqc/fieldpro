@@ -628,7 +628,12 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
             {(formData.project_addresses || []).map((address, index) => (
               <div key={index} className="flex gap-2">
                 <AddressAutocompleteInput
-                  defaultValue={address}
+                  value={address}
+                  onChange={(e) => {
+                    const addresses = [...(formData.project_addresses || [])];
+                    addresses[index] = e.target.value;
+                    setFormData({ ...formData, project_addresses: addresses });
+                  }}
                   placeholder={`Adresse ${index + 1}...`}
                   onAddressSelected={(addressData) => {
                     const addresses = [...(formData.project_addresses || [])];
