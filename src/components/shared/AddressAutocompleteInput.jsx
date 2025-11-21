@@ -47,8 +47,6 @@ export default function AddressAutocompleteInput({
   required = false,
   error: externalError,
 }) {
-  const { toast } = useToast();
-  
   // Controlled vs uncontrolled state
   const isControlled = controlledValue !== undefined;
   const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue);
