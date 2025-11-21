@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus, X, GripVertical, CheckSquare } from "lucide-react";
+import { Plus, X, GripVertical, CheckSquare, Trash2 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 export default function ChecklistTemplateDialog({ open, onClose, template, onSave }) {
