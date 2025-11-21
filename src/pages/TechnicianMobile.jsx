@@ -273,29 +273,29 @@ export default function TechnicianMobile() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      {/* Header - Fixed */}
-      <div className="bg-white border-b border-slate-200 p-4 sticky top-0 z-10 shadow-sm">
+    <div className="min-h-screen bg-slate-50 pb-20 select-none" style={{ WebkitTapHighlightColor: 'transparent' }}>
+      {/* Header - Fixed - Touch Optimized */}
+      <div className="bg-gradient-to-r from-blue-500 to-blue-600 border-b border-blue-700 p-4 sticky top-0 z-10 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {currentTech.avatar_url ? (
-              <img src={currentTech.avatar_url} alt="Profile" className="w-12 h-12 rounded-full object-cover" />
+              <img src={currentTech.avatar_url} alt="Profile" className="w-14 h-14 rounded-full object-cover border-2 border-white shadow" />
             ) : (
               <div 
-                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
-                style={{ backgroundColor: currentTech.color || '#64748b' }}
+                className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg border-2 border-white shadow"
+                style={{ backgroundColor: currentTech.color || '#1e40af' }}
               >
                 {currentTech.first_name[0]}{currentTech.last_name[0]}
               </div>
             )}
             <div>
-              <p className="font-semibold text-lg">{currentTech.first_name}</p>
-              <p className="text-xs text-slate-500">{format(new Date(), 'EEEE d MMMM', { locale: fr })}</p>
+              <p className="font-bold text-lg text-white">{currentTech.first_name}</p>
+              <p className="text-xs text-blue-100">{format(new Date(), 'EEEE d MMMM', { locale: fr })}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 text-xs text-slate-600">
-              <Battery className={`w-4 h-4 ${batteryLevel < 20 ? 'text-red-500' : 'text-green-500'}`} />
+            <div className="flex items-center gap-1 text-xs text-white bg-white/20 px-2 py-1 rounded-full">
+              <Battery className={`w-4 h-4 ${batteryLevel < 20 ? 'text-red-300' : 'text-green-300'}`} />
               {batteryLevel}%
             </div>
           </div>
@@ -341,26 +341,26 @@ export default function TechnicianMobile() {
           }}
         />
 
-        {/* Active Time */}
+        {/* Active Time - Enhanced */}
         {activeEntry && (
-          <Card className="p-4 bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+          <Card className="p-5 bg-gradient-to-r from-green-50 to-green-100 border-green-200 shadow-md">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-white" />
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
+                  <Clock className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="font-semibold">Temps actif</p>
-                  <p className="text-2xl font-bold text-green-700">
+                  <p className="font-semibold text-base text-slate-700">Temps actif</p>
+                  <p className="text-3xl font-bold text-green-700">
                     {Math.floor(differenceInMinutes(new Date(), new Date(activeEntry.clock_in)) / 60)}h
                     {differenceInMinutes(new Date(), new Date(activeEntry.clock_in)) % 60}m
                   </p>
                 </div>
               </div>
               <div className="text-right text-sm text-slate-600">
-                <p>Début: {format(new Date(activeEntry.clock_in), 'HH:mm')}</p>
+                <p className="font-medium">Début: {format(new Date(activeEntry.clock_in), 'HH:mm')}</p>
                 {activeEntry.location_in && (
-                  <p className="text-xs flex items-center gap-1 justify-end">
+                  <p className="text-xs flex items-center gap-1 justify-end mt-1">
                     <MapPin className="w-3 h-3" />
                     {activeEntry.location_in}
                   </p>
@@ -370,17 +370,17 @@ export default function TechnicianMobile() {
           </Card>
         )}
 
-        {/* My Jobs Today */}
+        {/* My Jobs Today - Enhanced */}
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Briefcase className="w-5 h-5" />
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
+              <Briefcase className="w-6 h-6 text-blue-600" />
               Mes Jobs ({myJobs.length})
             </h2>
           </div>
           
           {myJobs.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {myJobs.map(job => (
                 <MobileJobCard 
                   key={job.id} 
@@ -391,24 +391,24 @@ export default function TechnicianMobile() {
               ))}
             </div>
           ) : (
-            <Card className="p-8 text-center">
-              <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-600">Aucun job assigné aujourd'hui</p>
+            <Card className="p-10 text-center shadow-sm">
+              <Briefcase className="w-16 h-16 text-slate-300 mx-auto mb-3" />
+              <p className="text-base text-slate-600 font-medium">Aucun job assigné aujourd'hui</p>
             </Card>
           )}
         </div>
 
-        {/* My Service Calls */}
+        {/* My Service Calls - Enhanced */}
         {myCalls.length > 0 && (
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Phone className="w-5 h-5" />
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                <Phone className="w-6 h-6 text-blue-600" />
                 Mes Appels de Service ({myCalls.length})
               </h2>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-4">
               {myCalls.map(call => (
                 <MobileJobCard 
                   key={call.id} 

@@ -29,33 +29,53 @@ export default function OfflineSyncQueue({ isOnline }) {
 
     setSyncing(true);
     const failed = [];
+    let successCount = 0;
 
     for (const item of queue) {
       try {
-        switch (item.action) {
-          case 'update_job':
-            await base44.entities.Job.update(item.entityId, item.data);
-            break;
-          case 'update_service_call':
-            await base44.entities.ServiceCall.update(item.entityId, item.data);
-            break;
-          case 'create_time_entry':
-            await base44.entities.TimeEntry.create(item.data);
-            break;
-          default:
-            console.warn('Unknown action:', item.action);
+        const { method, entity, entityId, data } = item;
+        
+        if (method === 'update' && entityId && entity) {
+          await base44.entities[entity].update(entityId, data);
+          successCount++;
+        } else if (method === 'create' && entity) {
+          await base44.entities[entity].create(data);
+          successCount++;
+        } else if (item.action) {
+          // Legacy support
+          switch (item.action) {
+            case 'update_job':
+              await base44.entities.Job.update(item.entityId, item.data);
+              successCount++;
+              break;
+            case 'update_service_call':
+              await base44.entities.ServiceCall.update(item.entityId, item.data);
+              successCount++;
+              break;
+            case 'create_time_entry':
+              await base44.entities.TimeEntry.create(item.data);
+              successCount++;
+              break;
+            default:
+              console.warn('[OfflineSyncQueue] Unknown action:', item.action);
+          }
         }
       } catch (err) {
-        failed.push({ ...item, error: err.message });
+        console.error('[OfflineSyncQueue] Sync error:', err);
+        failed.push({ ...item, error: err.message, retries: (item.retries || 0) + 1 });
       }
     }
 
     if (failed.length === 0) {
       localStorage.removeItem(STORAGE_KEY);
       setQueue([]);
+      if (successCount > 0) {
+        alert(`✓ ${successCount} changement(s) synchronisé(s)`);
+      }
     } else {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(failed));
       setQueue(failed);
+      alert(`⚠ ${successCount} synchronisé(s), ${failed.length} échec(s)`);
     }
 
     setSyncing(false);
