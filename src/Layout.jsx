@@ -372,18 +372,52 @@ export default function Layout({ children, currentPageName }) {
   const filteredNavigation = navigationItems.filter(item => {
     const moduleName = item.url.split('?')[0].split('/').pop().toLowerCase();
 
+    // Module name mapping for menu configuration
+    const moduleKeyMap = {
+      'dashboard': 'dashboard',
+      'dispatcherdashboard': 'dispatcherDashboard',
+      'managerdashboard': 'managerDashboard',
+      'technicianmobile': 'technicianMobile',
+      'jobs': 'jobs',
+      'servicecalls': 'serviceCalls',
+      'schedule': 'schedule',
+      'scheduleanalytics': 'scheduleAnalytics',
+      'calendar': 'calendar',
+      'customers': 'customers',
+      'team': 'team',
+      'timetracking': 'timeTracking',
+      'documents': 'documents',
+      'forms': 'forms',
+      'formautomations': 'formAutomations',
+      'recurringjobs': 'recurringJobs',
+      'automationrules': 'automationRules',
+      'reports': 'reports',
+      'advancedreports': 'advancedReports',
+      'customerportal': 'customerPortal',
+      'maintenancetracker': 'maintenanceTracker',
+      'teamchat': 'teamChat',
+      'notificationcenter': 'notificationCenter',
+      'bidashboard': 'biDashboard',
+      'integrationmarketplace': 'integrationMarketplace',
+      'customfields': 'customFields',
+      'webhookmanager': 'webhookManager',
+      'profitabilityreports': 'profitabilityReports',
+      'costsmanagement': 'costsManagement',
+      'gpstracking': 'gpsTracking',
+      'quotations': 'quotations',
+      'invoices': 'invoices',
+      'assets': 'assets',
+      'pricelists': 'priceLists',
+      'materials': 'materials',
+      'settings': 'settings',
+      'rolemanager': 'roleManager',
+      'workflowoverview': 'workflowOverview'
+    };
+
     // Check menu configuration first
     if (appSettings?.menu_modules) {
-      const moduleKey = moduleName.replace(/dashboard/i, match => 
-        moduleName === 'dispatcherdashboard' ? 'dispatcherDashboard' :
-        moduleName === 'managerdashboard' ? 'managerDashboard' :
-        'dashboard'
-      ).replace(/([A-Z])/g, match => match).replace(/^[a-z]/, match => match);
-      
-      // Convert to camelCase for lookup
-      const camelKey = moduleName.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-      
-      if (appSettings.menu_modules[camelKey] === false) {
+      const menuKey = moduleKeyMap[moduleName];
+      if (menuKey && appSettings.menu_modules[menuKey] === false) {
         return false;
       }
     }
