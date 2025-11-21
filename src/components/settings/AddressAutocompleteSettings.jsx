@@ -20,10 +20,10 @@ export default function AddressAutocompleteSettings() {
   });
 
   useEffect(() => {
-    if (addressSettings) {
-      setApiKey(addressSettings.api_key || '');
+    if (addressSettings?.api_key) {
+      setApiKey(addressSettings.api_key);
     }
-  }, [addressSettings]);
+  }, [addressSettings?.id, addressSettings?.api_key]);
 
   const updateMutation = useMutation({
     mutationFn: async (updates) => {
