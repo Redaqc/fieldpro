@@ -2,8 +2,10 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, TrendingUp } from "lucide-react";
+import { useTranslation } from "@/components/shared/translations";
 
-export default function TopClientsWidget({ customers, invoices }) {
+export default function TopClientsWidget({ customers, invoices, lang = 'fr' }) {
+  const t = useTranslation(lang);
   const customerRevenue = customers.map(customer => {
     const customerInvoices = invoices.filter(inv => 
       inv.customer_id === customer.id && 
@@ -27,7 +29,7 @@ export default function TopClientsWidget({ customers, invoices }) {
     <Card className="shadow-sm bg-white">
       <CardHeader className="border-b">
         <CardTitle className="text-base font-semibold text-slate-800">
-          Top 5 Clients (2022)
+          {t('topClients')}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-6 space-y-4">
@@ -38,7 +40,7 @@ export default function TopClientsWidget({ customers, invoices }) {
             <div className="order-2">
               <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-center text-white shadow-lg">
                 <p className="text-3xl font-bold mb-2">${top3[0].revenue.toFixed(2)}</p>
-                <Badge className="bg-blue-500 text-white mb-3">{top3[0].invoiceCount} Sales</Badge>
+                <Badge className="bg-blue-500 text-white mb-3">{top3[0].invoiceCount} {t('salesCount')}</Badge>
                 <div className="w-16 h-16 bg-white rounded-full mx-auto mb-3 flex items-center justify-center overflow-hidden">
                   {top3[0].logo_url ? (
                     <img src={top3[0].logo_url} alt={top3[0].company_name} className="w-full h-full object-cover" />
@@ -57,7 +59,7 @@ export default function TopClientsWidget({ customers, invoices }) {
             <div className="order-1">
               <div className="bg-white rounded-2xl p-4 text-center border shadow-sm">
                 <p className="text-2xl font-bold mb-2">${top3[1].revenue.toFixed(2)}</p>
-                <Badge variant="outline" className="mb-3">{top3[1].invoiceCount} Sales</Badge>
+                <Badge variant="outline" className="mb-3">{top3[1].invoiceCount} {t('salesCount')}</Badge>
                 <div className="w-14 h-14 bg-slate-100 rounded-full mx-auto mb-2 flex items-center justify-center overflow-hidden">
                   {top3[1].logo_url ? (
                     <img src={top3[1].logo_url} alt={top3[1].company_name} className="w-full h-full object-cover" />
@@ -76,7 +78,7 @@ export default function TopClientsWidget({ customers, invoices }) {
             <div className="order-3">
               <div className="bg-white rounded-2xl p-4 text-center border shadow-sm">
                 <p className="text-2xl font-bold mb-2">${top3[2].revenue.toFixed(2)}</p>
-                <Badge variant="outline" className="mb-3">{top3[2].invoiceCount} Sales</Badge>
+                <Badge variant="outline" className="mb-3">{top3[2].invoiceCount} {t('salesCount')}</Badge>
                 <div className="w-14 h-14 bg-slate-100 rounded-full mx-auto mb-2 flex items-center justify-center overflow-hidden">
                   {top3[2].logo_url ? (
                     <img src={top3[2].logo_url} alt={top3[2].company_name} className="w-full h-full object-cover" />
@@ -107,7 +109,7 @@ export default function TopClientsWidget({ customers, invoices }) {
                   <p className="font-semibold text-sm text-slate-900">{customer.first_name} {customer.last_name}</p>
                   <p className="text-xs text-slate-500 truncate">{customer.company_name}</p>
                 </div>
-                <div className="text-sm text-slate-600">{customer.invoiceCount} Sales</div>
+                <div className="text-sm text-slate-600">{customer.invoiceCount} {t('salesCount')}</div>
                 <div className="text-sm font-bold text-slate-900">${customer.revenue.toFixed(2)}</div>
               </div>
             ))}
@@ -117,7 +119,7 @@ export default function TopClientsWidget({ customers, invoices }) {
         {customerRevenue.length === 0 && (
           <div className="text-center py-8 text-slate-500">
             <Trophy className="w-12 h-12 mx-auto mb-2 text-slate-300" />
-            <p>Aucun client avec revenus</p>
+            <p>{t('noCustomersWithRevenue')}</p>
           </div>
         )}
       </CardContent>

@@ -2,8 +2,10 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Package } from "lucide-react";
+import { useTranslation } from "@/components/shared/translations";
 
-export default function StockAlertWidget({ materials }) {
+export default function StockAlertWidget({ materials, lang = 'fr' }) {
+  const t = useTranslation(lang);
   const lowStock = materials.filter(m => 
     m.quantity_in_stock <= m.reorder_level && 
     m.status === 'active'
@@ -12,17 +14,17 @@ export default function StockAlertWidget({ materials }) {
   return (
     <Card className="shadow-sm bg-white">
       <CardHeader className="border-b">
-        <CardTitle className="text-base font-semibold text-slate-800">Stock Alert</CardTitle>
+        <CardTitle className="text-base font-semibold text-slate-800">{t('stockAlert')}</CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-12">#</TableHead>
-              <TableHead>Code</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead className="text-right">Alert Quantity</TableHead>
+              <TableHead>{lang === 'fr' ? 'Code' : 'Code'}</TableHead>
+              <TableHead>{lang === 'fr' ? 'Nom' : 'Name'}</TableHead>
+              <TableHead>{lang === 'fr' ? 'Quantité' : 'Quantity'}</TableHead>
+              <TableHead className="text-right">{lang === 'fr' ? 'Qté Alerte' : 'Alert Qty'}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -43,7 +45,7 @@ export default function StockAlertWidget({ materials }) {
         {lowStock.length === 0 && (
           <div className="text-center py-8 text-slate-500">
             <Package className="w-12 h-12 mx-auto mb-2 text-slate-300" />
-            <p>Aucune alerte de stock</p>
+            <p>{t('noStockAlert')}</p>
           </div>
         )}
       </CardContent>

@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Briefcase } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { useTranslation } from "@/components/shared/translations";
 
-export default function JobsByStatusWidget({ jobs }) {
+export default function JobsByStatusWidget({ jobs, lang = 'fr' }) {
+  const t = useTranslation(lang);
   const statusCounts = {
     new: jobs.filter(j => j.status === 'new').length,
     scheduled: jobs.filter(j => j.status === 'scheduled').length,
@@ -13,17 +15,17 @@ export default function JobsByStatusWidget({ jobs }) {
   };
 
   const chartData = [
-    { name: 'Soumis', value: statusCounts.new, color: '#3b82f6' },
-    { name: 'Planifié', value: statusCounts.scheduled, color: '#f59e0b' },
-    { name: 'En Cours', value: statusCounts.in_progress, color: '#8b5cf6' },
-    { name: 'Terminé', value: statusCounts.completed, color: '#10b981' },
+    { name: lang === 'fr' ? 'Nouveau' : 'New', value: statusCounts.new, color: '#3b82f6' },
+    { name: lang === 'fr' ? 'Planifié' : 'Scheduled', value: statusCounts.scheduled, color: '#f59e0b' },
+    { name: lang === 'fr' ? 'En Cours' : 'In Progress', value: statusCounts.in_progress, color: '#8b5cf6' },
+    { name: lang === 'fr' ? 'Terminé' : 'Completed', value: statusCounts.completed, color: '#10b981' },
   ].filter(item => item.value > 0);
 
   return (
     <Card className="shadow-sm bg-white">
       <CardHeader className="border-b">
         <CardTitle className="text-base font-semibold text-slate-800">
-          Top Selling Products (2022)
+          {t('jobsByStatus')}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-6">

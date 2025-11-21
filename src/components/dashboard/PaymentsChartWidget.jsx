@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { format, subMonths } from "date-fns";
+import { useTranslation } from "@/components/shared/translations";
 
-export default function PaymentsChartWidget({ payments }) {
+export default function PaymentsChartWidget({ payments, lang = 'fr' }) {
+  const t = useTranslation(lang);
   const last6Months = Array.from({ length: 6 }, (_, i) => {
     const date = subMonths(new Date(), 5 - i);
     return format(date, 'MMM yyyy');
@@ -32,7 +34,7 @@ export default function PaymentsChartWidget({ payments }) {
       <CardHeader className="border-b">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold text-slate-800">
-            Payment Sent vs Payment Received (2022)
+            {t('paymentsChart')}
           </CardTitle>
           <button className="text-blue-500 text-sm">ⓘ</button>
         </div>
@@ -48,7 +50,7 @@ export default function PaymentsChartWidget({ payments }) {
               wrapperStyle={{ paddingTop: '20px' }} 
               iconType="circle"
             />
-            <Bar dataKey="montant" fill="#10b981" name="Payment Received" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="montant" fill="#10b981" name={t('paymentsReceived')} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Clock } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
+import { useTranslation } from "@/components/shared/translations";
 
-export default function OverdueJobsWidget({ jobs }) {
+export default function OverdueJobsWidget({ jobs, lang = 'fr' }) {
+  const t = useTranslation(lang);
   const overdueJobs = jobs.filter(job => 
     job.due_date && 
     new Date(job.due_date) < new Date() && 
@@ -17,13 +19,13 @@ export default function OverdueJobsWidget({ jobs }) {
       <CardHeader className="border-b">
         <CardTitle className="text-base font-semibold text-slate-800 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-red-500" />
-          Jobs en Retard
+          {t('overdueJobs')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="bg-red-50 p-4 rounded-lg text-center">
           <p className="text-4xl font-bold text-red-900">{overdueJobs.length}</p>
-          <p className="text-sm text-red-600 mt-1">Jobs nécessitent attention</p>
+          <p className="text-sm text-red-600 mt-1">{t('jobsNeedAttention')}</p>
         </div>
 
         <div className="space-y-2 max-h-80 overflow-y-auto">
@@ -43,12 +45,12 @@ export default function OverdueJobsWidget({ jobs }) {
                     </div>
                   </div>
                   <Badge className="bg-red-600">
-                    {daysOverdue}j retard
+                    {daysOverdue}{t('daysLate')}
                   </Badge>
                 </div>
                 {job.technicians?.length > 0 && (
                   <p className="text-xs text-slate-600 mt-2">
-                    Assigné: {job.technicians.map(t => t.name).join(', ')}
+                    {t('assigned')}: {job.technicians.map(t => t.name).join(', ')}
                   </p>
                 )}
               </div>
@@ -59,7 +61,7 @@ export default function OverdueJobsWidget({ jobs }) {
         {overdueJobs.length === 0 && (
           <div className="text-center py-8 text-slate-500">
             <Clock className="w-12 h-12 mx-auto mb-2 text-slate-300" />
-            <p>Aucun job en retard</p>
+            <p>{t('noOverdueJobs')}</p>
           </div>
         )}
       </CardContent>

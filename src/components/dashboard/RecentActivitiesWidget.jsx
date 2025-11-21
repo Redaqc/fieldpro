@@ -4,8 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
+import { useTranslation } from "@/components/shared/translations";
 
-export default function RecentActivitiesWidget({ invoices, quotations, expenses = [] }) {
+export default function RecentActivitiesWidget({ invoices, quotations, expenses = [], lang = 'fr' }) {
+  const t = useTranslation(lang);
   const recentInvoices = invoices.slice(0, 5);
   const recentQuotations = quotations.slice(0, 5);
   const recentExpenses = expenses.slice(0, 5);
@@ -13,15 +15,15 @@ export default function RecentActivitiesWidget({ invoices, quotations, expenses 
   return (
     <Card className="shadow-sm bg-white">
       <CardHeader className="border-b">
-        <CardTitle className="text-base font-semibold text-slate-800">Recent Activities</CardTitle>
+        <CardTitle className="text-base font-semibold text-slate-800">{t('recentActivities')}</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="invoices" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="invoices">Invoices</TabsTrigger>
-            <TabsTrigger value="purchases">Purchases</TabsTrigger>
-            <TabsTrigger value="expenses">Expenses</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            <TabsTrigger value="invoices">{t('invoices')}</TabsTrigger>
+            <TabsTrigger value="purchases">{lang === 'fr' ? 'Achats' : 'Purchases'}</TabsTrigger>
+            <TabsTrigger value="expenses">{lang === 'fr' ? 'Dépenses' : 'Expenses'}</TabsTrigger>
+            <TabsTrigger value="transactions">{lang === 'fr' ? 'Transactions' : 'Transactions'}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="invoices">
@@ -131,7 +133,7 @@ export default function RecentActivitiesWidget({ invoices, quotations, expenses 
 
           <TabsContent value="transactions">
             <div className="py-8 text-center text-slate-500">
-              <p>No transactions available</p>
+              <p>{t('noDataAvailable')}</p>
             </div>
           </TabsContent>
         </Tabs>

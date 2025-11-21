@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { format, subMonths } from "date-fns";
+import { useTranslation } from "@/components/shared/translations";
 
-export default function SalesVsCostWidget({ invoices, jobs }) {
+export default function SalesVsCostWidget({ invoices, jobs, lang = 'fr' }) {
+  const t = useTranslation(lang);
   const last6Months = Array.from({ length: 6 }, (_, i) => {
     const date = subMonths(new Date(), 5 - i);
     return format(date, 'MMM yyyy');
@@ -42,7 +44,7 @@ export default function SalesVsCostWidget({ invoices, jobs }) {
       <CardHeader className="border-b">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold text-slate-800">
-            Sales vs Purchases (2022)
+            {t('salesVsCost')}
           </CardTitle>
           <button className="text-blue-500 text-sm">ⓘ</button>
         </div>
@@ -58,8 +60,8 @@ export default function SalesVsCostWidget({ invoices, jobs }) {
               wrapperStyle={{ paddingTop: '20px' }} 
               iconType="square"
             />
-            <Bar dataKey="ventes" fill="#5b68f4" name="Purchases" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="coûts" fill="#4ade80" name="Sales" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="ventes" fill="#5b68f4" name={lang === 'fr' ? 'Ventes' : 'Sales'} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="coûts" fill="#4ade80" name={lang === 'fr' ? 'Coûts' : 'Costs'} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
