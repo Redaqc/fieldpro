@@ -20,8 +20,8 @@ export default function AddressAutocompleteSettings() {
   });
 
   useEffect(() => {
-    if (addressSettings?.api_key) {
-      setApiKey(addressSettings.api_key);
+    if (addressSettings) {
+      setApiKey(addressSettings.api_key || '');
     }
   }, [addressSettings]);
 
