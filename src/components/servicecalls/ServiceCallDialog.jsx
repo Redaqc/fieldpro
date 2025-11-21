@@ -20,6 +20,7 @@ import CostsTab from "../jobs/CostsTab";
 import InvoicingTab from "../jobs/InvoicingTab";
 import MaterialUsageTab from "../jobs/MaterialUsageTab";
 import AssetAssignmentTab from "../jobs/AssetAssignmentTab";
+import AddressAutocompleteInput from "../shared/AddressAutocompleteInput";
 
 export default function ServiceCallDialog({ open, onClose, call, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
@@ -626,15 +627,15 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
             </div>
             {(formData.project_addresses || []).map((address, index) => (
               <div key={index} className="flex gap-2">
-                <Input
-                  value={address}
-                  onChange={(e) => {
+                <AddressAutocompleteInput
+                  defaultValue={address}
+                  placeholder={`Adresse ${index + 1}...`}
+                  onAddressSelected={(addressData) => {
                     const addresses = [...(formData.project_addresses || [])];
-                    addresses[index] = e.target.value;
+                    addresses[index] = addressData.full_address || addressData;
                     setFormData({ ...formData, project_addresses: addresses });
                   }}
-                  placeholder={`Adresse ${index + 1}...`}
-                  className="h-10 flex-1"
+                  className="flex-1"
                 />
                 <Button
                   type="button"
