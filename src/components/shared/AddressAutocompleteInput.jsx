@@ -1,38 +1,234 @@
-import React, { useState, useRef, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { MapPin, Loader2 } from "lucide-react";
+import React, { useState, useRef, useEffect, useId } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { MapPin, X } from 'lucide-react';
+import { useAddressAutocomplete } from '@/hooks/useAddressAutocomplete';
+import AddressSuggestionsDropdown from './AddressSuggestionsDropdown';
+import { useToast } from '@/components/ui/use-toast';
 
+/**
+ * Enterprise-grade Address Autocomplete Input Component
+ * 
+ * Features:
+ * - Debounced API calls with abort control
+ * - In-memory caching for repeated queries
+ * - Keyboard navigation (↑ ↓ Enter Esc)
+ * - Proper ARIA attributes for accessibility
+ * - Auto-close on outside click or scroll
+ * - Controlled and uncontrolled modes
+ * - Error handling with toast notifications
+ * - Loading states and empty states
+ * - Race condition prevention
+ * 
+ * @param {Object} props
+ * @param {string} props.label - Input label
+ * @param {string} props.placeholder - Input placeholder
+ * @param {string} props.value - Controlled value
+ * @param {string} props.defaultValue - Uncontrolled default value
+ * @param {Function} props.onChange - Callback when input changes
+ * @param {Function} props.onAddressSelected - Callback when address is selected with full details
+ * @param {number} props.fetchDelay - Debounce delay (default: 400ms)
+ * @param {number} props.maxResults - Max number of results (default: 10)
+ * @param {string} props.className - Additional CSS classes
+ * @param {boolean} props.disabled - Disable input
+ * @param {boolean} props.required - Mark as required
+ * @param {string} props.error - Error message to display
+ */
 export default function AddressAutocompleteInput({
-  label = "Adresse",
-  placeholder = "Commencez à taper une adresse...",
-  defaultValue = "",
+  label = 'Adresse',
+  placeholder = 'Commencez à taper une adresse...',
+  value: controlledValue,
+  defaultValue = '',
+  onChange,
   onAddressSelected,
-  className = ""
+  fetchDelay = 400,
+  maxResults = 10,
+  className = '',
+  disabled = false,
+  required = false,
+  error: externalError,
 }) {
-  const [query, setQuery] = useState(defaultValue);
-  const [suggestions, setSuggestions] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  
+  // Controlled vs uncontrolled state
+  const isControlled = controlledValue !== undefined;
+  const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue);
+  const value = isControlled ? controlledValue : uncontrolledValue;
+
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [provider, setProvider] = useState('');
-  const [sessionToken] = useState(() => Math.random().toString(36).substring(7));
-  
-  const debounceTimer = useRef(null);
-  const dropdownRef = useRef(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+
   const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const listboxId = useId();
+  const comboboxId = useId();
 
-  // Synchroniser le state avec defaultValue
+  const {
+    suggestions,
+    isLoading,
+    error: hookError,
+    provider,
+    search,
+    fetchAddressDetails,
+    clearSuggestions,
+    clearError,
+  } = useAddressAutocomplete({
+    fetchDelay,
+    maxResults,
+  });
+
+  // Combined error
+  const error = externalError || hookError;
+
+  // Show dropdown when we have suggestions or are loading
   useEffect(() => {
-    setQuery(defaultValue || '');
-  }, [defaultValue]);
+    if (suggestions.length > 0 || isLoading) {
+      setShowDropdown(true);
+    } else if (!isLoading && suggestions.length === 0) {
+      // Only hide if not loading and no suggestions
+      setTimeout(() => {
+        if (!isSelecting) {
+          setShowDropdown(false);
+        }
+      }, 100);
+    }
+  }, [suggestions.length, isLoading, isSelecting]);
 
+  // Handle input change
+  const handleInputChange = (e) => {
+    const newValue = e.target.value;
+    
+    if (!isControlled) {
+      setUncontrolledValue(newValue);
+    }
+    
+    if (onChange) {
+      onChange(e);
+    }
+
+    setSelectedIndex(-1);
+    clearError();
+    
+    if (newValue.trim()) {
+      search(newValue);
+    } else {
+      clearSuggestions();
+      setShowDropdown(false);
+    }
+  };
+
+  // Handle suggestion selection
+  const handleSelectSuggestion = async (suggestion) => {
+    setIsSelecting(true);
+    
+    // Update input value
+    const newValue = suggestion.description;
+    if (!isControlled) {
+      setUncontrolledValue(newValue);
+    }
+    if (onChange) {
+      onChange({ target: { value: newValue } });
+    }
+
+    // Close dropdown
+    setShowDropdown(false);
+    clearSuggestions();
+    setSelectedIndex(-1);
+
+    // Fetch full address details
+    if (onAddressSelected) {
+      try {
+        const addressDetails = await fetchAddressDetails(suggestion.place_id);
+        if (addressDetails) {
+          onAddressSelected(addressDetails);
+        } else {
+          toast({
+            title: 'Erreur',
+            description: 'Impossible de récupérer les détails de l\'adresse',
+            variant: 'destructive',
+          });
+        }
+      } catch (err) {
+        toast({
+          title: 'Erreur',
+          description: err.message || 'Échec de récupération des détails',
+          variant: 'destructive',
+        });
+      }
+    }
+
+    setIsSelecting(false);
+    inputRef.current?.focus();
+  };
+
+  // Keyboard navigation
+  const handleKeyDown = (e) => {
+    if (!showDropdown || suggestions.length === 0) {
+      if (e.key === 'Escape') {
+        setShowDropdown(false);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex((prev) =>
+          prev < suggestions.length - 1 ? prev + 1 : prev
+        );
+        break;
+
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+        break;
+
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+          handleSelectSuggestion(suggestions[selectedIndex]);
+        }
+        break;
+
+      case 'Escape':
+        e.preventDefault();
+        setShowDropdown(false);
+        setSelectedIndex(-1);
+        inputRef.current?.blur();
+        break;
+
+      default:
+        break;
+    }
+  };
+
+  // Scroll selected item into view
+  useEffect(() => {
+    if (selectedIndex >= 0 && dropdownRef.current) {
+      const selectedElement = document.getElementById(
+        `${listboxId}-option-${selectedIndex}`
+      );
+      if (selectedElement) {
+        selectedElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        });
+      }
+    }
+  }, [selectedIndex, listboxId]);
+
+  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
-          inputRef.current && !inputRef.current.contains(event.target)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target)
+      ) {
         setShowDropdown(false);
+        setSelectedIndex(-1);
       }
     };
 
@@ -40,147 +236,99 @@ export default function AddressAutocompleteInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const fetchSuggestions = async (searchQuery) => {
-    if (searchQuery.length < 3) {
-      setSuggestions([]);
-      setShowDropdown(false);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await base44.functions.invoke('addressAutocomplete', {
-        query: searchQuery,
-        sessionToken
-      });
-
-      console.log('Address autocomplete response:', response);
-
-      if (response?.data?.suggestions) {
-        setSuggestions(response.data.suggestions);
-        setProvider(response.data.provider);
-        setShowDropdown(response.data.suggestions.length > 0);
-      } else if (response?.data?.error) {
-        console.error('API Error:', response.data.error);
-        alert('Erreur: ' + response.data.error);
-        setSuggestions([]);
+  // Close dropdown on scroll (optional, prevents dropdown from detaching)
+  useEffect(() => {
+    const handleScroll = () => {
+      if (showDropdown) {
         setShowDropdown(false);
+        setSelectedIndex(-1);
       }
-    } catch (error) {
-      console.error('Address autocomplete error:', error);
-      alert('Erreur de connexion: ' + error.message);
-      setSuggestions([]);
-      setShowDropdown(false);
-    } finally {
-      setIsLoading(false);
+    };
+
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, [showDropdown]);
+
+  // Clear input
+  const handleClear = () => {
+    const newValue = '';
+    if (!isControlled) {
+      setUncontrolledValue(newValue);
     }
-  };
-
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setQuery(value);
-    setSelectedIndex(-1);
-
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
+    if (onChange) {
+      onChange({ target: { value: newValue } });
     }
-
-    debounceTimer.current = setTimeout(() => {
-      fetchSuggestions(value);
-    }, 400);
-  };
-
-  const handleSelectSuggestion = async (suggestion) => {
-    setQuery(suggestion.description);
+    clearSuggestions();
     setShowDropdown(false);
-    setSuggestions([]);
-    setIsLoading(true);
-
-    try {
-      const response = await base44.functions.invoke('addressDetails', {
-        placeId: suggestion.place_id,
-        provider
-      });
-
-      console.log('Address details response:', response);
-
-      if (response?.data?.address && onAddressSelected) {
-        onAddressSelected(response.data.address);
-      } else if (response?.data?.error) {
-        console.error('API Error:', response.data.error);
-        alert('Erreur: ' + response.data.error);
-      }
-    } catch (error) {
-      console.error('Address details error:', error);
-      alert('Erreur: ' + error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (!showDropdown || suggestions.length === 0) return;
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex(prev => 
-        prev < suggestions.length - 1 ? prev + 1 : prev
-      );
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
-    } else if (e.key === 'Enter' && selectedIndex >= 0) {
-      e.preventDefault();
-      handleSelectSuggestion(suggestions[selectedIndex]);
-    } else if (e.key === 'Escape') {
-      setShowDropdown(false);
-    }
+    setSelectedIndex(-1);
+    inputRef.current?.focus();
   };
 
   return (
     <div className={`relative ${className}`}>
-      {label && <Label>{label}</Label>}
+      {label && (
+        <Label htmlFor={comboboxId}>
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </Label>
+      )}
+      
       <div className="relative">
-        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        
         <Input
           ref={inputRef}
+          id={comboboxId}
           type="text"
-          value={query}
+          value={value}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="pl-9 pr-9"
+          disabled={disabled}
+          required={required}
           autoComplete="off"
+          aria-autocomplete="list"
+          aria-controls={listboxId}
+          aria-expanded={showDropdown}
+          aria-activedescendant={
+            selectedIndex >= 0
+              ? `${listboxId}-option-${selectedIndex}`
+              : undefined
+          }
+          role="combobox"
+          className={`pl-9 pr-9 ${error ? 'border-red-500' : ''}`}
         />
-        {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 animate-spin" />
+
+        {value && !disabled && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+            aria-label="Effacer"
+            tabIndex={-1}
+          >
+            <X className="w-4 h-4" />
+          </button>
         )}
       </div>
 
-      {showDropdown && suggestions.length > 0 && (
-        <div
-          ref={dropdownRef}
-          className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-y-auto"
-        >
-          {suggestions.map((suggestion, index) => (
-            <div
-              key={suggestion.id}
-              onClick={() => handleSelectSuggestion(suggestion)}
-              className={`
-                px-4 py-3 cursor-pointer flex items-start gap-2 border-b border-slate-100 last:border-0
-                ${index === selectedIndex ? 'bg-blue-50' : 'hover:bg-slate-50'}
-              `}
-            >
-              <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-              <span className="text-sm text-slate-700">{suggestion.description}</span>
-            </div>
-          ))}
-          
-          {provider === 'google' && (
-            <div className="px-4 py-2 text-xs text-slate-400 border-t">
-              Powered by Google
-            </div>
-          )}
+      {error && (
+        <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+          {error}
+        </p>
+      )}
+
+      {showDropdown && (
+        <div ref={dropdownRef}>
+          <AddressSuggestionsDropdown
+            suggestions={suggestions}
+            isLoading={isLoading}
+            error={hookError}
+            selectedIndex={selectedIndex}
+            onSelect={handleSelectSuggestion}
+            provider={provider}
+            listboxId={listboxId}
+          />
         </div>
       )}
     </div>
