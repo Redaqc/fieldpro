@@ -1359,100 +1359,194 @@ export default function Settings() {
           <Card>
             <CardHeader>
               <CardTitle>Taxes de ventes</CardTitle>
+              <p className="text-sm text-slate-500 mt-2">
+                Configuration des taxes pour vos factures et soumissions
+              </p>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">Afficher les taxes de vente dans les soumissions</p>
+              {/* Options principales */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+                  <div>
+                    <p className="font-medium">Afficher les taxes dans les soumissions</p>
+                    <p className="text-xs text-slate-500 mt-1">Les taxes seront visibles sur les documents de soumission</p>
+                  </div>
+                  <Switch
+                    checked={taxSettings?.show_taxes_in_quotes !== false}
+                    onCheckedChange={(checked) => updateTaxSettingsMutation.mutate({ ...taxSettings, show_taxes_in_quotes: checked })}
+                  />
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant={taxSettings?.show_taxes_in_quotes === true ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => updateTaxSettingsMutation.mutate({ ...taxSettings, show_taxes_in_quotes: true })}
-                  >
-                    Oui
-                  </Button>
-                  <Button
-                    variant={taxSettings?.show_taxes_in_quotes === false ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => updateTaxSettingsMutation.mutate({ ...taxSettings, show_taxes_in_quotes: false })}
-                  >
-                    Non
-                  </Button>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+                  <div>
+                    <p className="font-medium">Transactions multi-provinces</p>
+                    <p className="text-xs text-slate-500 mt-1">Activez si vous travaillez dans plusieurs provinces</p>
+                  </div>
+                  <Switch
+                    checked={taxSettings?.multi_province !== false}
+                    onCheckedChange={(checked) => updateTaxSettingsMutation.mutate({ ...taxSettings, multi_province: checked })}
+                  />
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">Je fais des achats ou des ventes dans plusieurs provinces</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant={taxSettings?.multi_province === true ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => updateTaxSettingsMutation.mutate({ ...taxSettings, multi_province: true })}
-                  >
-                    Oui
-                  </Button>
-                  <Button
-                    variant={taxSettings?.multi_province === false ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => updateTaxSettingsMutation.mutate({ ...taxSettings, multi_province: false })}
-                  >
-                    Non
-                  </Button>
-                </div>
-              </div>
+              {/* Préconfigurations rapides */}
+              <div className="border rounded-lg p-4 bg-blue-50 border-blue-200">
+                <h3 className="font-semibold text-blue-900 mb-3">Configuration rapide par province</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {[
+                    { province: 'QC', tps: 5, tvq: 9.975, label: 'Québec (TPS + TVQ)' },
+                    { province: 'ON', hst: 13, label: 'Ontario (HST)' },
+                    { province: 'BC', gst: 5, pst: 7, label: 'C.-B. (GST + PST)' },
+                    { province: 'AB', gst: 5, label: 'Alberta (GST)' },
+                    { province: 'MB', gst: 5, pst: 7, label: 'Manitoba (GST + RST)' },
+                    { province: 'SK', gst: 5, pst: 6, label: 'Saskatchewan (GST + PST)' }
+                  ].map(config => (
+                    <Button
+                      key={config.province}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const existingTaxes = taxSettings?.taxes || [];
+                        const alreadyExists = existingTaxes.some(t => t.province === config.province);
 
-              <div className="border-t pt-6">
-                <p className="text-sm text-slate-600 mb-4">
-                  Entrez toutes les taxes que vous facturez. Vous pourrez ensuite les modifier pour chaque projet si vous avez des clients dans d'autres juridictions.
-                </p>
+                        if (alreadyExists) {
+                          alert(`Les taxes pour ${config.province} existent déjà`);
+                          return;
+                        }
 
-                <div className="space-y-3">
-                  {(taxSettings?.taxes || []).map((tax, index) => (
-                    <div key={index} className="grid grid-cols-5 gap-3 items-center p-3 border rounded-lg">
-                      <Input
-                        placeholder="Province"
-                        value={tax.province || ''}
-                        onChange={(e) => updateTax(index, 'province', e.target.value)}
-                      />
-                      <Input
-                        placeholder="Taxe"
-                        value={tax.tax_name || ''}
-                        onChange={(e) => updateTax(index, 'tax_name', e.target.value)}
-                      />
-                      <Input
-                        placeholder="Taux"
-                        value={tax.rate || ''}
-                        onChange={(e) => updateTax(index, 'rate', e.target.value)}
-                      />
-                      <Input
-                        placeholder="Numéro de taxe"
-                        value={tax.tax_number || ''}
-                        onChange={(e) => updateTax(index, 'tax_number', e.target.value)}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteTax(index)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                        const newTaxes = [...existingTaxes];
+
+                        if (config.hst) {
+                          newTaxes.push({ province: config.province, tax_name: 'HST', rate: config.hst, tax_number: '' });
+                        } else {
+                          if (config.tps || config.gst) {
+                            newTaxes.push({ province: config.province, tax_name: config.tps ? 'TPS' : 'GST', rate: config.tps || config.gst, tax_number: '' });
+                          }
+                          if (config.tvq) {
+                            newTaxes.push({ province: config.province, tax_name: 'TVQ', rate: config.tvq, tax_number: '' });
+                          }
+                          if (config.pst) {
+                            newTaxes.push({ province: config.province, tax_name: config.province === 'MB' ? 'RST' : 'PST', rate: config.pst, tax_number: '' });
+                          }
+                        }
+
+                        updateTaxSettingsMutation.mutate({ ...taxSettings, taxes: newTaxes });
+                      }}
+                      className="text-xs h-9 justify-start"
+                    >
+                      <span className="font-semibold mr-2">{config.province}</span>
+                      <span className="text-slate-600">{config.label.split('(')[1]?.replace(')', '')}</span>
+                    </Button>
                   ))}
                 </div>
+              </div>
 
-                <Button
-                  onClick={addTax}
-                  variant="outline"
-                  className="w-full mt-4"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Ajouter une autre taxe
-                </Button>
+              {/* Configuration détaillée */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold">Configuration des taxes</h3>
+                  <Button
+                    onClick={addTax}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Ajouter une taxe
+                  </Button>
+                </div>
+
+                {(taxSettings?.taxes || []).length === 0 ? (
+                  <div className="text-center py-8 border-2 border-dashed rounded-lg">
+                    <Receipt className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                    <p className="text-slate-500 mb-2">Aucune taxe configurée</p>
+                    <p className="text-sm text-slate-400">Utilisez les configurations rapides ci-dessus ou ajoutez manuellement</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {(taxSettings?.taxes || []).map((tax, index) => (
+                      <div key={index} className="grid grid-cols-12 gap-3 items-center p-3 border rounded-lg hover:bg-slate-50 transition-colors">
+                        <div className="col-span-2">
+                          <Select
+                            value={tax.province || ''}
+                            onValueChange={(value) => updateTax(index, 'province', value)}
+                          >
+                            <SelectTrigger className="h-9 text-sm">
+                              <SelectValue placeholder="Province" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="QC">QC - Québec</SelectItem>
+                              <SelectItem value="ON">ON - Ontario</SelectItem>
+                              <SelectItem value="BC">BC - C.-B.</SelectItem>
+                              <SelectItem value="AB">AB - Alberta</SelectItem>
+                              <SelectItem value="MB">MB - Manitoba</SelectItem>
+                              <SelectItem value="SK">SK - Saskatchewan</SelectItem>
+                              <SelectItem value="NS">NS - N.-É.</SelectItem>
+                              <SelectItem value="NB">NB - N.-B.</SelectItem>
+                              <SelectItem value="PE">PE - Î.-P.-É.</SelectItem>
+                              <SelectItem value="NL">NL - T.-N.-L.</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="col-span-2">
+                          <Input
+                            placeholder="Nom taxe"
+                            value={tax.tax_name || ''}
+                            onChange={(e) => updateTax(index, 'tax_name', e.target.value)}
+                            className="h-9 text-sm"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              placeholder="Taux"
+                              value={tax.rate || ''}
+                              onChange={(e) => updateTax(index, 'rate', e.target.value)}
+                              className="h-9 text-sm pr-8"
+                              step="0.001"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">%</span>
+                          </div>
+                        </div>
+                        <div className="col-span-5">
+                          <Input
+                            placeholder="Numéro d'identification fiscale"
+                            value={tax.tax_number || ''}
+                            onChange={(e) => updateTax(index, 'tax_number', e.target.value)}
+                            className="h-9 text-sm"
+                          />
+                        </div>
+                        <div className="col-span-1 flex justify-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteTax(index)}
+                            className="h-9 w-9 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Guide d'aide */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-amber-900 space-y-2">
+                    <p className="font-medium">Taux de taxes canadiens 2025</p>
+                    <ul className="text-xs space-y-1 text-amber-800">
+                      <li><strong>TPS/GST:</strong> 5% (fédéral)</li>
+                      <li><strong>TVQ (QC):</strong> 9.975%</li>
+                      <li><strong>HST (ON, NB, NL, NS, PE):</strong> 13-15%</li>
+                      <li><strong>PST (BC, MB, SK):</strong> 6-7%</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
