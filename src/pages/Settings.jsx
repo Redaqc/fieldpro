@@ -1710,53 +1710,169 @@ export default function Settings() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Modèles de checklist</CardTitle>
-                <Button onClick={handleCreateTemplate}>
+                <div>
+                  <CardTitle>Modèles de checklist</CardTitle>
+                  <p className="text-sm text-slate-500 mt-1">Créez des modèles réutilisables pour vos jobs et appels de service</p>
+                </div>
+                <Button onClick={handleCreateTemplate} className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Nouveau modèle
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {checklistTemplates.map(template => (
-                <div key={template.id} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <List className="w-5 h-5 text-blue-600" />
-                      <h4 className="font-semibold text-lg">{template.name}</h4>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        if (confirm('Supprimer ce modèle?')) {
-                          deleteChecklistMutation.mutate(template.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4 text-red-600" />
-                    </Button>
-                  </div>
-                  <div className="space-y-2 pl-7">
-                    {(template.checklist_data || []).map((group, gIdx) => (
-                      <div key={gIdx} className="text-sm">
-                        <p className="font-medium text-slate-700">{group.name}</p>
-                        <ul className="list-disc list-inside text-slate-600 ml-2">
-                          {(group.items || []).map((item, iIdx) => (
-                            <li key={iIdx}>{item.text}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
+            <CardContent className="space-y-4">
+              {checklistTemplates.length === 0 ? (
+                <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                  <List className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+                  <p className="text-lg font-medium text-slate-700 mb-2">Aucun modèle de checklist</p>
+                  <p className="text-sm text-slate-500 mb-4">Créez des modèles pour standardiser vos processus</p>
+                  <Button onClick={handleCreateTemplate} variant="outline">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Créer votre premier modèle
+                  </Button>
                 </div>
-              ))}
-              {checklistTemplates.length === 0 && (
-                <div className="text-center py-8 text-slate-500">
-                  <List className="w-12 h-12 mx-auto mb-2 text-slate-300" />
-                  <p>Aucun modèle de checklist</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {checklistTemplates.map(template => {
+                    const totalItems = (template.checklist_data || []).reduce((sum, group) => sum + (group.items?.length || 0), 0);
+                    const groupCount = (template.checklist_data || []).length;
+
+                    return (
+                      <div key={template.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-start gap-3 flex-1">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <List className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-base mb-1 truncate">{template.name}</h4>
+                              <div className="flex items-center gap-3 text-xs text-slate-500">
+                                <span>{groupCount} section{groupCount > 1 ? 's' : ''}</span>
+                                <span>•</span>
+                                <span>{totalItems} élément{totalItems > 1 ? 's' : ''}</span>
+                              </div>
+                              {template.description && (
+                                <p className="text-sm text-slate-600 mt-2 line-clamp-2">{template.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <SettingsIcon className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  const newName = prompt('Nouveau nom:', template.name);
+                                  if (newName && newName !== template.name) {
+                                    base44.entities.ChecklistTemplate.update(template.id, { name: newName })
+                                      .then(() => queryClient.invalidateQueries({ queryKey: ['checklistTemplates'] }));
+                                  }
+                                }}
+                              >
+                                <Edit className="w-4 h-4 mr-2" />
+                                Renommer
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  const newDesc = prompt('Description:', template.description || '');
+                                  if (newDesc !== null) {
+                                    base44.entities.ChecklistTemplate.update(template.id, { description: newDesc })
+                                      .then(() => queryClient.invalidateQueries({ queryKey: ['checklistTemplates'] }));
+                                  }
+                                }}
+                              >
+                                <FileText className="w-4 h-4 mr-2" />
+                                Description
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  base44.entities.ChecklistTemplate.update(template.id, { active: !template.active })
+                                    .then(() => queryClient.invalidateQueries({ queryKey: ['checklistTemplates'] }));
+                                }}
+                              >
+                                {template.active !== false ? (
+                                  <>
+                                    <EyeOff className="w-4 h-4 mr-2" />
+                                    Désactiver
+                                  </>
+                                ) : (
+                                  <>
+                                    <Eye className="w-4 h-4 mr-2" />
+                                    Activer
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  if (confirm('Supprimer ce modèle définitivement?')) {
+                                    deleteChecklistMutation.mutate(template.id);
+                                  }
+                                }}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        {/* Preview des sections */}
+                        <div className="space-y-2 mt-3 pt-3 border-t">
+                          {(template.checklist_data || []).slice(0, 2).map((group, gIdx) => (
+                            <div key={gIdx} className="text-sm">
+                              <p className="font-medium text-slate-700 mb-1">{group.name}</p>
+                              <ul className="space-y-0.5 ml-4">
+                                {(group.items || []).slice(0, 3).map((item, iIdx) => (
+                                  <li key={iIdx} className="text-slate-600 text-xs flex items-start gap-2">
+                                    <CheckSquare className="w-3 h-3 text-slate-400 mt-0.5 flex-shrink-0" />
+                                    <span className="line-clamp-1">{item.text}</span>
+                                  </li>
+                                ))}
+                                {(group.items?.length || 0) > 3 && (
+                                  <li className="text-slate-400 text-xs ml-5">
+                                    +{group.items.length - 3} élément{group.items.length - 3 > 1 ? 's' : ''}
+                                  </li>
+                                )}
+                              </ul>
+                            </div>
+                          ))}
+                          {(template.checklist_data?.length || 0) > 2 && (
+                            <p className="text-xs text-slate-400 pt-1">
+                              +{template.checklist_data.length - 2} section{template.checklist_data.length - 2 > 1 ? 's' : ''} supplémentaire{template.checklist_data.length - 2 > 1 ? 's' : ''}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Status badge */}
+                        <div className="mt-3 pt-3 border-t">
+                          <Badge 
+                            variant={template.active !== false ? "default" : "outline"}
+                            className={template.active !== false ? "bg-green-100 text-green-800" : ""}
+                          >
+                            {template.active !== false ? "Actif" : "Inactif"}
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
+
+              {/* Info box */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+                <div className="flex gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-900">
+                    <p className="font-medium mb-1">💡 Conseil</p>
+                    <p>Les modèles de checklist vous permettent de standardiser vos processus. Ils peuvent être appliqués lors de la création de jobs ou d'appels de service.</p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
