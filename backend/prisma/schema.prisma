@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// SHARED SCHEMA (Multi-tenant management)
+// ============================================
+
+model Tenant {
+  id                      String    @id @default(uuid())
+  slug                    String    @unique
+  name                    String
+  status                  String    @default("active")
+  plan                    String    @default("starter")
+
+  stripe_customer_id      String?
+  stripe_subscription_id  String?
+  subscription_expires_at DateTime?
+
+  max_users               Int       @default(10)
+  max_jobs                Int       @default(100)
+  max_storage_gb          Int       @default(5)
+
+  settings                Json?
+  schema_name             String    @unique
+
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  users                   TenantUser[]
+  invitations             Invitation[]
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  password_hash     String?
+
+  first_name        String?
+  last_name         String?
+  avatar_url        String?
+
+  is_super_admin    Boolean   @default(false)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  tenantUsers       TenantUser[]
+}
+
+model TenantUser {
+  id          String    @id @default(uuid())
+  tenant_id   String
+  user_id     String
+
+  role        String
+  permissions Json?
+  is_active   Boolean   @default(true)
+
+  joined_at   DateTime  @default(now())
+
+  tenant      Tenant    @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, user_id])
+  @@index([tenant_id])
+  @@index([user_id])
+}
+
+model Invitation {
+  id          String    @id @default(uuid())
+  tenant_id   String
+  email       String
+  role        String
+  token       String    @unique
+  expires_at  DateTime
+  accepted_at DateTime?
+  invited_by  String?
+
+  tenant      Tenant    @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+
+  @@index([tenant_id])
+  @@index([email])
+}
+
+// ============================================
+// TENANT-SPECIFIC SCHEMAS
+// Note: These models will be created in each tenant's schema
+// using the create_tenant_schema() function
+// ============================================
+
+// Customer Management
+// CREATE TABLE "{schema}".customers (...)
+
+// Job Management
+// CREATE TABLE "{schema}".jobs (...)
+
+// Service Call Management
+// CREATE TABLE "{schema}".service_calls (...)
+
+// Invoice Management
+// CREATE TABLE "{schema}".invoices (...)
+
+// Quotation Management
+// CREATE TABLE "{schema}".quotations (...)
+
+// Technician Management
+// CREATE TABLE "{schema}".technicians (...)
+
+// Material/Inventory Management
+// CREATE TABLE "{schema}".materials (...)
+
+// Asset Management
+// CREATE TABLE "{schema}".assets (...)
+
+// Activity Logging
+// CREATE TABLE "{schema}".activities (...)
+
+// Payment Tracking
+// CREATE TABLE "{schema}".payments (...)
+
+// Stock Adjustments
+// CREATE TABLE "{schema}".stock_adjustments (...)
