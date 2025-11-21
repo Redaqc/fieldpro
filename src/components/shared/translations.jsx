@@ -254,7 +254,34 @@ export const translations = {
     monthView: "Mois",
     agendaView: "Agenda",
     resourceView: "Ressources",
-  },
+
+    // Dashboard widgets
+    todaySummary: "Résumé du jour",
+    monthlySales: "Ventes du mois",
+    invoicesDue: "Factures dues",
+    invoicesOverdue: "Factures en retard",
+    paymentsReceived: "Paiements reçus",
+    expenses: "Dépenses",
+    techCosts: "Coûts Tech",
+    moreInfo: "Plus d'infos",
+    dueAmount: "À échéance",
+    pastDue: "En retard",
+    jobsByStatus: "Jobs par statut",
+    recentActivities: "Activités récentes",
+    paymentsChart: "Paiements reçus",
+    topClients: "Top clients",
+    stockAlert: "Alerte stock",
+    salesVsCost: "Ventes vs Coûts",
+    overdueJobs: "Jobs en retard",
+    noDataAvailable: "Aucune donnée disponible",
+    salesCount: "Ventes",
+    noStockAlert: "Aucune alerte de stock",
+    noOverdueJobs: "Aucun job en retard",
+    noCustomersWithRevenue: "Aucun client avec revenus",
+    jobsNeedAttention: "Jobs nécessitent attention",
+    daysLate: "j retard",
+    assigned: "Assigné",
+    },
   
   en: {
     // Common
@@ -511,10 +538,37 @@ export const translations = {
     monthView: "Month",
     agendaView: "Agenda",
     resourceView: "Resources",
-  }
-};
 
-export function useTranslation(lang = 'fr') {
+    // Dashboard widgets
+    todaySummary: "Today Summary",
+    monthlySales: "Monthly Sales",
+    invoicesDue: "Invoices Due",
+    invoicesOverdue: "Overdue Invoices",
+    paymentsReceived: "Payments Received",
+    expenses: "Expenses",
+    techCosts: "Tech Costs",
+    moreInfo: "More info",
+    dueAmount: "Due",
+    pastDue: "Past Due",
+    jobsByStatus: "Jobs by Status",
+    recentActivities: "Recent Activities",
+    paymentsChart: "Payments Received",
+    topClients: "Top Clients",
+    stockAlert: "Stock Alert",
+    salesVsCost: "Sales vs Cost",
+    overdueJobs: "Overdue Jobs",
+    noDataAvailable: "No data available",
+    salesCount: "Sales",
+    noStockAlert: "No stock alert",
+    noOverdueJobs: "No overdue jobs",
+    noCustomersWithRevenue: "No customers with revenue",
+    jobsNeedAttention: "Jobs need attention",
+    daysLate: "d late",
+    assigned: "Assigned",
+    }
+    };
+
+    export function useTranslation(lang = 'fr') {
   return (key) => {
     const keys = key.split('.');
     let value = translations[lang] || translations.fr;
