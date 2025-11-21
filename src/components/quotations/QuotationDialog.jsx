@@ -11,6 +11,7 @@ import { addDays, format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
+import { useTaxCalculation } from "@/components/shared/useTaxCalculation";
 
 export default function QuotationDialog({ open, onClose, onSave, quotation, customers, bundles, priceLists }) {
   const [formData, setFormData] = useState(quotation || {
@@ -426,18 +427,15 @@ Merci de votre confiance.
     calculateSubmissionTotals(newItems);
   };
 
+  const submissionSubtotal = formData.submission_items?.reduce((sum, item) => sum + (item.total || 0), 0) || 0;
+  const { taxes: submissionTaxes, total: submissionTotal } = useTaxCalculation(submissionSubtotal, formData.customer_province);
+
   const calculateSubmissionTotals = (items) => {
     const subtotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
-    const tax1 = subtotal * (formData.tax_rate / 100);
-    const tax2 = subtotal * (formData.tax_rate_2 / 100);
-    const total = subtotal + tax1 + tax2;
     
     setFormData(prev => ({
       ...prev,
-      submission_subtotal: subtotal,
-      tax_amount: tax1,
-      tax_amount_2: tax2,
-      total_amount: total
+      submission_subtotal: subtotal
     }));
   };
 
@@ -493,18 +491,17 @@ Merci de votre confiance.
     calculateTotals(formData.line_items, newBundles);
   };
 
+  const subtotalValue = formData.line_items.reduce((sum, item) => sum + (item.total || 0), 0);
+  const { taxes, total: calculatedTotal, showTaxesInQuotes } = useTaxCalculation(subtotalValue, formData.customer_province);
+
   const calculateTotals = (items, bundleItems) => {
     const itemsTotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
-    const bundlesTotal = bundleItems.reduce((sum, bundle) => sum + (bundle.total || 0), 0);
+    const bundlesTotal = bundleItems?.reduce((sum, bundle) => sum + (bundle.total || 0), 0) || 0;
     const subtotal = itemsTotal + bundlesTotal;
-    const taxAmount = subtotal * (formData.tax_rate / 100);
-    const total = subtotal + taxAmount;
     
     setFormData(prev => ({
       ...prev,
-      subtotal,
-      tax_amount: taxAmount,
-      total_amount: total
+      subtotal
     }));
   };
 
@@ -855,19 +852,17 @@ Merci de votre confiance.
                 <div className="w-64 space-y-1">
                   <div className="flex justify-between text-sm">
                     <span>Sous-total:</span>
-                    <span className="font-semibold">${formData.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span className="font-semibold">${subtotalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span>TPS (5%):</span>
-                    <span className="font-semibold">${(formData.subtotal * 0.05).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>TVQ (9,975%):</span>
-                    <span className="font-semibold">${(formData.subtotal * 0.09975).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </div>
+                  {showTaxesInQuotes && taxes.map((tax, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span>{tax.name} ({tax.rate}%):</span>
+                      <span className="font-semibold">${tax.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  ))}
                   <div className="flex justify-between text-base font-bold border-t pt-2">
                     <span>Total:</span>
-                    <span>${(formData.subtotal * 1.14975).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span>${calculatedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 </div>
               </div>
@@ -960,19 +955,17 @@ Merci de votre confiance.
             <div className="space-y-2 border-t pt-3">
               <div className="flex justify-between text-sm">
                 <span>Sous-total:</span>
-                <span className="font-semibold">${formData.submission_subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="font-semibold">${submissionSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span>TPS (5%):</span>
-                <span className="font-semibold">${formData.tax_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span>TVQ (9,975%):</span>
-                <span className="font-semibold">${formData.tax_amount_2.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
+              {submissionTaxes.map((tax, idx) => (
+                <div key={idx} className="flex justify-between items-center text-sm">
+                  <span>{tax.name} ({tax.rate}%):</span>
+                  <span className="font-semibold">${tax.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              ))}
               <div className="flex justify-between text-base font-bold border-t pt-2">
                 <span>Total:</span>
-                <span>${formData.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span>${submissionTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
 

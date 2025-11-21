@@ -227,38 +227,23 @@ export default function InvoicingTab({ job, formData, setFormData }) {
     updateFormData(items);
   };
 
+  const subtotalValue = lineItems
+    .filter(item => item.type === 'item')
+    .reduce((sum, item) => sum + (item.total || 0), 0);
+
+  const { taxes, total: calculatedTotal } = useTaxCalculation(subtotalValue, job?.customer_province);
+
   const updateFormData = (items) => {
     const subtotal = items
       .filter(item => item.type === 'item')
       .reduce((sum, item) => sum + (item.total || 0), 0);
-    
-    const tps = subtotal * 0.05;
-    const tvq = subtotal * 0.09975;
-    const total = subtotal + tps + tvq;
 
     setFormData(prev => ({
       ...prev,
       invoice_items: items,
-      invoice_subtotal: subtotal,
-      invoice_tps: tps,
-      invoice_tvq: tvq,
-      invoice_total: total
+      invoice_subtotal: subtotal
     }));
   };
-
-  const calculateTotals = () => {
-    const subtotal = lineItems
-      .filter(item => item.type === 'item')
-      .reduce((sum, item) => sum + (item.total || 0), 0);
-    
-    const tps = subtotal * 0.05;
-    const tvq = subtotal * 0.09975;
-    const total = subtotal + tps + tvq;
-
-    return { subtotal, tps, tvq, total };
-  };
-
-  const totals = calculateTotals();
 
   return (
     <div className="space-y-4">
@@ -597,19 +582,17 @@ export default function InvoicingTab({ job, formData, setFormData }) {
         <div className="bg-slate-50 rounded-lg p-4 space-y-1 max-w-xs ml-auto">
           <div className="flex justify-between text-sm">
             <span>Sous-total:</span>
-            <span className="font-semibold">${totals.subtotal.toFixed(2)}</span>
+            <span className="font-semibold">${subtotalValue.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span>TPS (5%):</span>
-            <span className="font-semibold">${totals.tps.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>TVQ (9.975%):</span>
-            <span className="font-semibold">${totals.tvq.toFixed(2)}</span>
-          </div>
+          {taxes.map((tax, idx) => (
+            <div key={idx} className="flex justify-between text-sm">
+              <span>{tax.name} ({tax.rate}%):</span>
+              <span className="font-semibold">${tax.amount.toFixed(2)}</span>
+            </div>
+          ))}
           <div className="flex justify-between text-base font-bold border-t pt-1 mt-1">
             <span>Total:</span>
-            <span>${totals.total.toFixed(2)}</span>
+            <span>${calculatedTotal.toFixed(2)}</span>
           </div>
         </div>
       )}
@@ -661,15 +644,17 @@ export default function InvoicingTab({ job, formData, setFormData }) {
                 <>
                   <div className="flex justify-between text-sm pt-2 border-t">
                     <span>Sous-total:</span>
-                    <span className="font-semibold">${totals.subtotal.toFixed(2)}</span>
+                    <span className="font-semibold">${subtotalValue.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Taxes (TPS + TVQ):</span>
-                    <span className="font-semibold">${(totals.tps + totals.tvq).toFixed(2)}</span>
-                  </div>
+                  {taxes.map((tax, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span>{tax.name} ({tax.rate}%):</span>
+                      <span className="font-semibold">${tax.amount.toFixed(2)}</span>
+                    </div>
+                  ))}
                   <div className="flex justify-between text-base font-bold">
                     <span>Total:</span>
-                    <span>${totals.total.toFixed(2)}</span>
+                    <span>${calculatedTotal.toFixed(2)}</span>
                   </div>
                 </>
               )}

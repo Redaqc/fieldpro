@@ -10,6 +10,7 @@ import { addDays, format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { useTaxCalculation } from "@/components/shared/useTaxCalculation";
 
 export default function InvoiceDialog({ open, onClose, onSave, invoice, customers, jobs }) {
   const [formData, setFormData] = useState({
@@ -309,21 +310,21 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
     calculateTotals(items);
   };
 
+  const subtotalValue = formData.line_items
+    .filter(item => item.type === 'item' || item.type === 'bundle')
+    .reduce((sum, item) => sum + (item.total || 0), 0);
+
+  const { taxes, total: calculatedTotal } = useTaxCalculation(subtotalValue, formData.customer_province);
+
   const calculateTotals = (billingItems) => {
     const billingTotal = billingItems
       .filter(item => item.type === 'item' || item.type === 'bundle')
       .reduce((sum, item) => sum + (item.total || 0), 0);
     
-    const tps = billingTotal * 0.05;
-    const tvq = billingTotal * 0.09975;
-    const total = billingTotal + tps + tvq;
-    
     setFormData(prev => ({
       ...prev,
       subtotal: billingTotal,
-      tax_amount: tps,
-      tax_amount_2: tvq,
-      total_amount: total
+      total_amount: billingTotal
     }));
   };
 
@@ -919,19 +920,17 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
           <div className="bg-slate-50 rounded-lg p-4 space-y-1 max-w-xs ml-auto">
             <div className="flex justify-between text-sm">
               <span>Sous-total:</span>
-              <span className="font-semibold">${formData.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className="font-semibold">${subtotalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span>TPS (5%):</span>
-              <span className="font-semibold">${formData.tax_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>TVQ (9.975%):</span>
-              <span className="font-semibold">${formData.tax_amount_2.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
+            {taxes.map((tax, idx) => (
+              <div key={idx} className="flex justify-between text-sm">
+                <span>{tax.name} ({tax.rate}%):</span>
+                <span className="font-semibold">${tax.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            ))}
             <div className="flex justify-between text-base font-bold border-t pt-1 mt-1">
               <span>Total:</span>
-              <span>${formData.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span>${calculatedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
 
