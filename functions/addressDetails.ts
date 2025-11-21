@@ -27,6 +27,13 @@ Deno.serve(async (req) => {
     const apiKey = settings.api_key;
     const providerType = settings.provider_type || 'google';
 
+    if (!apiKey) {
+      return Response.json({ 
+        error: 'Clé API manquante',
+        instruction: 'Veuillez configurer votre clé API dans : Paramètres → Address Autocomplete'
+      }, { status: 400 });
+    }
+
     let addressData = {};
 
     if (providerType === 'google' && placeId) {
