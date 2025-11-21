@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "@/components/shared/translations";
 import { Button } from "@/components/ui/button";
 import { Settings2, LayoutDashboard } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -96,6 +97,17 @@ export default function Dashboard() {
     initialData: [],
   });
 
+  const { data: languageSettings } = useQuery({
+    queryKey: ['languageSettings'],
+    queryFn: async () => {
+      const settings = await base44.entities.LanguageSettings.list();
+      return settings[0] || { language: 'fr' };
+    },
+  });
+
+  const lang = languageSettings?.language || 'fr';
+  const t = useTranslation(lang);
+
   const userConfig = dashboardConfigs.find(c => c.is_default) || dashboardConfigs[0];
 
   const saveDashboardMutation = useMutation({
@@ -112,7 +124,7 @@ export default function Dashboard() {
         return base44.entities.DashboardConfig.create({
           user_id: currentUser?.id,
           user_email: currentUser?.email,
-          name: 'Mon tableau de bord',
+          name: t('dashboard'),
           is_default: true,
           layout: widgets.map((w, idx) => ({
             id: `widget_${idx}`,
@@ -135,7 +147,6 @@ export default function Dashboard() {
       if (userConfig?.layout && userConfig.layout.length > 0) {
         return userConfig.layout.map(w => w.type);
       }
-      // Si pas de config, utiliser la vue admin par défaut
       return DEFAULT_VIEWS.admin;
     }
     return DEFAULT_VIEWS[selectedView] || DEFAULT_VIEWS[userRole];
@@ -146,45 +157,45 @@ export default function Dashboard() {
   const renderWidget = (widgetType) => {
     switch (widgetType) {
       case 'today_summary':
-        return <TodaySummaryWidget key={widgetType} invoices={invoices} payments={payments} jobs={jobs} expenses={supplierInvoices} />;
+        return <TodaySummaryWidget key={widgetType} invoices={invoices} payments={payments} jobs={jobs} expenses={supplierInvoices} lang={lang} />;
       case 'invoices_due':
-        return <InvoicesDueWidget key={widgetType} invoices={invoices} />;
+        return <InvoicesDueWidget key={widgetType} invoices={invoices} lang={lang} />;
       case 'jobs_by_status_new':
-        return <JobsByStatusWidget key={widgetType} jobs={jobs} />;
+        return <JobsByStatusWidget key={widgetType} jobs={jobs} lang={lang} />;
       case 'recent_activities':
-        return <RecentActivitiesWidget key={widgetType} invoices={invoices} quotations={quotations} expenses={supplierInvoices} />;
+        return <RecentActivitiesWidget key={widgetType} invoices={invoices} quotations={quotations} expenses={supplierInvoices} lang={lang} />;
       case 'payments_chart':
-        return <PaymentsChartWidget key={widgetType} payments={payments} />;
+        return <PaymentsChartWidget key={widgetType} payments={payments} lang={lang} />;
       case 'top_clients':
-        return <TopClientsWidget key={widgetType} customers={customers} invoices={invoices} />;
+        return <TopClientsWidget key={widgetType} customers={customers} invoices={invoices} lang={lang} />;
       case 'stock_alert':
-        return <StockAlertWidget key={widgetType} materials={materials} />;
+        return <StockAlertWidget key={widgetType} materials={materials} lang={lang} />;
       case 'sales_vs_cost':
-        return <SalesVsCostWidget key={widgetType} invoices={invoices} jobs={jobs} />;
+        return <SalesVsCostWidget key={widgetType} invoices={invoices} jobs={jobs} lang={lang} />;
       case 'overdue_jobs_new':
-        return <OverdueJobsWidget key={widgetType} jobs={jobs} />;
+        return <OverdueJobsWidget key={widgetType} jobs={jobs} lang={lang} />;
       case 'alerts':
-        return <WidgetAlerts key={widgetType} />;
+        return <WidgetAlerts key={widgetType} lang={lang} />;
       case 'urgent_jobs':
-        return <WidgetUrgentJobs key={widgetType} jobs={jobs} />;
+        return <WidgetUrgentJobs key={widgetType} jobs={jobs} lang={lang} />;
       case 'tasks_by_technician':
-        return <WidgetTasksByTechnician key={widgetType} jobs={jobs} technicians={technicians} />;
+        return <WidgetTasksByTechnician key={widgetType} jobs={jobs} technicians={technicians} lang={lang} />;
       case 'project_progress':
-        return <WidgetProjectProgress key={widgetType} jobs={jobs} />;
+        return <WidgetProjectProgress key={widgetType} jobs={jobs} lang={lang} />;
       case 'financial_indicators':
-        return <WidgetFinancialIndicators key={widgetType} jobs={jobs} invoices={invoices} />;
+        return <WidgetFinancialIndicators key={widgetType} jobs={jobs} invoices={invoices} lang={lang} />;
       case 'jobs_by_status':
-        return <WidgetJobsByStatus key={widgetType} jobs={jobs} />;
+        return <WidgetJobsByStatus key={widgetType} jobs={jobs} lang={lang} />;
       case 'monthly_revenue':
-        return <WidgetMonthlyRevenue key={widgetType} invoices={invoices} />;
+        return <WidgetMonthlyRevenue key={widgetType} invoices={invoices} lang={lang} />;
       case 'overdue_jobs':
-        return <WidgetOverdueJobs key={widgetType} jobs={jobs} />;
+        return <WidgetOverdueJobs key={widgetType} jobs={jobs} lang={lang} />;
       case 'technician_performance':
-        return <WidgetTechnicianPerformance key={widgetType} jobs={jobs} technicians={technicians} />;
+        return <WidgetTechnicianPerformance key={widgetType} jobs={jobs} technicians={technicians} lang={lang} />;
       case 'customer_stats':
-        return <WidgetCustomerStats key={widgetType} customers={customers} jobs={jobs} invoices={invoices} />;
+        return <WidgetCustomerStats key={widgetType} customers={customers} jobs={jobs} invoices={invoices} lang={lang} />;
       case 'invoice_summary':
-        return <WidgetInvoiceSummary key={widgetType} invoices={invoices} />;
+        return <WidgetInvoiceSummary key={widgetType} invoices={invoices} lang={lang} />;
       default:
         return null;
     }
@@ -196,9 +207,11 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
             <LayoutDashboard className="w-8 h-8" />
-            Tableau de Bord
+            {t('dashboard')}
           </h1>
-          <p className="text-slate-500 mt-1">Vue d'ensemble personnalisée</p>
+          <p className="text-slate-500 mt-1">
+            {lang === 'fr' ? 'Vue d\'ensemble personnalisée' : 'Custom overview'}
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -207,17 +220,25 @@ export default function Dashboard() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="custom">Vue personnalisée</SelectItem>
-              <SelectItem value="admin">Vue Admin</SelectItem>
-              <SelectItem value="manager">Vue Manager</SelectItem>
-              <SelectItem value="technician">Vue Technicien</SelectItem>
+              <SelectItem value="custom">
+                {lang === 'fr' ? 'Vue personnalisée' : 'Custom View'}
+              </SelectItem>
+              <SelectItem value="admin">
+                {lang === 'fr' ? 'Vue Admin' : 'Admin View'}
+              </SelectItem>
+              <SelectItem value="manager">
+                {lang === 'fr' ? 'Vue Manager' : 'Manager View'}
+              </SelectItem>
+              <SelectItem value="technician">
+                {lang === 'fr' ? 'Vue Technicien' : 'Technician View'}
+              </SelectItem>
             </SelectContent>
           </Select>
 
           {selectedView === 'custom' && (
             <Button onClick={() => setCustomizerOpen(true)} variant="outline">
               <Settings2 className="w-4 h-4 mr-2" />
-              Personnaliser
+              {lang === 'fr' ? 'Personnaliser' : 'Customize'}
             </Button>
           )}
         </div>
@@ -232,11 +253,15 @@ export default function Dashboard() {
       {activeWidgets.length === 0 && (
         <div className="text-center py-16 border-2 border-dashed rounded-lg">
           <LayoutDashboard className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-          <h3 className="text-lg font-semibold text-slate-600 mb-2">Aucun widget sélectionné</h3>
-          <p className="text-slate-500 mb-4">Cliquez sur "Personnaliser" pour ajouter des widgets</p>
+          <h3 className="text-lg font-semibold text-slate-600 mb-2">
+            {lang === 'fr' ? 'Aucun widget sélectionné' : 'No widget selected'}
+          </h3>
+          <p className="text-slate-500 mb-4">
+            {lang === 'fr' ? 'Cliquez sur "Personnaliser" pour ajouter des widgets' : 'Click "Customize" to add widgets'}
+          </p>
           <Button onClick={() => setCustomizerOpen(true)}>
             <Settings2 className="w-4 h-4 mr-2" />
-            Personnaliser le tableau de bord
+            {lang === 'fr' ? 'Personnaliser le tableau de bord' : 'Customize dashboard'}
           </Button>
         </div>
       )}
