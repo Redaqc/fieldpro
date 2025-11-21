@@ -139,19 +139,9 @@ export default function AddressAutocompleteInput({
         const addressDetails = await fetchAddressDetails(suggestion.place_id);
         if (addressDetails) {
           onAddressSelected(addressDetails);
-        } else {
-          toast({
-            title: 'Erreur',
-            description: 'Impossible de récupérer les détails de l\'adresse',
-            variant: 'destructive',
-          });
         }
       } catch (err) {
-        toast({
-          title: 'Erreur',
-          description: err.message || 'Échec de récupération des détails',
-          variant: 'destructive',
-        });
+        console.error('Failed to fetch address details:', err);
       }
     }
 
