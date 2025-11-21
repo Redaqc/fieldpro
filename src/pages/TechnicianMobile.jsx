@@ -1,250 +1,109 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { 
+  MapPin, 
+  Clock, 
+  CheckCircle, 
+  AlertCircle, 
+  PlayCircle, 
+  StopCircle,
+  WifiOff,
+  Wifi,
+  Battery,
+  RefreshCw
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, MapPin, Briefcase, Battery, Navigation, LogIn, LogOut, Phone } from "lucide-react";
-import { format, differenceInMinutes } from "date-fns";
-import { fr } from "date-fns/locale";
-import MobileJobCard from "../components/mobile/MobileJobCard";
-import QuickPunchCard from "../components/mobile/QuickPunchCard";
-import GPSStatusCard from "../components/mobile/GPSStatusCard";
-import OfflineIndicator from "../components/mobile/OfflineIndicator";
-import OfflineStorage from "../components/mobile/OfflineStorage";
-import syncManager from "../components/mobile/SyncManager";
-import VoiceNoteRecorder from "../components/mobile/VoiceNoteRecorder";
-import VoiceNotesList from "../components/mobile/VoiceNotesList";
-import OfflineQueueManager from "../components/mobile/OfflineQueueManager";
-import PushNotifications from "../components/mobile/PushNotifications";
+import MobileJobCard from "@/components/mobile/MobileJobCard";
+import QuickPunchCard from "@/components/mobile/QuickPunchCard";
+import OfflineManager from "@/components/mobile/OfflineManager";
+import { useTranslation } from "@/components/shared/translations";
 
 export default function TechnicianMobile() {
-  const [currentPosition, setCurrentPosition] = useState(null);
-  const [gpsStatus, setGpsStatus] = useState('inactive');
-  const [batteryLevel, setBatteryLevel] = useState(100);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [syncStatus, setSyncStatus] = useState('synced');
-  const [pendingCount, setPendingCount] = useState(0);
-  const [voiceNotes, setVoiceNotes] = useState([]);
+  const [batteryLevel, setBatteryLevel] = useState(100);
+  const [syncing, setSyncing] = useState(false);
   const queryClient = useQueryClient();
+
+  const { data: languageSettings } = useQuery({
+    queryKey: ['languageSettings'],
+    queryFn: async () => {
+      const settings = await base44.entities.LanguageSettings.list();
+      return settings[0] || { language: 'fr' };
+    },
+  });
+
+  const lang = languageSettings?.language || 'fr';
+  const t = useTranslation(lang);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: technicians = [] } = useQuery({
-    queryKey: ['technicians'],
-    queryFn: () => base44.entities.Technician.list(),
-  });
-
-  const currentTech = technicians.find(t => t.email === currentUser?.email);
-
-  const { data: timeEntries = [] } = useQuery({
-    queryKey: ['timeEntries'],
+  const { data: technician } = useQuery({
+    queryKey: ['currentTechnician', currentUser?.email],
     queryFn: async () => {
-      if (!isOnline) {
-        return OfflineStorage.getTimeEntries();
-      }
-      const entries = await base44.entities.TimeEntry.list('-clock_in', 10);
-      OfflineStorage.saveTimeEntries(entries);
-      return entries;
+      const techs = await base44.entities.Technician.filter({ email: currentUser?.email });
+      return techs[0] || null;
     },
+    enabled: !!currentUser,
   });
 
-  const { data: jobs = [] } = useQuery({
-    queryKey: ['jobs'],
+  const { data: myJobs = [] } = useQuery({
+    queryKey: ['myJobs', technician?.id],
     queryFn: async () => {
-      if (!isOnline) {
-        return OfflineStorage.getJobs();
-      }
-      const fetchedJobs = await base44.entities.Job.list();
-      OfflineStorage.saveJobs(fetchedJobs);
-      return fetchedJobs;
+      if (!technician?.id) return [];
+      const allJobs = await base44.entities.Job.list();
+      return allJobs.filter(job => 
+        job.technicians?.some(t => t.id === technician.id) &&
+        job.status !== 'completed' &&
+        job.status !== 'cancelled'
+      ).sort((a, b) => {
+        if (a.status === 'in_progress') return -1;
+        if (b.status === 'in_progress') return 1;
+        return new Date(a.due_date || a.created_date) - new Date(b.due_date || b.created_date);
+      });
     },
+    enabled: !!technician,
+    refetchInterval: isOnline ? 30000 : false,
   });
 
-  const { data: serviceCalls = [] } = useQuery({
-    queryKey: ['serviceCalls'],
+  const { data: activeTimeEntry } = useQuery({
+    queryKey: ['activeTimeEntry', technician?.id],
     queryFn: async () => {
-      if (!isOnline) {
-        return OfflineStorage.getServiceCalls() || [];
-      }
-      const fetchedCalls = await base44.entities.ServiceCall.list();
-      OfflineStorage.saveServiceCalls(fetchedCalls);
-      return fetchedCalls;
+      if (!technician?.id) return null;
+      const entries = await base44.entities.TimeEntry.filter({
+        technician_id: technician.id,
+        status: 'in_progress'
+      });
+      return entries[0] || null;
     },
+    enabled: !!technician,
+    refetchInterval: 10000,
   });
 
-  const activeEntry = timeEntries.find(
-    e => e.technician_id === currentTech?.id && e.status === 'in_progress'
-  );
-
-  const myJobs = jobs.filter(
-    j => (j.technicians || []).some(t => t.id === currentTech?.id) && 
-    (j.status === 'todo' || j.status === 'in_progress')
-  );
-
-  const myCalls = serviceCalls.filter(
-    c => (c.technicians || []).some(t => t.id === currentTech?.id) && 
-    (c.status === 'todo' || c.status === 'in_progress')
-  );
-
-  // Online/Offline status management
+  // Monitor online/offline status
   useEffect(() => {
-    const handleOnline = async () => {
+    const handleOnline = () => {
       setIsOnline(true);
-      setSyncStatus('syncing');
-      try {
-        await syncManager.syncPendingOperations();
-      } catch (error) {
-        console.error('Sync error:', error);
-        setSyncStatus('error');
-      }
+      syncOfflineData();
     };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-    };
+    const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Sync status updates
-    syncManager.onSyncStatusChange((status, pending) => {
-      setSyncStatus(status);
-      setPendingCount(pending);
-    });
-
-    // Check for pending operations on mount
-    const stats = syncManager.getSyncStats();
-    setPendingCount(stats.totalPending);
-
-    // Initial sync if online
-    if (navigator.onLine) {
-      syncManager.syncPendingOperations();
-    }
-
-    // Periodic sync check (every 2 minutes if online)
-    const syncInterval = setInterval(() => {
-      if (navigator.onLine && OfflineStorage.getPendingSync().length > 0) {
-        syncManager.syncPendingOperations();
-      }
-    }, 120000);
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      clearInterval(syncInterval);
     };
-  }, [currentUser]);
+  }, []);
 
-  const handleRetrySync = async () => {
-    if (!navigator.onLine) {
-      alert('Pas de connexion internet disponible');
-      return;
-    }
-    setSyncStatus('syncing');
-    try {
-      await syncManager.retryFailedOperations();
-    } catch (error) {
-      console.error('Retry sync error:', error);
-      setSyncStatus('error');
-    }
-  };
-
-  // GPS Background tracking with battery optimization
+  // Monitor battery level
   useEffect(() => {
-    if (!currentTech || !activeEntry) return;
-
-    let watchId;
-    let trackingInterval;
-
-    const startGPSTracking = () => {
-      if (!navigator.geolocation) {
-        setGpsStatus('unavailable');
-        return;
-      }
-
-      setGpsStatus('active');
-
-      // High accuracy for first position
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          updatePosition(position);
-        },
-        (error) => {
-          setGpsStatus('error');
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-
-      // Background tracking with battery-friendly settings
-      watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          updatePosition(position);
-        },
-        (error) => {
-          console.error('GPS Error:', error);
-          setGpsStatus('error');
-        },
-        {
-          enableHighAccuracy: false, // Save battery
-          timeout: 30000,
-          maximumAge: 60000, // Accept 1-minute old positions
-        }
-      );
-
-      // Update position every 5 minutes for active jobs
-      trackingInterval = setInterval(() => {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            updatePosition(position, true);
-          },
-          null,
-          { enableHighAccuracy: false, maximumAge: 60000 }
-        );
-      }, 300000); // 5 minutes
-    };
-
-    const updatePosition = (position, saveToServer = false) => {
-      const pos = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy: position.coords.accuracy,
-        speed: position.coords.speed || 0,
-        heading: position.coords.heading || 0,
-      };
-
-      setCurrentPosition(pos);
-
-      // Save GPS data (online or offline)
-      if (saveToServer || pos.speed > 1) {
-        const gpsData = {
-          technician_id: currentTech.id,
-          technician_name: `${currentTech.first_name} ${currentTech.last_name}`,
-          latitude: pos.latitude,
-          longitude: pos.longitude,
-          accuracy: pos.accuracy,
-          speed: pos.speed * 3.6, // Convert m/s to km/h
-          heading: pos.heading,
-          timestamp: new Date().toISOString(),
-          activity_type: 'location_update',
-          job_id: activeEntry?.job_id,
-        };
-
-        if (navigator.onLine) {
-          base44.entities.GPSTracking.create(gpsData).catch(err => {
-            console.error('GPS tracking error:', err);
-            OfflineStorage.saveGPSTracking(gpsData);
-          });
-        } else {
-          OfflineStorage.saveGPSTracking(gpsData);
-        }
-      }
-    };
-
-    // Check battery level
     if ('getBattery' in navigator) {
       navigator.getBattery().then(battery => {
         setBatteryLevel(Math.round(battery.level * 100));
@@ -253,174 +112,221 @@ export default function TechnicianMobile() {
         });
       });
     }
+  }, []);
 
-    startGPSTracking();
+  // Sync offline data when coming back online
+  const syncOfflineData = async () => {
+    const offlineQueue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
+    if (offlineQueue.length === 0) return;
 
-    return () => {
-      if (watchId) navigator.geolocation.clearWatch(watchId);
-      if (trackingInterval) clearInterval(trackingInterval);
-    };
-  }, [currentTech, activeEntry]);
+    setSyncing(true);
+    try {
+      for (const item of offlineQueue) {
+        if (item.type === 'job_status') {
+          await base44.entities.Job.update(item.jobId, { status: item.status });
+        } else if (item.type === 'photo_upload') {
+          await base44.entities.Job.update(item.jobId, {
+            attachments: [...(item.existingAttachments || []), item.attachment]
+          });
+        }
+      }
+      localStorage.setItem('offline_queue', '[]');
+      queryClient.invalidateQueries({ queryKey: ['myJobs'] });
+    } catch (error) {
+      console.error('[TechnicianMobile] Sync error:', error);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
-  if (!currentTech) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <Card className="p-6 text-center">
-          <p className="text-slate-600">Aucun profil technicien trouvé pour votre compte</p>
-        </Card>
-      </div>
-    );
-  }
+  const getBatteryColor = () => {
+    if (batteryLevel > 50) return 'text-green-600';
+    if (batteryLevel > 20) return 'text-orange-600';
+    return 'text-red-600';
+  };
+
+  const inProgressJobs = myJobs.filter(j => j.status === 'in_progress');
+  const scheduledJobs = myJobs.filter(j => j.status === 'scheduled');
+  const otherJobs = myJobs.filter(j => j.status !== 'in_progress' && j.status !== 'scheduled');
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 select-none" style={{ WebkitTapHighlightColor: 'transparent' }}>
-      {/* Header - Fixed - Touch Optimized */}
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 border-b border-blue-700 p-4 sticky top-0 z-10 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {currentTech.avatar_url ? (
-              <img src={currentTech.avatar_url} alt="Profile" className="w-14 h-14 rounded-full object-cover border-2 border-white shadow" />
-            ) : (
-              <div 
-                className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg border-2 border-white shadow"
-                style={{ backgroundColor: currentTech.color || '#1e40af' }}
-              >
-                {currentTech.first_name[0]}{currentTech.last_name[0]}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-20">
+      {/* Fixed Header - Optimized for mobile */}
+      <div className="sticky top-0 z-50 bg-white border-b shadow-sm">
+        <div className="px-4 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-lg">
+                  {technician?.first_name?.[0] || 'T'}
+                </span>
               </div>
-            )}
-            <div>
-              <p className="font-bold text-lg text-white">{currentTech.first_name}</p>
-              <p className="text-xs text-blue-100">{format(new Date(), 'EEEE d MMMM', { locale: fr })}</p>
+              <div>
+                <h1 className="text-lg font-bold text-slate-900">
+                  {technician?.first_name} {technician?.last_name}
+                </h1>
+                <p className="text-xs text-slate-500">
+                  {inProgressJobs.length} {lang === 'fr' ? 'en cours' : 'in progress'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Battery indicator */}
+              <div className={`flex items-center gap-1 ${getBatteryColor()}`}>
+                <Battery className="w-4 h-4" />
+                <span className="text-xs font-semibold">{batteryLevel}%</span>
+              </div>
+
+              {/* Online/Offline indicator */}
+              {isOnline ? (
+                <Wifi className="w-5 h-5 text-green-600" />
+              ) : (
+                <WifiOff className="w-5 h-5 text-red-600" />
+              )}
+
+              {/* Sync button */}
+              {!isOnline && (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  disabled
+                  className="h-8"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+              )}
+
+              {isOnline && syncing && (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  disabled
+                  className="h-8"
+                >
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                </Button>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 text-xs text-white bg-white/20 px-2 py-1 rounded-full">
-              <Battery className={`w-4 h-4 ${batteryLevel < 20 ? 'text-red-300' : 'text-green-300'}`} />
-              {batteryLevel}%
+
+          {/* Active Time Entry Banner */}
+          {activeTimeEntry && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-sm font-medium text-green-900">
+                    {lang === 'fr' ? 'Temps actif' : 'Active Time'}
+                  </span>
+                </div>
+                <span className="text-sm font-bold text-green-900">
+                  {new Date(activeTimeEntry.clock_in).toLocaleTimeString()}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
+      {/* Offline Mode Indicator */}
+      {!isOnline && (
+        <div className="bg-orange-500 text-white px-4 py-2 text-center text-sm font-medium">
+          <WifiOff className="w-4 h-4 inline mr-2" />
+          {lang === 'fr' ? 'Mode hors ligne - Les modifications seront synchronisées' : 'Offline mode - Changes will sync later'}
+        </div>
+      )}
+
+      {/* Main Content */}
       <div className="p-4 space-y-4">
-        {/* Offline Indicator */}
-        <OfflineIndicator 
-          syncStatus={syncStatus} 
-          pendingCount={pendingCount}
-          onRetrySync={handleRetrySync}
-        />
-
-        {/* GPS Status */}
-        <GPSStatusCard status={gpsStatus} position={currentPosition} />
-
-        {/* Push Notifications */}
-        <PushNotifications />
-
-        {/* Offline Queue */}
-        <OfflineQueueManager />
-
-        {/* Quick Punch */}
+        {/* Quick Punch Card */}
         <QuickPunchCard 
-          technician={currentTech}
-          activeEntry={activeEntry}
-          currentPosition={currentPosition}
+          technician={technician} 
+          activeTimeEntry={activeTimeEntry}
+          lang={lang}
           isOnline={isOnline}
         />
 
-        {/* Voice Notes */}
-        <VoiceNoteRecorder
-          onSave={(note) => {
-            setVoiceNotes([...voiceNotes, note]);
-          }}
-        />
-
-        <VoiceNotesList
-          voiceNotes={voiceNotes}
-          onDelete={(idx) => {
-            setVoiceNotes(voiceNotes.filter((_, i) => i !== idx));
-          }}
-        />
-
-        {/* Active Time - Enhanced */}
-        {activeEntry && (
-          <Card className="p-5 bg-gradient-to-r from-green-50 to-green-100 border-green-200 shadow-md">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
-                  <Clock className="w-7 h-7 text-white" />
-                </div>
-                <div>
-                  <p className="font-semibold text-base text-slate-700">Temps actif</p>
-                  <p className="text-3xl font-bold text-green-700">
-                    {Math.floor(differenceInMinutes(new Date(), new Date(activeEntry.clock_in)) / 60)}h
-                    {differenceInMinutes(new Date(), new Date(activeEntry.clock_in)) % 60}m
-                  </p>
-                </div>
-              </div>
-              <div className="text-right text-sm text-slate-600">
-                <p className="font-medium">Début: {format(new Date(activeEntry.clock_in), 'HH:mm')}</p>
-                {activeEntry.location_in && (
-                  <p className="text-xs flex items-center gap-1 justify-end mt-1">
-                    <MapPin className="w-3 h-3" />
-                    {activeEntry.location_in}
-                  </p>
-                )}
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* My Jobs Today - Enhanced */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
-              <Briefcase className="w-6 h-6 text-blue-600" />
-              Mes Jobs ({myJobs.length})
+        {/* Jobs in Progress */}
+        {inProgressJobs.length > 0 && (
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+              <PlayCircle className="w-5 h-5 text-blue-600" />
+              {lang === 'fr' ? 'En cours' : 'In Progress'} ({inProgressJobs.length})
             </h2>
-          </div>
-          
-          {myJobs.length > 0 ? (
-            <div className="space-y-4">
-              {myJobs.map(job => (
+            <div className="space-y-3">
+              {inProgressJobs.map(job => (
                 <MobileJobCard 
                   key={job.id} 
                   job={job} 
-                  currentPosition={currentPosition}
-                  isOnline={isOnline}
-                />
-              ))}
-            </div>
-          ) : (
-            <Card className="p-10 text-center shadow-sm">
-              <Briefcase className="w-16 h-16 text-slate-300 mx-auto mb-3" />
-              <p className="text-base text-slate-600 font-medium">Aucun job assigné aujourd'hui</p>
-            </Card>
-          )}
-        </div>
-
-        {/* My Service Calls - Enhanced */}
-        {myCalls.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
-                <Phone className="w-6 h-6 text-blue-600" />
-                Mes Appels de Service ({myCalls.length})
-              </h2>
-            </div>
-            
-            <div className="space-y-4">
-              {myCalls.map(call => (
-                <MobileJobCard 
-                  key={call.id} 
-                  job={call} 
-                  currentPosition={currentPosition}
+                  technician={technician}
+                  lang={lang}
                   isOnline={isOnline}
                 />
               ))}
             </div>
           </div>
         )}
+
+        {/* Scheduled Jobs */}
+        {scheduledJobs.length > 0 && (
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-orange-600" />
+              {lang === 'fr' ? 'Planifiés' : 'Scheduled'} ({scheduledJobs.length})
+            </h2>
+            <div className="space-y-3">
+              {scheduledJobs.map(job => (
+                <MobileJobCard 
+                  key={job.id} 
+                  job={job} 
+                  technician={technician}
+                  lang={lang}
+                  isOnline={isOnline}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Other Jobs */}
+        {otherJobs.length > 0 && (
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-slate-600" />
+              {lang === 'fr' ? 'Autres' : 'Other'} ({otherJobs.length})
+            </h2>
+            <div className="space-y-3">
+              {otherJobs.map(job => (
+                <MobileJobCard 
+                  key={job.id} 
+                  job={job} 
+                  technician={technician}
+                  lang={lang}
+                  isOnline={isOnline}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {myJobs.length === 0 && (
+          <Card className="shadow-sm">
+            <CardContent className="py-16 text-center">
+              <CheckCircle className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+              <h3 className="text-lg font-semibold text-slate-600 mb-2">
+                {lang === 'fr' ? 'Aucun job assigné' : 'No assigned jobs'}
+              </h3>
+              <p className="text-slate-500">
+                {lang === 'fr' ? 'Profitez de votre temps libre!' : 'Enjoy your free time!'}
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      {/* Offline Manager */}
+      <OfflineManager isOnline={isOnline} onSync={syncOfflineData} lang={lang} />
     </div>
   );
 }

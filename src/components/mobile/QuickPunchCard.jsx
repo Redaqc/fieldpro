@@ -1,220 +1,179 @@
-import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Loader2, MapPin, AlertCircle } from "lucide-react";
-import { differenceInMinutes } from "date-fns";
-import OfflineStorage from "./OfflineStorage";
+import { PlayCircle, StopCircle, Clock, MapPin } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "@/components/shared/translations";
 
-export default function QuickPunchCard({ technician, activeEntry, currentPosition, isOnline }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+export default function QuickPunchCard({ technician, activeTimeEntry, lang = 'fr', isOnline }) {
+  const [elapsedTime, setElapsedTime] = useState('00:00:00');
+  const [gettingLocation, setGettingLocation] = useState(false);
   const queryClient = useQueryClient();
+  const t = useTranslation(lang);
 
-  const { data: gpsZones = [] } = useQuery({
-    queryKey: ['gpsZones'],
-    queryFn: () => base44.entities.GPSZone.list(),
-  });
+  // Update elapsed time every second
+  useEffect(() => {
+    if (!activeTimeEntry) {
+      setElapsedTime('00:00:00');
+      return;
+    }
 
-  const checkGPSZone = (position) => {
-    if (!position) return { inZone: false, zone: null };
-    
-    for (const zone of gpsZones.filter(z => z.active)) {
-      const distance = getDistance(
-        position.latitude,
-        position.longitude,
-        zone.latitude,
-        zone.longitude
+    const updateTime = () => {
+      const start = new Date(activeTimeEntry.clock_in);
+      const now = new Date();
+      const diff = Math.floor((now - start) / 1000);
+      
+      const hours = Math.floor(diff / 3600);
+      const minutes = Math.floor((diff % 3600) / 60);
+      const seconds = diff % 60;
+      
+      setElapsedTime(
+        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
       );
-      if (distance <= zone.radius) {
-        return { inZone: true, zone };
-      }
-    }
-    return { inZone: false, zone: null };
-  };
+    };
 
-  const getDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371000;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, [activeTimeEntry]);
 
-  const handlePunchIn = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      if (!currentPosition) {
-        throw new Error('Position GPS non disponible');
-      }
-
-      const { inZone, zone } = checkGPSZone(currentPosition);
-
-      if (!technician.gps_punch_outside_zone && !inZone) {
-        throw new Error('Vous devez être dans une zone GPS autorisée');
-      }
-
-      const entryData = {
-        technician_id: technician.id,
-        technician_name: `${technician.first_name} ${technician.last_name}`,
-        clock_in: new Date().toISOString(),
-        status: "in_progress",
-        location_in: inZone ? zone.name : "Hors zone",
-        gps_verified: inZone,
-      };
-
-      const gpsData = {
-        technician_id: technician.id,
-        technician_name: `${technician.first_name} ${technician.last_name}`,
-        latitude: currentPosition.latitude,
-        longitude: currentPosition.longitude,
-        accuracy: currentPosition.accuracy,
-        timestamp: new Date().toISOString(),
-        activity_type: "punch_in",
-      };
-
-      if (isOnline) {
-        await base44.entities.TimeEntry.create(entryData);
-        await base44.entities.GPSTracking.create(gpsData);
-      } else {
-        // Offline mode - save locally
-        const localEntry = { ...entryData, id: `offline_${Date.now()}` };
-        OfflineStorage.addTimeEntry(localEntry);
-        OfflineStorage.saveGPSTracking(gpsData);
-        OfflineStorage.addPendingSync({
-          method: 'create',
-          entity: 'TimeEntry',
-          data: entryData,
-        });
-        OfflineStorage.addPendingSync({
-          method: 'create',
-          entity: 'GPSTracking',
-          data: gpsData,
-        });
-      }
-
-      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePunchOut = async () => {
-    if (!confirm('Confirmer le poinçon de sortie?')) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const clockOut = new Date().toISOString();
-      const totalMinutes = differenceInMinutes(new Date(clockOut), new Date(activeEntry.clock_in));
-      const totalHours = ((totalMinutes - (activeEntry.break_minutes || 0)) / 60).toFixed(2);
-
-      const updateData = {
-        clock_out: clockOut,
-        total_hours: parseFloat(totalHours),
-        status: "completed",
-        location_out: currentPosition ? "GPS enregistré" : "Sans GPS",
-      };
-
-      if (isOnline && !activeEntry.id.startsWith('offline_')) {
-        await base44.entities.TimeEntry.update(activeEntry.id, updateData);
-      } else {
-        // Offline or local entry
-        OfflineStorage.updateTimeEntry(activeEntry.id, updateData);
-        OfflineStorage.addPendingSync({
-          method: activeEntry.id.startsWith('offline_') ? 'create' : 'update',
-          entity: 'TimeEntry',
-          data: { ...activeEntry, ...updateData },
-        });
-      }
-
-      if (currentPosition) {
-        const gpsData = {
-          technician_id: technician.id,
-          technician_name: `${technician.first_name} ${technician.last_name}`,
-          latitude: currentPosition.latitude,
-          longitude: currentPosition.longitude,
-          accuracy: currentPosition.accuracy,
-          timestamp: clockOut,
-          activity_type: "punch_out",
-        };
-
-        if (isOnline) {
-          await base44.entities.GPSTracking.create(gpsData);
-        } else {
-          OfflineStorage.saveGPSTracking(gpsData);
+  const clockInMutation = useMutation({
+    mutationFn: async () => {
+      let location = null;
+      
+      if (navigator.geolocation) {
+        setGettingLocation(true);
+        try {
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 0
+            });
+          });
+          location = `${position.coords.latitude},${position.coords.longitude}`;
+        } catch (error) {
+          console.log('[QuickPunch] GPS error:', error);
+        } finally {
+          setGettingLocation(false);
         }
       }
 
-      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return base44.entities.TimeEntry.create({
+        technician_id: technician.id,
+        technician_name: `${technician.first_name} ${technician.last_name}`,
+        clock_in: new Date().toISOString(),
+        location_in: location,
+        gps_verified: !!location,
+        status: 'in_progress'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activeTimeEntry'] });
+    },
+  });
 
-  const { inZone, zone } = checkGPSZone(currentPosition);
+  const clockOutMutation = useMutation({
+    mutationFn: async () => {
+      let location = null;
+      
+      if (navigator.geolocation) {
+        setGettingLocation(true);
+        try {
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 0
+            });
+          });
+          location = `${position.coords.latitude},${position.coords.longitude}`;
+        } catch (error) {
+          console.log('[QuickPunch] GPS error:', error);
+        } finally {
+          setGettingLocation(false);
+        }
+      }
+
+      const clockIn = new Date(activeTimeEntry.clock_in);
+      const clockOut = new Date();
+      const totalHours = (clockOut - clockIn) / (1000 * 60 * 60);
+
+      return base44.entities.TimeEntry.update(activeTimeEntry.id, {
+        clock_out: clockOut.toISOString(),
+        location_out: location,
+        total_hours: totalHours,
+        status: 'completed'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activeTimeEntry'] });
+    },
+  });
+
+  if (!technician) return null;
 
   return (
-    <Card className="p-4">
-      <h3 className="font-semibold mb-3">Pointage rapide</h3>
-      
-      {error && (
-        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-sm text-red-700">
-          <AlertCircle className="w-4 h-4" />
-          {error}
-        </div>
-      )}
+    <Card className="shadow-lg border-2 border-blue-200">
+      <CardContent className="p-4">
+        {activeTimeEntry ? (
+          <div className="space-y-4">
+            <div className="text-center">
+              <p className="text-sm text-slate-600 mb-1">
+                {lang === 'fr' ? 'Temps écoulé' : 'Elapsed Time'}
+              </p>
+              <p className="text-4xl font-bold text-blue-600 font-mono">
+                {elapsedTime}
+              </p>
+            </div>
 
-      {currentPosition && (
-        <div className="mb-3 text-xs text-slate-600 flex items-center gap-2">
-          <MapPin className="w-4 h-4" />
-          {inZone ? (
-            <span className="text-green-600">✓ Dans la zone: {zone.name}</span>
-          ) : (
-            <span className="text-orange-600">Hors zone GPS</span>
-          )}
-        </div>
-      )}
+            <Button
+              onClick={() => clockOutMutation.mutate()}
+              disabled={!isOnline || gettingLocation || clockOutMutation.isPending}
+              className="w-full h-14 bg-red-600 hover:bg-red-700 text-lg font-semibold"
+            >
+              <StopCircle className="w-6 h-6 mr-2" />
+              {gettingLocation 
+                ? (lang === 'fr' ? 'Localisation...' : 'Locating...') 
+                : (lang === 'fr' ? 'Pointer Sortie' : 'Clock Out')}
+            </Button>
 
-      {activeEntry ? (
-        <Button 
-          onClick={handlePunchOut}
-          disabled={loading}
-          className="w-full bg-red-600 hover:bg-red-700 text-white h-14 text-lg"
-        >
-          {loading ? (
-            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-          ) : (
-            <LogOut className="w-5 h-5 mr-2" />
-          )}
-          Poinçon Sortie
-        </Button>
-      ) : (
-        <Button 
-          onClick={handlePunchIn}
-          disabled={loading || !currentPosition}
-          className="w-full bg-green-600 hover:bg-green-700 text-white h-14 text-lg"
-        >
-          {loading ? (
-            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-          ) : (
-            <LogIn className="w-5 h-5 mr-2" />
-          )}
-          Poinçon Entrée
-        </Button>
-      )}
+            {activeTimeEntry.location_in && (
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <MapPin className="w-3 h-3" />
+                <span>{lang === 'fr' ? 'Démarré avec GPS' : 'Started with GPS'}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="text-center">
+              <Clock className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+              <p className="text-sm text-slate-600">
+                {lang === 'fr' ? 'Pas de temps actif' : 'No active time'}
+              </p>
+            </div>
+
+            <Button
+              onClick={() => clockInMutation.mutate()}
+              disabled={!isOnline || gettingLocation || clockInMutation.isPending}
+              className="w-full h-14 bg-green-600 hover:bg-green-700 text-lg font-semibold"
+            >
+              <PlayCircle className="w-6 h-6 mr-2" />
+              {gettingLocation 
+                ? (lang === 'fr' ? 'Localisation...' : 'Locating...') 
+                : (lang === 'fr' ? 'Pointer Entrée' : 'Clock In')}
+            </Button>
+          </div>
+        )}
+
+        {!isOnline && (
+          <p className="text-xs text-orange-600 text-center mt-2">
+            {lang === 'fr' ? 'Connexion requise' : 'Connection required'}
+          </p>
+        )}
+      </CardContent>
     </Card>
   );
 }

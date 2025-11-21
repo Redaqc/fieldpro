@@ -1,581 +1,307 @@
-import React, { useState, useCallback } from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import React, { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { MapPin, Clock, User, Phone, ChevronDown, ChevronUp, Navigation, CheckCircle, Camera, PenTool, Plus, MessageSquare, X } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { Badge } from "@/components/ui/badge";
+import { 
+  MapPin, 
+  Navigation, 
+  Camera, 
+  FileSignature, 
+  Clock,
+  CheckCircle,
+  PlayCircle,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp
+} from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import OfflineStorage from "./OfflineStorage";
-import SignatureCapture from "./SignatureCapture";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import PhotoCaptureDialog from "./PhotoCaptureDialog";
+import SignatureCaptureDialog from "./SignatureCaptureDialog";
+import { useTranslation } from "@/components/shared/translations";
 
-const STATUS_COLORS = {
-  scheduled: 'bg-blue-100 text-blue-800',
-  in_progress: 'bg-yellow-100 text-yellow-800',
-  completed: 'bg-green-100 text-green-800',
-  review: 'bg-purple-100 text-purple-800',
-};
-
-const PRIORITY_COLORS = {
-  low: 'bg-slate-100 text-slate-800',
-  medium: 'bg-orange-100 text-orange-800',
-  high: 'bg-red-100 text-red-800',
-  urgent: 'bg-red-600 text-white',
-};
-
-export default function MobileJobCard({ job, currentPosition, isOnline }) {
+export default function MobileJobCard({ job, technician, lang = 'fr', isOnline = true }) {
   const [expanded, setExpanded] = useState(false);
-  const [updating, setUpdating] = useState(false);
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
-  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
-  const [timeDialogOpen, setTimeDialogOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [note, setNote] = useState('');
-  const [timeSpent, setTimeSpent] = useState('');
-  const [photos, setPhotos] = useState(job.photos || []);
-  const [signature, setSignature] = useState(job.signature || null);
+  const queryClient = useQueryClient();
+  const t = useTranslation(lang);
 
-  // Open navigation app to job location
-  const openNavigation = useCallback(() => {
-    const addresses = job.project_addresses || (job.location ? [job.location] : []);
-    if (addresses.length === 0) {
-      alert('Aucune adresse disponible');
+  const updateJobMutation = useMutation({
+    mutationFn: ({ jobId, data }) => {
+      if (isOnline) {
+        return base44.entities.Job.update(jobId, data);
+      } else {
+        // Store offline
+        const offlineQueue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
+        offlineQueue.push({
+          type: 'job_status',
+          jobId,
+          status: data.status,
+          timestamp: new Date().toISOString()
+        });
+        localStorage.setItem('offline_queue', JSON.stringify(offlineQueue));
+        return Promise.resolve({ data: { ...job, ...data } });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myJobs'] });
+    },
+  });
+
+  const handleNavigate = () => {
+    const address = job.project_addresses?.[0] || job.location;
+    if (!address) {
+      alert(lang === 'fr' ? 'Aucune adresse disponible' : 'No address available');
       return;
     }
 
-    const destination = encodeURIComponent(addresses[0]);
+    // Open in Google Maps or Apple Maps
+    const encodedAddress = encodeURIComponent(address);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     
-    // Detect device and open appropriate navigation app
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-    const isAndroid = /Android/.test(navigator.userAgent);
-
-    let url;
-    if (currentPosition) {
-      const { latitude, longitude } = currentPosition;
-      if (isIOS) {
-        url = `maps://maps.apple.com/?daddr=${destination}&saddr=${latitude},${longitude}`;
-      } else if (isAndroid) {
-        url = `google.navigation:q=${destination}`;
-      } else {
-        url = `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=${destination}`;
-      }
+    if (isIOS) {
+      window.open(`maps://maps.apple.com/?q=${encodedAddress}`, '_blank');
     } else {
-      url = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, '_blank');
     }
+  };
 
-    window.open(url, '_blank');
-  }, [job.project_addresses, job.location, currentPosition]);
-
-  // Call customer phone
-  const callCustomer = useCallback(() => {
-    const phone = job.customer_phone || '+1234567890';
-    window.location.href = `tel:${phone}`;
-  }, [job.customer_phone]);
-
-  // Update job status with offline support
-  const updateJobStatus = useCallback(async (newStatus) => {
-    setUpdating(true);
-    try {
-      const updateData = { 
+  const handleStatusChange = (newStatus) => {
+    updateJobMutation.mutate({
+      jobId: job.id,
+      data: { 
         status: newStatus,
-        ...(newStatus === 'completed' && { completed_at: new Date().toISOString() }),
-        ...(newStatus === 'in_progress' && !job.started_at && { started_at: new Date().toISOString() })
-      };
-
-      if (isOnline) {
-        await base44.entities.Job.update(job.id, updateData);
-      } else {
-        OfflineStorage.updateJobStatus(job.id, newStatus);
-        OfflineStorage.addPendingSync({
-          method: 'update',
-          entity: 'Job',
-          entityId: job.id,
-          data: updateData,
-          timestamp: Date.now(),
-        });
+        ...(newStatus === 'in_progress' && !job.started_at ? { started_at: new Date().toISOString() } : {}),
+        ...(newStatus === 'completed' ? { completed_at: new Date().toISOString() } : {})
       }
-      
-      job.status = newStatus;
-      alert(isOnline ? 'Statut mis à jour' : 'Statut mis à jour (sera synchronisé)');
-    } catch (error) {
-      console.error('[MobileJobCard] Error updating status:', error);
-      alert('Erreur. Les données seront synchronisées plus tard.');
-    } finally {
-      setUpdating(false);
+    });
+  };
+
+  const getStatusColor = () => {
+    switch (job.status) {
+      case 'in_progress': return 'bg-blue-500';
+      case 'scheduled': return 'bg-orange-500';
+      case 'new': return 'bg-slate-500';
+      case 'on_hold': return 'bg-yellow-500';
+      case 'review': return 'bg-purple-500';
+      default: return 'bg-slate-500';
     }
-  }, [job, isOnline]);
+  };
 
-  // Add note with offline support
-  const addJobNote = useCallback(async () => {
-    if (!note.trim()) return;
-
-    try {
-      const comments = job.comments || [];
-      const newComment = {
-        id: `comment_${Date.now()}`,
-        text: note,
-        created_at: new Date().toISOString(),
-        created_by: 'mobile_tech',
-        user_name: job.technician_name || 'Technicien',
-      };
-      comments.push(newComment);
-
-      if (isOnline) {
-        await base44.entities.Job.update(job.id, { comments });
-      } else {
-        OfflineStorage.addPendingSync({
-          method: 'update',
-          entity: 'Job',
-          entityId: job.id,
-          data: { comments },
-          timestamp: Date.now(),
-        });
-      }
-      
-      setNote('');
-      setNoteDialogOpen(false);
-      alert(isOnline ? 'Note ajoutée' : 'Note ajoutée (sera synchronisée)');
-    } catch (error) {
-      console.error('[MobileJobCard] Error adding note:', error);
-      alert('Note sauvegardée localement');
+  const getPriorityColor = () => {
+    switch (job.priority) {
+      case 'urgent': return 'bg-red-100 text-red-800 border-red-300';
+      case 'high': return 'bg-orange-100 text-orange-800 border-orange-300';
+      case 'medium': return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'low': return 'bg-slate-100 text-slate-800 border-slate-300';
+      default: return 'bg-slate-100 text-slate-800 border-slate-300';
     }
-  }, [note, job, isOnline]);
-
-  // Add time spent
-  const addTimeSpent = useCallback(async () => {
-    if (!timeSpent) return;
-
-    try {
-      const hours = parseFloat(timeSpent);
-      if (isNaN(hours) || hours <= 0) {
-        alert('Entrez un nombre valide');
-        return;
-      }
-
-      const totalTime = (job.total_time_spent || 0) + hours;
-
-      if (isOnline) {
-        await base44.entities.Job.update(job.id, { total_time_spent: totalTime });
-      } else {
-        OfflineStorage.addPendingSync({
-          method: 'update',
-          entity: 'Job',
-          entityId: job.id,
-          data: { total_time_spent: totalTime },
-          timestamp: Date.now(),
-        });
-      }
-      
-      setTimeSpent('');
-      setTimeDialogOpen(false);
-      alert(isOnline ? 'Temps ajouté' : 'Temps ajouté (sera synchronisé)');
-    } catch (error) {
-      console.error('[MobileJobCard] Error adding time:', error);
-      alert('Données sauvegardées localement');
-    }
-  }, [timeSpent, job, isOnline]);
-
-  // Handle photo upload
-  const handlePhotoUpload = useCallback(async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      const newPhoto = { 
-        url: file_url, 
-        uploaded_at: new Date().toISOString() 
-      };
-      const newPhotos = [...photos, newPhoto];
-      setPhotos(newPhotos);
-
-      if (isOnline) {
-        await base44.entities.Job.update(job.id, { photos: newPhotos });
-      } else {
-        OfflineStorage.addPendingSync({
-          method: 'update',
-          entity: 'Job',
-          entityId: job.id,
-          data: { photos: newPhotos },
-          timestamp: Date.now(),
-        });
-      }
-      
-      alert('Photo ajoutée');
-    } catch (error) {
-      console.error('[MobileJobCard] Error uploading photo:', error);
-      alert('Erreur lors de l\'upload');
-    } finally {
-      setUploading(false);
-      e.target.value = '';
-    }
-  }, [photos, job, isOnline]);
-
-  // Handle signature save
-  const handleSignatureSave = useCallback(async (signatureData) => {
-    try {
-      setSignature(signatureData.signature_url);
-
-      if (isOnline) {
-        await base44.entities.Job.update(job.id, { 
-          signature: signatureData.signature_url,
-          signature_data: signatureData 
-        });
-      } else {
-        OfflineStorage.addPendingSync({
-          method: 'update',
-          entity: 'Job',
-          entityId: job.id,
-          data: { 
-            signature: signatureData.signature_url,
-            signature_data: signatureData 
-          },
-          timestamp: Date.now(),
-        });
-      }
-      
-      alert(isOnline ? 'Signature enregistrée' : 'Signature enregistrée (sera synchronisée)');
-    } catch (error) {
-      console.error('[MobileJobCard] Error saving signature:', error);
-      alert('Signature sauvegardée localement');
-    }
-  }, [job, isOnline]);
+  };
 
   return (
     <>
-      <Card className="overflow-hidden touch-manipulation active:scale-[0.98] transition-transform">
-        <div className="p-4">
+      <Card className="shadow-md border-l-4" style={{ borderLeftColor: getStatusColor().replace('bg-', '#') }}>
+        <CardContent className="p-4">
+          {/* Header */}
           <div className="flex items-start justify-between mb-3">
-            <div className="flex-1 pr-3">
-              <h3 className="font-semibold text-lg leading-tight mb-1">{job.title}</h3>
-              <p className="text-sm text-slate-600 flex items-center gap-1">
-                <User className="w-3 h-3 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-bold text-base text-slate-900 mb-1">
+                {job.title}
+              </h3>
+              <p className="text-sm text-slate-600 mb-2">
                 {job.customer_name}
               </p>
+              <div className="flex flex-wrap gap-2">
+                <Badge className={getStatusColor()}>
+                  {t(job.status)}
+                </Badge>
+                <Badge className={getPriorityColor()} variant="outline">
+                  {t(job.priority)}
+                </Badge>
+                {job.job_number && (
+                  <Badge variant="outline" className="text-xs">
+                    #{job.job_number}
+                  </Badge>
+                )}
+              </div>
             </div>
-            <Badge className={STATUS_COLORS[job.status] || 'bg-slate-100'}>
-              {job.status === 'scheduled' ? 'Planifié' : 
-               job.status === 'in_progress' ? 'En cours' : 
-               job.status === 'completed' ? 'Terminé' : job.status}
-            </Badge>
-          </div>
-
-          {job.priority && (
-            <Badge className={`${PRIORITY_COLORS[job.priority]} mb-3`}>
-              Priorité: {job.priority === 'low' ? 'Basse' : 
-                        job.priority === 'medium' ? 'Moyenne' : 
-                        job.priority === 'high' ? 'Haute' : 'Urgente'}
-            </Badge>
-          )}
-
-          <div className="space-y-2 text-sm">
-            {job.scheduled_date && (
-              <div className="flex items-center gap-2 text-slate-600">
-                <Clock className="w-4 h-4 flex-shrink-0" />
-                {format(new Date(job.scheduled_date), 'EEEE d MMMM', { locale: fr })}
-                {job.scheduled_time && ` à ${job.scheduled_time}`}
-              </div>
-            )}
-            
-            {(job.location || (job.project_addresses && job.project_addresses[0])) && (
-              <div className="flex items-center gap-2 text-slate-600">
-                <MapPin className="w-4 h-4 flex-shrink-0" />
-                <span className="flex-1 truncate">
-                  {job.project_addresses?.[0] || job.location}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {expanded && (
-            <div className="mt-4 pt-4 border-t border-slate-200 space-y-4">
-              {job.description && (
-                <div>
-                  <label className="text-xs font-medium text-slate-600 mb-1 block">Description</label>
-                  <p className="text-sm text-slate-700 bg-slate-50 p-3 rounded">{job.description}</p>
-                </div>
-              )}
-              
-              {job.project_addresses && job.project_addresses.length > 1 && (
-                <div>
-                  <label className="text-xs font-medium text-slate-600 mb-2 block">Adresses du projet</label>
-                  <div className="space-y-2">
-                    {job.project_addresses.map((addr, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-sm text-slate-700 bg-slate-50 p-2 rounded">
-                        <MapPin className="w-3 h-3 text-slate-500 flex-shrink-0" />
-                        <span className="flex-1">{addr}</span>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;
-                            window.open(url, '_blank');
-                          }}
-                          className="h-7 px-2"
-                        >
-                          <Navigation className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="text-xs font-medium text-slate-600 mb-2 block">Changer le statut</label>
-                <Select value={job.status} onValueChange={updateJobStatus} disabled={updating}>
-                  <SelectTrigger className="w-full h-12 text-base">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="scheduled">Planifié</SelectItem>
-                    <SelectItem value="in_progress">En cours</SelectItem>
-                    <SelectItem value="review">En révision</SelectItem>
-                    <SelectItem value="completed">Terminé</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {job.checklist && job.checklist.length > 0 && (
-                <div>
-                  <label className="text-xs font-medium text-slate-600 mb-2 block">Checklist</label>
-                  <div className="bg-slate-50 p-3 rounded space-y-2">
-                    {job.checklist.flatMap(g => g.items || []).slice(0, 5).map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-sm touch-manipulation active:bg-slate-100 p-1 rounded">
-                        {item.completed ? (
-                          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                        ) : (
-                          <div className="w-5 h-5 border-2 border-slate-300 rounded flex-shrink-0" />
-                        )}
-                        <span className={item.completed ? 'line-through text-slate-500' : 'text-slate-700'}>
-                          {item.text}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {job.total_time_spent > 0 && (
-                <div className="bg-blue-50 p-3 rounded">
-                  <label className="text-xs font-medium text-blue-600 mb-1 block">Temps total</label>
-                  <p className="text-2xl font-bold text-blue-700">{job.total_time_spent}h</p>
-                </div>
-              )}
-
-              {/* Action Grid - Touch Optimized */}
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  onClick={() => setNoteDialogOpen(true)}
-                  variant="outline"
-                  className="h-14 touch-manipulation active:scale-95 transition-transform"
-                >
-                  <MessageSquare className="w-5 h-5 mr-2" />
-                  Note
-                </Button>
-                <Button
-                  onClick={() => setTimeDialogOpen(true)}
-                  variant="outline"
-                  className="h-14 touch-manipulation active:scale-95 transition-transform"
-                >
-                  <Clock className="w-5 h-5 mr-2" />
-                  Temps
-                </Button>
-                <Button
-                  onClick={() => setPhotoDialogOpen(true)}
-                  variant="outline"
-                  className="h-14 touch-manipulation active:scale-95 transition-transform"
-                >
-                  <Camera className="w-5 h-5 mr-2" />
-                  Photo
-                </Button>
-                <Button
-                  onClick={() => setSignatureDialogOpen(true)}
-                  variant="outline"
-                  className="h-14 touch-manipulation active:scale-95 transition-transform"
-                >
-                  <PenTool className="w-5 h-5 mr-2" />
-                  Signature
-                </Button>
-              </div>
-
-              {photos.length > 0 && (
-                <div>
-                  <label className="text-xs font-medium text-slate-600 mb-2 block">Photos ({photos.length})</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {photos.slice(0, 6).map((photo, idx) => (
-                      <div key={idx} className="relative group">
-                        <img 
-                          src={photo.url} 
-                          alt="Job photo" 
-                          className="w-full h-24 object-cover rounded border cursor-pointer"
-                          onClick={() => window.open(photo.url, '_blank')}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  {photos.length > 6 && (
-                    <p className="text-xs text-slate-500 mt-1">+{photos.length - 6} autres</p>
-                  )}
-                </div>
-              )}
-
-              {signature && (
-                <div>
-                  <label className="text-xs font-medium text-slate-600 mb-2 block">Signature client</label>
-                  <img 
-                    src={signature} 
-                    alt="Signature" 
-                    className="w-full h-24 object-contain border rounded bg-white cursor-pointer"
-                    onClick={() => window.open(signature, '_blank')}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Bottom Actions - Touch Optimized */}
-          <div className="flex gap-2 mt-4 flex-wrap">
-            {(job.location || (job.project_addresses && job.project_addresses.length > 0)) && (
-              <Button 
-                onClick={openNavigation}
-                variant="outline" 
-                className="flex-1 min-w-[120px] h-12 touch-manipulation active:scale-95 transition-transform font-medium"
-              >
-                <Navigation className="w-5 h-5 mr-2" />
-                GPS
-              </Button>
-            )}
-            <Button 
-              onClick={callCustomer}
-              variant="outline" 
-              className="flex-1 min-w-[120px] h-12 touch-manipulation active:scale-95 transition-transform font-medium"
-            >
-              <Phone className="w-5 h-5 mr-2" />
-              Appeler
-            </Button>
             <Button
-              onClick={() => setExpanded(!expanded)}
               variant="ghost"
-              className="h-12 px-3 touch-manipulation"
+              size="sm"
+              onClick={() => setExpanded(!expanded)}
+              className="h-8 w-8 p-0"
             >
               {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </Button>
           </div>
-        </div>
+
+          {/* Address and GPS */}
+          {(job.project_addresses?.[0] || job.location) && (
+            <div className="mb-3 p-3 bg-slate-50 rounded-lg">
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-slate-700 flex-1">
+                  {job.project_addresses?.[0] || job.location}
+                </p>
+              </div>
+              <Button
+                onClick={handleNavigate}
+                className="w-full mt-2 bg-blue-600 hover:bg-blue-700 h-11 text-base font-medium"
+              >
+                <Navigation className="w-5 h-5 mr-2" />
+                {lang === 'fr' ? 'Naviguer' : 'Navigate'}
+              </Button>
+            </div>
+          )}
+
+          {/* Quick Actions - Large touch targets */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {job.status !== 'in_progress' && job.status !== 'completed' && (
+              <Button
+                onClick={() => handleStatusChange('in_progress')}
+                className="h-12 bg-green-600 hover:bg-green-700 text-base font-medium"
+                disabled={!isOnline && job.status !== 'scheduled'}
+              >
+                <PlayCircle className="w-5 h-5 mr-2" />
+                {lang === 'fr' ? 'Démarrer' : 'Start'}
+              </Button>
+            )}
+            
+            {job.status === 'in_progress' && (
+              <Button
+                onClick={() => handleStatusChange('completed')}
+                className="h-12 bg-blue-600 hover:bg-blue-700 text-base font-medium col-span-2"
+              >
+                <CheckCircle className="w-5 h-5 mr-2" />
+                {lang === 'fr' ? 'Terminer' : 'Complete'}
+              </Button>
+            )}
+
+            <Button
+              onClick={() => setPhotoDialogOpen(true)}
+              variant="outline"
+              className="h-12 text-base font-medium"
+            >
+              <Camera className="w-5 h-5 mr-2" />
+              {lang === 'fr' ? 'Photo' : 'Photo'}
+            </Button>
+
+            <Button
+              onClick={() => setSignatureDialogOpen(true)}
+              variant="outline"
+              className="h-12 text-base font-medium"
+            >
+              <FileSignature className="w-5 h-5 mr-2" />
+              {lang === 'fr' ? 'Signature' : 'Sign'}
+            </Button>
+          </div>
+
+          {/* Expanded Details */}
+          {expanded && (
+            <div className="pt-3 border-t space-y-3">
+              {job.description && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 mb-1">
+                    {t('description')}
+                  </p>
+                  <p className="text-sm text-slate-700">{job.description}</p>
+                </div>
+              )}
+
+              {job.due_date && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="w-4 h-4 text-slate-500" />
+                  <span className="text-slate-700">
+                    {lang === 'fr' ? 'Échéance: ' : 'Due: '}
+                    {new Date(job.due_date).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
+
+              {/* Checklist summary */}
+              {job.checklist && job.checklist.length > 0 && (
+                <div className="bg-blue-50 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-blue-900 mb-2">
+                    {lang === 'fr' ? 'Checklist' : 'Checklist'}
+                  </p>
+                  {job.checklist.map((group, gIdx) => {
+                    const total = group.items?.length || 0;
+                    const completed = group.items?.filter(i => i.completed).length || 0;
+                    return (
+                      <div key={gIdx} className="text-sm text-blue-800">
+                        {group.name}: {completed}/{total}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Photos */}
+              {job.attachments && job.attachments.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 mb-2">
+                    {lang === 'fr' ? 'Photos' : 'Photos'} ({job.attachments.length})
+                  </p>
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {job.attachments.slice(0, 5).map((att, idx) => (
+                      <img
+                        key={idx}
+                        src={att.url}
+                        alt={att.name}
+                        className="w-20 h-20 object-cover rounded-lg border"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Status Change Buttons */}
+              {job.status !== 'completed' && (
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  {job.status !== 'on_hold' && (
+                    <Button
+                      onClick={() => handleStatusChange('on_hold')}
+                      variant="outline"
+                      className="h-10"
+                      disabled={!isOnline}
+                    >
+                      {lang === 'fr' ? 'Pause' : 'Pause'}
+                    </Button>
+                  )}
+                  {job.status === 'on_hold' && (
+                    <Button
+                      onClick={() => handleStatusChange('in_progress')}
+                      variant="outline"
+                      className="h-10"
+                      disabled={!isOnline}
+                    >
+                      {lang === 'fr' ? 'Reprendre' : 'Resume'}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
       </Card>
 
-      {/* Note Dialog */}
-      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Ajouter une note</DialogTitle>
-          </DialogHeader>
-          <Textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Saisir votre note..."
-            rows={5}
-            className="text-base resize-none"
-          />
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setNoteDialogOpen(false)} className="flex-1">
-              Annuler
-            </Button>
-            <Button onClick={addJobNote} className="flex-1 bg-blue-600">
-              Enregistrer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Photo Capture Dialog */}
+      <PhotoCaptureDialog
+        open={photoDialogOpen}
+        onClose={() => setPhotoDialogOpen(false)}
+        job={job}
+        isOnline={isOnline}
+        lang={lang}
+      />
 
-      {/* Time Dialog */}
-      <Dialog open={timeDialogOpen} onOpenChange={setTimeDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Ajouter du temps</DialogTitle>
-          </DialogHeader>
-          <div>
-            <Label>Heures travaillées</Label>
-            <Input
-              type="number"
-              step="0.5"
-              min="0"
-              value={timeSpent}
-              onChange={(e) => setTimeSpent(e.target.value)}
-              placeholder="Ex: 2.5"
-              className="mt-1 text-lg h-12"
-            />
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setTimeDialogOpen(false)} className="flex-1">
-              Annuler
-            </Button>
-            <Button onClick={addTimeSpent} className="flex-1 bg-blue-600">
-              Enregistrer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Photo Dialog */}
-      <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Ajouter une photo</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <label className="cursor-pointer touch-manipulation active:scale-95 transition-transform block">
-              <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-slate-50 active:bg-slate-100">
-                <Camera className="w-16 h-16 mx-auto mb-3 text-slate-400" />
-                <p className="text-base text-slate-600 font-medium">
-                  {uploading ? 'Upload en cours...' : 'Prendre une photo'}
-                </p>
-                <p className="text-xs text-slate-500 mt-1">ou choisir de la galerie</p>
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handlePhotoUpload}
-                disabled={uploading}
-              />
-            </label>
-            {photos.length > 0 && (
-              <div className="grid grid-cols-3 gap-2">
-                {photos.map((photo, idx) => (
-                  <img 
-                    key={idx} 
-                    src={photo.url} 
-                    alt="Photo" 
-                    className="w-full h-20 object-cover rounded border cursor-pointer"
-                    onClick={() => window.open(photo.url, '_blank')}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setPhotoDialogOpen(false)} className="w-full">
-              Fermer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Signature Dialog */}
-      <SignatureCapture
+      {/* Signature Capture Dialog */}
+      <SignatureCaptureDialog
         open={signatureDialogOpen}
         onClose={() => setSignatureDialogOpen(false)}
-        onSave={handleSignatureSave}
+        job={job}
+        isOnline={isOnline}
+        lang={lang}
       />
     </>
   );
