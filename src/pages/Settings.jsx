@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 // Address Autocomplete Tab Component
 function AddressAutocompleteTab() {
   const queryClient = useQueryClient();
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState('AIzaSyAhVb41m9MwDmI_D0YelvxdNNkAdfTJBc4');
   const [showApiKey, setShowApiKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -34,6 +34,29 @@ function AddressAutocompleteTab() {
       return settings[0] || null;
     },
   });
+
+  // Auto-create settings with API key if not exists
+  React.useEffect(() => {
+    const initSettings = async () => {
+      if (!isLoading && !addressSettings) {
+        try {
+          await base44.entities.IntegrationSettings.create({
+            integration_type: 'address_autocomplete',
+            provider_type: 'google',
+            api_key: 'AIzaSyAhVb41m9MwDmI_D0YelvxdNNkAdfTJBc4',
+            country_bias: 'ca',
+            language: 'fr',
+            is_active: true,
+            max_results: 8
+          });
+          queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
+        } catch (error) {
+          console.error('Failed to create settings:', error);
+        }
+      }
+    };
+    initSettings();
+  }, [isLoading, addressSettings]);
 
   // Sync local state with DB
   React.useEffect(() => {
