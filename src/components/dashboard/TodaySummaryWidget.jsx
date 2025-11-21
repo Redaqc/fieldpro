@@ -2,8 +2,10 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TrendingUp, FileText, AlertCircle, TrendingDown, Users, DollarSign } from "lucide-react";
+import { useTranslation } from "@/components/shared/translations";
 
-export default function TodaySummaryWidget({ invoices = [], payments = [], jobs = [], expenses = [] }) {
+export default function TodaySummaryWidget({ invoices = [], payments = [], jobs = [], expenses = [], lang = 'fr' }) {
+  const t = useTranslation(lang);
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
 
@@ -58,37 +60,37 @@ export default function TodaySummaryWidget({ invoices = [], payments = [], jobs 
 
   const cards = [
     { 
-      title: "Ventes du Mois", 
+      title: t('monthlySales'), 
       amount: monthlySales, 
       gradient: "from-blue-400 to-blue-600",
       icon: TrendingUp 
     },
     { 
-      title: "Factures Dues", 
+      title: t('invoicesDue'), 
       amount: invoicesDue, 
       gradient: "from-cyan-400 to-cyan-600",
       icon: FileText 
     },
     { 
-      title: "Factures Overdue", 
+      title: t('invoicesOverdue'), 
       amount: invoicesOverdue, 
       gradient: "from-purple-400 to-purple-600",
       icon: AlertCircle 
     },
     { 
-      title: "Paiements Reçus", 
+      title: t('paymentsReceived'), 
       amount: paymentsReceived, 
       gradient: "from-slate-400 to-slate-600",
       icon: DollarSign 
     },
     { 
-      title: "Dépenses", 
+      title: t('expenses'), 
       amount: monthlyExpenses, 
       gradient: "from-green-400 to-green-600",
       icon: TrendingDown 
     },
     { 
-      title: "Coûts Tech", 
+      title: t('techCosts'), 
       amount: techCosts, 
       gradient: "from-violet-400 to-violet-600",
       icon: Users 
@@ -99,15 +101,15 @@ export default function TodaySummaryWidget({ invoices = [], payments = [], jobs 
     <Card className="col-span-full shadow-sm bg-white">
       <CardHeader className="border-b">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold text-slate-800">Today Summary</CardTitle>
+          <CardTitle className="text-base font-semibold text-slate-800">{t('todaySummary')}</CardTitle>
           <Select defaultValue="today">
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">This Week</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
+              <SelectItem value="today">{lang === 'fr' ? 'Aujourd\'hui' : 'Today'}</SelectItem>
+              <SelectItem value="week">{lang === 'fr' ? 'Cette semaine' : 'This Week'}</SelectItem>
+              <SelectItem value="month">{lang === 'fr' ? 'Ce mois' : 'This Month'}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -128,7 +130,7 @@ export default function TodaySummaryWidget({ invoices = [], payments = [], jobs 
                 <div>
                   <p className="text-3xl font-bold mb-6">${card.amount.toFixed(2)}</p>
                   <button className="text-xs flex items-center gap-1 hover:underline opacity-90 hover:opacity-100 transition-opacity">
-                    More info <span className="text-lg">→</span>
+                    {t('moreInfo')} <span className="text-lg">→</span>
                   </button>
                 </div>
               </div>
