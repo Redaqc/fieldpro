@@ -4,7 +4,6 @@ import { Label } from '@/components/ui/label';
 import { MapPin, X } from 'lucide-react';
 import { useAddressAutocomplete } from './useAddressAutocomplete';
 import AddressSuggestionsDropdown from './AddressSuggestionsDropdown';
-import { useToast } from '@/components/ui/use-toast';
 
 /**
  * Enterprise-grade Address Autocomplete Input Component
