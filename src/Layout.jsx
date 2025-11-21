@@ -31,8 +31,6 @@ import NotificationCenter from "@/components/notifications/NotificationCenter";
 import GlobalSearch from "@/components/shared/GlobalSearch";
 import QuickActionsMenu from "@/components/shared/QuickActionsMenu";
 import { translations } from "@/components/shared/translations";
-
-import { translations } from "@/components/shared/translations";
 import {
               Sidebar,
               SidebarContent,
