@@ -284,9 +284,6 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
   };
 
   const addChecklistItem = (groupId) => {
-    const itemText = prompt('Nouvel élément:');
-    if (!itemText) return;
-
     const updatedChecklist = formData.checklist.map(group => {
       if (group.id === groupId) {
         return {
@@ -295,10 +292,33 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
             ...(group.items || []),
             {
               id: `item_${Date.now()}`,
-              text: itemText,
+              text: '',
               completed: false,
             },
           ],
+        };
+      }
+      return group;
+    });
+
+    setFormData({ ...formData, checklist: updatedChecklist });
+    
+    if (call) {
+      updateCallMutation.mutate({
+        id: call.id,
+        data: { checklist: updatedChecklist },
+      });
+    }
+  };
+
+  const updateChecklistItem = (groupId, itemId, text) => {
+    const updatedChecklist = formData.checklist.map(group => {
+      if (group.id === groupId) {
+        return {
+          ...group,
+          items: group.items.map(item => 
+            item.id === itemId ? { ...item, text } : item
+          ),
         };
       }
       return group;
@@ -1219,18 +1239,21 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
                           type="checkbox"
                           checked={item.completed}
                           onChange={() => toggleChecklistItem(group.id, item.id)}
-                          className="w-4 h-4"
+                          className="w-4 h-4 flex-shrink-0"
                         />
-                        <span className={`flex-1 ${item.completed ? 'line-through text-slate-500' : ''}`}>
-                          {item.text}
-                        </span>
+                        <Input
+                          value={item.text}
+                          onChange={(e) => updateChecklistItem(group.id, item.id, e.target.value)}
+                          placeholder="Texte de l'élément..."
+                          className={`flex-1 h-8 text-sm border-none shadow-none px-2 focus-visible:ring-1 ${item.completed ? 'line-through text-slate-500' : ''}`}
+                        />
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                           onClick={() => deleteChecklistItem(group.id, item.id)}
                         >
-                          <X className="w-3 h-3 text-red-500" />
+                          <Trash2 className="w-3 h-3 text-red-500" />
                         </Button>
                       </div>
                     ))}
