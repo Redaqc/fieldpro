@@ -696,6 +696,26 @@ export default function Layout({ children, currentPageName }) {
                           <Download className="w-4 h-4 mr-2" />
                           {lang === 'fr' ? 'Télécharger BDD' : 'Download Database'}
                         </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={async () => {
+                            try {
+                              const response = await base44.functions.invoke('exportFullApp');
+                              const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `fieldpro_full_export_${new Date().toISOString().split('T')[0]}.json`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            } catch (error) {
+                              alert('Erreur lors de l\'export: ' + error.message);
+                            }
+                          }} 
+                          className="cursor-pointer"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          {lang === 'fr' ? 'Export Complet (App)' : 'Full Export (App)'}
+                        </DropdownMenuItem>
                       </>
                     )}
                     <DropdownMenuSeparator />
