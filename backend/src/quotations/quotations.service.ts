@@ -145,26 +145,40 @@ export class QuotationsService {
   }
 
   async convertToJob(tenantId: string, id: string) {
-    const quotation = await this.findOne(tenantId, id);
+    // ✅ SECURITY: Wrap in transaction for data consistency
+    return this.tenantPrisma.$transaction(async (prisma) => {
+      const quotation = await this.findOne(tenantId, id);
 
-    // Create job from quotation
-    const jobCount = await this.tenantPrisma.count(tenantId, 'Job', {});
-    const jobNumber = `JOB-${String(jobCount + 1).padStart(6, '0')}`;
+      if (!quotation) {
+        throw new Error(`Quotation ${id} not found`);
+      }
 
-    const job = await this.tenantPrisma.create(tenantId, 'Job', {
-      data: {
-        job_number: jobNumber,
-        customer_id: quotation.customer_id,
-        title: quotation.title,
-        description: `Created from quotation ${quotation.quotation_number}`,
-        status: 'pending',
-        quotation_id: id,
-      },
+      if (quotation.status === 'accepted') {
+        throw new Error('Quotation already converted to job');
+      }
+
+      // Create job from quotation
+      const jobCount = await this.tenantPrisma.count(tenantId, 'Job', {});
+      const jobNumber = `JOB-${String(jobCount + 1).padStart(6, '0')}`;
+
+      const job = await this.tenantPrisma.create(tenantId, 'Job', {
+        data: {
+          job_number: jobNumber,
+          customer_id: quotation.customer_id,
+          title: quotation.title,
+          description: `Created from quotation ${quotation.quotation_number}`,
+          status: 'pending',
+          quotation_id: id,
+        },
+      });
+
+      // Update quotation - if this fails, job creation will be rolled back
+      await this.update(tenantId, id, {
+        status: QuotationStatus.ACCEPTED as any,
+        job_id: job.id
+      });
+
+      return job;
     });
-
-    // Update quotation
-    await this.update(tenantId, id, { status: QuotationStatus.ACCEPTED as any, job_id: job.id });
-
-    return job;
   }
 }

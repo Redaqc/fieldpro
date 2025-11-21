@@ -128,22 +128,38 @@ export class InvoicesService {
   }
 
   async markAsPaid(tenantId: string, id: string, paymentDetails?: any) {
-    await this.tenantPrisma.create(tenantId, 'Payment', {
-      data: {
-        invoice_id: id,
-        amount: paymentDetails?.amount,
-        payment_date: new Date(),
-        payment_method: paymentDetails?.method || 'manual',
-        notes: paymentDetails?.notes,
-      },
-    });
+    // ✅ SECURITY: Wrap in transaction for data consistency
+    return this.tenantPrisma.$transaction(async (prisma) => {
+      // Verify invoice exists and get total amount
+      const invoice = await this.findOne(tenantId, id);
 
-    return this.tenantPrisma.update(tenantId, 'Invoice', {
-      where: { id },
-      data: {
-        status: 'paid',
-        paid_at: new Date(),
-      },
+      if (!invoice) {
+        throw new Error(`Invoice ${id} not found`);
+      }
+
+      if (invoice.status === 'paid') {
+        throw new Error('Invoice already marked as paid');
+      }
+
+      // Create payment record
+      await this.tenantPrisma.create(tenantId, 'Payment', {
+        data: {
+          invoice_id: id,
+          amount: paymentDetails?.amount || invoice.total,
+          payment_date: new Date(),
+          payment_method: paymentDetails?.method || 'manual',
+          notes: paymentDetails?.notes,
+        },
+      });
+
+      // Update invoice status - if this fails, payment creation will be rolled back
+      return this.tenantPrisma.update(tenantId, 'Invoice', {
+        where: { id },
+        data: {
+          status: 'paid',
+          paid_at: new Date(),
+        },
+      });
     });
   }
 
