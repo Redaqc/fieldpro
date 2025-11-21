@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AddressAutocompleteInput from "@/components/shared/AddressAutocompleteInput";
 
 
 // Address Autocomplete Tab Component
@@ -556,6 +557,7 @@ export default function Settings() {
   });
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [companyFormData, setCompanyFormData] = useState({});
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.WorkType.create(data),
@@ -639,6 +641,39 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ['companyInfo'] });
     },
   });
+
+  // Sync form data with loaded company info
+  React.useEffect(() => {
+    if (companyInfo) {
+      setCompanyFormData(companyInfo);
+    }
+  }, [companyInfo?.id]);
+
+  // Debounced update function
+  const debouncedUpdateRef = React.useRef(null);
+  const handleCompanyFieldChange = (field, value) => {
+    const newData = { ...companyFormData, [field]: value };
+    setCompanyFormData(newData);
+
+    if (debouncedUpdateRef.current) {
+      clearTimeout(debouncedUpdateRef.current);
+    }
+
+    debouncedUpdateRef.current = setTimeout(() => {
+      updateCompanyInfoMutation.mutate({ [field]: value });
+    }, 800);
+  };
+
+  const handleAddressSelected = (addressDetails) => {
+    const updates = {
+      address: addressDetails.full_address || '',
+      city: addressDetails.city || '',
+      province: addressDetails.province || '',
+      postal_code: addressDetails.postal_code || ''
+    };
+    setCompanyFormData({ ...companyFormData, ...updates });
+    updateCompanyInfoMutation.mutate(updates);
+  };
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
@@ -1061,8 +1096,8 @@ export default function Settings() {
               <div>
                 <Label className="text-base font-semibold">Nom de l'entreprise</Label>
                 <Input
-                  value={companyInfo?.company_name || ''}
-                  onChange={(e) => updateCompanyInfoMutation.mutate({ company_name: e.target.value })}
+                  value={companyFormData?.company_name || ''}
+                  onChange={(e) => handleCompanyFieldChange('company_name', e.target.value)}
                   placeholder="Nom de l'entreprise"
                   className="mt-2 h-11"
                 />
@@ -1076,8 +1111,8 @@ export default function Settings() {
                   <div>
                     <Label>Téléphone principal</Label>
                     <Input
-                      value={companyInfo?.phone || ''}
-                      onChange={(e) => updateCompanyInfoMutation.mutate({ phone: e.target.value })}
+                      value={companyFormData?.phone || ''}
+                      onChange={(e) => handleCompanyFieldChange('phone', e.target.value)}
                       placeholder="(514) 123-4567"
                       className="mt-1"
                     />
@@ -1087,8 +1122,8 @@ export default function Settings() {
                     <Label>Email de contact</Label>
                     <Input
                       type="email"
-                      value={companyInfo?.email || ''}
-                      onChange={(e) => updateCompanyInfoMutation.mutate({ email: e.target.value })}
+                      value={companyFormData?.email || ''}
+                      onChange={(e) => handleCompanyFieldChange('email', e.target.value)}
                       placeholder="contact@entreprise.com"
                       className="mt-1"
                     />
@@ -1097,8 +1132,8 @@ export default function Settings() {
                   <div>
                     <Label>Télécopieur (Fax)</Label>
                     <Input
-                      value={companyInfo?.fax || ''}
-                      onChange={(e) => updateCompanyInfoMutation.mutate({ fax: e.target.value })}
+                      value={companyFormData?.fax || ''}
+                      onChange={(e) => handleCompanyFieldChange('fax', e.target.value)}
                       placeholder="(514) 123-4568"
                       className="mt-1"
                     />
@@ -1107,8 +1142,8 @@ export default function Settings() {
                   <div>
                     <Label>Site web</Label>
                     <Input
-                      value={companyInfo?.website || ''}
-                      onChange={(e) => updateCompanyInfoMutation.mutate({ website: e.target.value })}
+                      value={companyFormData?.website || ''}
+                      onChange={(e) => handleCompanyFieldChange('website', e.target.value)}
                       placeholder="https://www.entreprise.com"
                       className="mt-1"
                     />
@@ -1120,23 +1155,20 @@ export default function Settings() {
               <div className="space-y-4">
                 <h3 className="text-base font-semibold border-b pb-2">Adresse</h3>
 
-                <div>
-                  <Label>Adresse complète</Label>
-                  <Textarea
-                    value={companyInfo?.address || ''}
-                    onChange={(e) => updateCompanyInfoMutation.mutate({ address: e.target.value })}
-                    placeholder="123 rue Principale&#10;Bureau 100"
-                    rows={3}
-                    className="mt-1"
-                  />
-                </div>
+                <AddressAutocompleteInput
+                  label="Adresse complète"
+                  placeholder="Commencez à taper l'adresse de votre entreprise..."
+                  value={companyFormData?.address || ''}
+                  onChange={(e) => handleCompanyFieldChange('address', e.target.value)}
+                  onAddressSelected={handleAddressSelected}
+                />
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <Label>Ville</Label>
                     <Input
-                      value={companyInfo?.city || ''}
-                      onChange={(e) => updateCompanyInfoMutation.mutate({ city: e.target.value })}
+                      value={companyFormData?.city || ''}
+                      onChange={(e) => handleCompanyFieldChange('city', e.target.value)}
                       placeholder="Montréal"
                       className="mt-1"
                     />
@@ -1145,8 +1177,8 @@ export default function Settings() {
                   <div>
                     <Label>Province</Label>
                     <Select
-                      value={companyInfo?.province || ''}
-                      onValueChange={(value) => updateCompanyInfoMutation.mutate({ province: value })}
+                      value={companyFormData?.province || ''}
+                      onValueChange={(value) => handleCompanyFieldChange('province', value)}
                     >
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Sélectionner" />
@@ -1169,8 +1201,8 @@ export default function Settings() {
                   <div>
                     <Label>Code postal</Label>
                     <Input
-                      value={companyInfo?.postal_code || ''}
-                      onChange={(e) => updateCompanyInfoMutation.mutate({ postal_code: e.target.value.toUpperCase() })}
+                      value={companyFormData?.postal_code || ''}
+                      onChange={(e) => handleCompanyFieldChange('postal_code', e.target.value.toUpperCase())}
                       placeholder="H1A 1A1"
                       className="mt-1"
                       maxLength={7}
@@ -1187,8 +1219,8 @@ export default function Settings() {
                   <div>
                     <Label>Numéro de licence RBQ</Label>
                     <Input
-                      value={companyInfo?.license || ''}
-                      onChange={(e) => updateCompanyInfoMutation.mutate({ license: e.target.value })}
+                      value={companyFormData?.license || ''}
+                      onChange={(e) => handleCompanyFieldChange('license', e.target.value)}
                       placeholder="1234-5678-01"
                       className="mt-1"
                     />
@@ -1197,8 +1229,8 @@ export default function Settings() {
                   <div>
                     <Label>NEQ (Numéro d'entreprise du Québec)</Label>
                     <Input
-                      value={companyInfo?.neq || ''}
-                      onChange={(e) => updateCompanyInfoMutation.mutate({ neq: e.target.value })}
+                      value={companyFormData?.neq || ''}
+                      onChange={(e) => handleCompanyFieldChange('neq', e.target.value)}
                       placeholder="1234567890"
                       className="mt-1"
                       maxLength={10}
@@ -1208,8 +1240,8 @@ export default function Settings() {
                   <div>
                     <Label>Numéro TPS</Label>
                     <Input
-                      value={companyInfo?.gst_number || ''}
-                      onChange={(e) => updateCompanyInfoMutation.mutate({ gst_number: e.target.value })}
+                      value={companyFormData?.gst_number || ''}
+                      onChange={(e) => handleCompanyFieldChange('gst_number', e.target.value)}
                       placeholder="123456789 RT 0001"
                       className="mt-1"
                     />
@@ -1218,8 +1250,8 @@ export default function Settings() {
                   <div>
                     <Label>Numéro TVQ</Label>
                     <Input
-                      value={companyInfo?.qst_number || ''}
-                      onChange={(e) => updateCompanyInfoMutation.mutate({ qst_number: e.target.value })}
+                      value={companyFormData?.qst_number || ''}
+                      onChange={(e) => handleCompanyFieldChange('qst_number', e.target.value)}
                       placeholder="1234567890 TQ 0001"
                       className="mt-1"
                     />
@@ -1236,8 +1268,8 @@ export default function Settings() {
                     <Label>Année de fondation</Label>
                     <Input
                       type="number"
-                      value={companyInfo?.founding_year || ''}
-                      onChange={(e) => updateCompanyInfoMutation.mutate({ founding_year: e.target.value })}
+                      value={companyFormData?.founding_year || ''}
+                      onChange={(e) => handleCompanyFieldChange('founding_year', e.target.value)}
                       placeholder="2020"
                       className="mt-1"
                       min="1900"
@@ -1249,8 +1281,8 @@ export default function Settings() {
                     <Label>Nombre d'employés</Label>
                     <Input
                       type="number"
-                      value={companyInfo?.employee_count || ''}
-                      onChange={(e) => updateCompanyInfoMutation.mutate({ employee_count: e.target.value })}
+                      value={companyFormData?.employee_count || ''}
+                      onChange={(e) => handleCompanyFieldChange('employee_count', e.target.value)}
                       placeholder="10"
                       className="mt-1"
                       min="1"
@@ -1261,8 +1293,8 @@ export default function Settings() {
                 <div>
                   <Label>Description de l'entreprise</Label>
                   <Textarea
-                    value={companyInfo?.description || ''}
-                    onChange={(e) => updateCompanyInfoMutation.mutate({ description: e.target.value })}
+                    value={companyFormData?.description || ''}
+                    onChange={(e) => handleCompanyFieldChange('description', e.target.value)}
                     placeholder="Décrivez votre entreprise, vos services et votre expertise..."
                     rows={4}
                     className="mt-1"
