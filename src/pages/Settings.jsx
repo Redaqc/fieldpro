@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Edit, Save, X, Eye, EyeOff, Link2, CheckCircle, XCircle, RefreshCw, Download, AlertCircle, List, Settings as SettingsIcon, GitBranch, Flag, BarChart, FileText, TrendingDown, Paperclip, MessageSquare, Activity, Building2, Image as ImageIcon, Receipt, Upload, Palette, Shield } from "lucide-react";
+import { Plus, Trash2, Edit, Save, X, Eye, EyeOff, Link2, CheckCircle, XCircle, RefreshCw, Download, AlertCircle, List, Settings as SettingsIcon, GitBranch, Flag, BarChart, FileText, TrendingDown, Paperclip, MessageSquare, Activity, Building2, Image as ImageIcon, Receipt, Upload, Palette, Shield, MapPin } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -18,7 +18,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 function AddressAutocompleteTab() {
   const queryClient = useQueryClient();
   const [apiKey, setApiKey] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testAddress, setTestAddress] = useState('');
+  const [testResults, setTestResults] = useState(null);
+  const [maxResults, setMaxResults] = useState(8);
 
   const { data: addressSettings, isLoading } = useQuery({
     queryKey: ['integrationSettings', 'address_autocomplete'],
@@ -32,8 +37,9 @@ function AddressAutocompleteTab() {
 
   // Sync local state with DB
   React.useEffect(() => {
-    if (addressSettings?.api_key) {
-      setApiKey(addressSettings.api_key);
+    if (addressSettings) {
+      if (addressSettings.api_key) setApiKey(addressSettings.api_key);
+      if (addressSettings.max_results) setMaxResults(addressSettings.max_results);
     }
   }, [addressSettings?.id]);
 
@@ -47,6 +53,7 @@ function AddressAutocompleteTab() {
         language: addressSettings?.language || 'fr',
         is_active: addressSettings?.is_active || false,
         api_key: addressSettings?.api_key || '',
+        max_results: addressSettings?.max_results || 8,
         ...updates
       };
 
@@ -57,11 +64,68 @@ function AddressAutocompleteTab() {
       }
 
       await queryClient.invalidateQueries({ queryKey: ['integrationSettings'] });
-      alert('Paramètres sauvegardés!');
+      alert('✓ Configuration sauvegardée avec succès!');
     } catch (error) {
-      alert('Erreur: ' + error.message);
+      alert('✗ Erreur: ' + error.message);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveAll = async () => {
+    await saveSettings({
+      api_key: apiKey,
+      max_results: maxResults
+    });
+  };
+
+  const handleTestAutocomplete = async () => {
+    if (!testAddress.trim()) {
+      setTestResults({ error: 'Veuillez entrer une adresse à tester' });
+      return;
+    }
+
+    if (!addressSettings?.api_key) {
+      setTestResults({ 
+        error: 'Aucune clé API configurée.',
+        instruction: 'Veuillez d\'abord sauvegarder votre clé API.'
+      });
+      return;
+    }
+
+    setIsTesting(true);
+    setTestResults(null);
+
+    try {
+      const response = await base44.functions.invoke('addressAutocomplete', {
+        query: testAddress,
+        sessionToken: Math.random().toString(36)
+      });
+
+      if (response?.data?.error) {
+        setTestResults({
+          error: response.data.error,
+          instruction: response.data.instruction || 'Vérifiez votre configuration'
+        });
+      } else if (response?.data?.suggestions) {
+        setTestResults({
+          success: true,
+          suggestions: response.data.suggestions,
+          message: `✓ Configuration valide ! ${response.data.suggestions.length} suggestions trouvées.`
+        });
+      } else {
+        setTestResults({
+          error: 'Aucune suggestion trouvée',
+          instruction: 'Vérifiez que votre clé API a les permissions nécessaires'
+        });
+      }
+    } catch (error) {
+      setTestResults({
+        error: 'Erreur de test',
+        instruction: error.message
+      });
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -75,117 +139,312 @@ function AddressAutocompleteTab() {
     );
   }
 
+  const maskApiKey = (key) => {
+    if (!key || key.length < 8) return key;
+    return key.substring(0, 4) + '••••••••' + key.substring(key.length - 4);
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Configuration Address Autocomplete</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Enable/Disable */}
-        <div className="flex items-center justify-between p-4 border rounded-lg">
-          <div>
-            <p className="font-medium">Activer l'autocomplétion d'adresse</p>
-            <p className="text-sm text-slate-500">Suggestions automatiques d'adresses</p>
-          </div>
-          <Switch
-            checked={addressSettings?.is_active || false}
-            onCheckedChange={(checked) => saveSettings({ is_active: checked })}
-          />
-        </div>
+    <div className="space-y-6">
+      {/* Header Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Configuration Address Autocomplete</CardTitle>
+          <p className="text-sm text-slate-500 mt-2">
+            Configurez le fournisseur d'autocomplétion d'adresses pour votre application
+          </p>
+        </CardHeader>
+      </Card>
 
-        {/* Provider */}
-        <div>
-          <Label>Fournisseur API</Label>
-          <Select
-            value={addressSettings?.provider_type || 'google'}
-            onValueChange={(value) => saveSettings({ provider_type: value })}
-          >
-            <SelectTrigger className="mt-1">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="google">Google Places API</SelectItem>
-              <SelectItem value="mapbox">Mapbox Geocoding API</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* API Key */}
-        <div>
-          <Label>Clé API</Label>
-          <div className="flex gap-2 mt-1">
-            <Input
-              type="text"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Entrez votre clé API"
-              className="flex-1"
-            />
-            <Button
-              onClick={() => saveSettings({ api_key: apiKey })}
-              disabled={isSaving || !apiKey.trim()}
+      {/* Provider Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">1. Sélection du fournisseur</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => saveSettings({ provider_type: 'google' })}
+              className={`p-6 border-2 rounded-lg text-left transition-all ${
+                addressSettings?.provider_type === 'google'
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-slate-200 hover:border-slate-300'
+              }`}
             >
-              {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
-            </Button>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold">Google Places API</h3>
+                  <p className="text-xs text-slate-500">Recommandé • Haute précision</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600">
+                Service de Google Maps avec couverture mondiale et données détaillées
+              </p>
+            </button>
+
+            <button
+              onClick={() => saveSettings({ provider_type: 'mapbox' })}
+              className={`p-6 border-2 rounded-lg text-left transition-all ${
+                addressSettings?.provider_type === 'mapbox'
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold">Mapbox Geocoding</h3>
+                  <p className="text-xs text-slate-500">Alternative • Open source</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600">
+                API moderne avec tarifs compétitifs et options personnalisables
+              </p>
+            </button>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            {addressSettings?.provider_type === 'mapbox' 
-              ? 'Obtenez votre clé: https://account.mapbox.com/access-tokens/'
-              : 'Obtenez votre clé: https://console.cloud.google.com/apis/credentials'
-            }
-          </p>
-          {addressSettings?.api_key && (
-            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-              <CheckCircle className="w-3 h-3" /> Clé API enregistrée
+        </CardContent>
+      </Card>
+
+      {/* API Credentials */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">2. Identifiants API</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Clé API / Access Token</Label>
+            <div className="flex gap-2 mt-1">
+              <div className="relative flex-1">
+                <Input
+                  type={showApiKey ? "text" : "password"}
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder={addressSettings?.api_key ? maskApiKey(addressSettings.api_key) : "Entrez votre clé API"}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              {addressSettings?.provider_type === 'mapbox' ? (
+                <>
+                  <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noopener" className="text-blue-600 hover:underline">
+                    Obtenez votre token Mapbox →
+                  </a>
+                </>
+              ) : (
+                <>
+                  <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" className="text-blue-600 hover:underline">
+                    Obtenez votre clé Google →
+                  </a>
+                  <span className="text-slate-400 mx-1">•</span>
+                  Activez "Places API" dans votre projet
+                </>
+              )}
             </p>
+            {addressSettings?.api_key && (
+              <div className="flex items-center gap-2 mt-2 text-xs">
+                <CheckCircle className="w-3 h-3 text-green-600" />
+                <span className="text-green-600 font-medium">Clé API enregistrée</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
+            <div>
+              <p className="font-medium text-sm">Activer l'autocomplétion</p>
+              <p className="text-xs text-slate-500">Rendre disponible dans toute l'application</p>
+            </div>
+            <Switch
+              checked={addressSettings?.is_active || false}
+              onCheckedChange={(checked) => saveSettings({ is_active: checked })}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Regional Options */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">3. Options régionales</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Pays par défaut</Label>
+              <Select
+                value={addressSettings?.country_bias || 'ca'}
+                onValueChange={(value) => saveSettings({ country_bias: value })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ca">🇨🇦 Canada</SelectItem>
+                  <SelectItem value="us">🇺🇸 États-Unis</SelectItem>
+                  <SelectItem value="fr">🇫🇷 France</SelectItem>
+                  <SelectItem value="gb">🇬🇧 Royaume-Uni</SelectItem>
+                  <SelectItem value="mx">🇲🇽 Mexique</SelectItem>
+                  <SelectItem value="de">🇩🇪 Allemagne</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500 mt-1">
+                Priorise les résultats de ce pays
+              </p>
+            </div>
+
+            <div>
+              <Label>Langue des résultats</Label>
+              <Select
+                value={addressSettings?.language || 'fr'}
+                onValueChange={(value) => saveSettings({ language: value })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fr">Français</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="es">Español</SelectItem>
+                  <SelectItem value="de">Deutsch</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500 mt-1">
+                Langue d'affichage des adresses
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <Label>Nombre maximum de suggestions</Label>
+            <Input
+              type="number"
+              min="1"
+              max="20"
+              value={maxResults}
+              onChange={(e) => setMaxResults(parseInt(e.target.value) || 8)}
+              className="mt-1 w-32"
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              Entre 1 et 20 résultats (recommandé: 8)
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Test Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">4. Tester la configuration</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Adresse de test</Label>
+            <div className="flex gap-2 mt-1">
+              <Input
+                placeholder="Ex: 123 rue principale, Montreal"
+                value={testAddress}
+                onChange={(e) => setTestAddress(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleTestAutocomplete()}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleTestAutocomplete}
+                disabled={isTesting || !testAddress.trim()}
+              >
+                {isTesting ? 'Test...' : 'Tester'}
+              </Button>
+            </div>
+          </div>
+
+          {testResults && (
+            <div className={`p-4 rounded-lg border ${
+              testResults.success 
+                ? 'bg-green-50 border-green-200' 
+                : 'bg-red-50 border-red-200'
+            }`}>
+              {testResults.success ? (
+                <>
+                  <p className="text-sm font-medium text-green-900 mb-2">
+                    {testResults.message}
+                  </p>
+                  <div className="space-y-1">
+                    {testResults.suggestions.slice(0, 5).map((s, i) => (
+                      <div key={i} className="text-xs text-green-700 bg-white px-2 py-1 rounded">
+                        {s.description}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-red-900">
+                    ✗ {testResults.error}
+                  </p>
+                  {testResults.instruction && (
+                    <p className="text-xs text-red-700 mt-1">
+                      {testResults.instruction}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
           )}
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Country Bias */}
-        <div>
-          <Label>Pays prioritaire</Label>
-          <Select
-            value={addressSettings?.country_bias || 'ca'}
-            onValueChange={(value) => saveSettings({ country_bias: value })}
-          >
-            <SelectTrigger className="mt-1">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ca">Canada</SelectItem>
-              <SelectItem value="us">États-Unis</SelectItem>
-              <SelectItem value="fr">France</SelectItem>
-              <SelectItem value="gb">Royaume-Uni</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Save Button */}
+      <div className="flex items-center gap-3">
+        <Button
+          onClick={handleSaveAll}
+          disabled={isSaving || !apiKey.trim()}
+          className="bg-blue-600 hover:bg-blue-700"
+          size="lg"
+        >
+          {isSaving ? 'Sauvegarde en cours...' : 'Sauvegarder la configuration'}
+        </Button>
+        
+        {addressSettings?.api_key && (
+          <Badge variant="outline" className="text-green-600 border-green-600">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Configuré
+          </Badge>
+        )}
+      </div>
 
-        {/* Language */}
-        <div>
-          <Label>Langue des résultats</Label>
-          <Select
-            value={addressSettings?.language || 'fr'}
-            onValueChange={(value) => saveSettings({ language: value })}
-          >
-            <SelectTrigger className="mt-1">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="fr">Français</SelectItem>
-              <SelectItem value="en">English</SelectItem>
-              <SelectItem value="es">Español</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-900">
-            <strong>Note:</strong> L'autocomplétion sera disponible dans les formulaires Clients, Emplacements de Jobs et Adresses d'Appels de Service.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+      {/* Info Box */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="pt-6">
+          <div className="flex gap-3">
+            <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-blue-900">
+              <p className="font-medium mb-1">Où sera utilisée l'autocomplétion ?</p>
+              <ul className="list-disc list-inside space-y-1 text-blue-800">
+                <li>Formulaires de création/édition de clients</li>
+                <li>Emplacements de projets (Jobs)</li>
+                <li>Adresses d'appels de service</li>
+                <li>Toute saisie d'adresse dans l'application</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

@@ -22,7 +22,11 @@ Deno.serve(async (req) => {
     const settings = settingsList[0];
 
     if (!settings || !settings.is_active) {
-      return Response.json({ error: 'Address autocomplete not configured' }, { status: 400 });
+      return Response.json({ 
+        error: 'Aucune configuration trouvée.',
+        instruction: 'Veuillez configurer l\'API d\'autocomplétion dans : Paramètres → Address Autocomplete',
+        suggestions: []
+      });
     }
 
     const apiKey = settings.api_key;
@@ -33,7 +37,11 @@ Deno.serve(async (req) => {
     console.log('Address autocomplete settings:', { providerType, countryBias, language, hasApiKey: !!apiKey });
 
     if (!apiKey) {
-      return Response.json({ error: 'API key not configured', suggestions: [] });
+      return Response.json({ 
+        error: 'Clé API manquante',
+        instruction: 'Veuillez configurer votre clé API dans : Paramètres → Address Autocomplete',
+        suggestions: [] 
+      });
     }
 
     let suggestions = [];
@@ -63,7 +71,12 @@ Deno.serve(async (req) => {
           place_id: p.place_id
         }));
       } else if (data.error_message) {
-        return Response.json({ error: data.error_message, status: data.status, suggestions: [] });
+        return Response.json({ 
+          error: 'Votre clé API semble incorrecte ou n\'a pas les permissions nécessaires.',
+          instruction: 'Vérifiez que l\'API Places est activée dans votre projet Google Cloud.',
+          status: data.status, 
+          suggestions: [] 
+        });
       }
     } else if (providerType === 'mapbox') {
       // Mapbox Geocoding API

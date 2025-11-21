@@ -18,7 +18,10 @@ Deno.serve(async (req) => {
     const settings = settingsList[0];
 
     if (!settings || !settings.is_active) {
-      return Response.json({ error: 'Address autocomplete not configured' }, { status: 400 });
+      return Response.json({ 
+        error: 'Aucune configuration trouvée.',
+        instruction: 'Veuillez configurer l\'API d\'autocomplétion dans : Paramètres → Address Autocomplete'
+      }, { status: 400 });
     }
 
     const apiKey = settings.api_key;
