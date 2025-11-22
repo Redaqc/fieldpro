@@ -21,6 +21,7 @@ import { RecurringJobsModule } from './recurring-jobs/recurring-jobs.module';
 import { SupplierInvoicesModule } from './supplier-invoices/supplier-invoices.module';
 import { PriceListsModule } from './price-lists/price-lists.module';
 import { BundlesModule } from './bundles/bundles.module';
+import { MaintenanceSchedulesModule } from './maintenance-schedules/maintenance-schedules.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { BundlesModule } from './bundles/bundles.module';
     SupplierInvoicesModule,
     PriceListsModule,
     BundlesModule,
+    MaintenanceSchedulesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
