@@ -4,15 +4,15 @@ import { JOB_STATUS, TECHNICIAN_STATUS } from '@/constants/statuses';
 
 const statusColors = {
   [TECHNICIAN_STATUS.AVAILABLE]: "bg-green-100 text-green-700 border-green-200",
-  busy: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  off_duty: "bg-gray-100 text-gray-700 border-gray-200"
+  [TECHNICIAN_STATUS.BUSY]: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  [TECHNICIAN_STATUS.OFF_DUTY]: "bg-gray-100 text-gray-700 border-gray-200"
 };
 
 export default function TechnicianStatus({ technicians, jobs }) {
   const getTechnicianJobCount = (techId) => {
     return jobs.filter(job =>
       job.technician_id === techId &&
-      (job.status === 'scheduled' || job.status === JOB_STATUS.IN_PROGRESS)
+      (job.status === JOB_STATUS.SCHEDULED || job.status === JOB_STATUS.IN_PROGRESS)
     ).length;
   };
 

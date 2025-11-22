@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle } from "lucide-react";
+import { SERVICE_CALL_STATUS, PRIORITY } from "@/constants/statuses";
 
 export default function EmergencyCallButton({ currentTech }) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -23,8 +24,8 @@ export default function EmergencyCallButton({ currentTech }) {
         description: data.description,
         customer_name: data.customer_name,
         location: data.location,
-        priority: 'urgent',
-        status: 'in_progress',
+        priority: PRIORITY.URGENT,
+        status: SERVICE_CALL_STATUS.IN_PROGRESS,
         call_type: 'emergency',
         origin: 'phone',
         response_time_required: 2,

@@ -11,6 +11,7 @@ import { addDays, format } from "date-fns";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useTaxCalculation } from "@/components/shared/useTaxCalculation";
+import { QUOTATION_STATUS, MATERIAL_STATUS, JOB_STATUS, INVOICE_STATUS } from "@/constants/statuses";
 
 export default function QuotationDialog({ open, onClose, onSave, quotation, customers, bundles, priceLists }) {
   const [formData, setFormData] = useState(quotation || {
@@ -24,7 +25,7 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
     work_start_date: "",
     sent_date: "",
     accepted_date: "",
-    status: "draft",
+    status: QUOTATION_STATUS.DRAFT,
     line_items: [],
     submission_items: [],
     bundles: [],
@@ -186,7 +187,7 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
         bundle_price: bundlePrice,
         original_price: originalPrice,
         discount_percentage: 10,
-        status: "active"
+        status: MATERIAL_STATUS.ACTIVE
       });
       
       alert("Bundle créé avec succès!");
@@ -273,8 +274,8 @@ export default function QuotationDialog({ open, onClose, onSave, quotation, cust
       </td>
       <td style="border: none; width: 33%; vertical-align: top;">
         <div class="section-title">Statut:</div>
-        <div style="color: ${formData.status === 'accepted' ? 'green' : '#666'};">
-          ${formData.status === 'accepted' ? 'Soumission approuvée' : formData.status === 'sent' ? 'Envoyée' : 'Brouillon'}
+        <div style="color: ${formData.status === QUOTATION_STATUS.ACCEPTED ? 'green' : '#666'};">
+          ${formData.status === QUOTATION_STATUS.ACCEPTED ? 'Soumission approuvée' : formData.status === QUOTATION_STATUS.SENT ? 'Envoyée' : 'Brouillon'}
         </div>
       </td>
     </tr>
@@ -375,8 +376,8 @@ Merci de votre confiance.
         subject: `Soumission ${formData.quote_number} - ${formData.project_name || 'Votre projet'}`,
         body: emailBody
       });
-      
-      handleChange('status', 'sent');
+
+      handleChange('status', QUOTATION_STATUS.SENT);
       if (!formData.sent_date) {
         handleChange('sent_date', format(new Date(), 'yyyy-MM-dd'));
       }
@@ -1040,7 +1041,7 @@ Merci de votre confiance.
               <div className="bg-white rounded-lg p-6 max-w-2xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                 <h3 className="text-lg font-semibold mb-4">Choose Bundle</h3>
                 <div className="space-y-2">
-                  {bundles.filter(b => b.status === 'active').map(bundle => (
+                  {bundles.filter(b => b.status === MATERIAL_STATUS.ACTIVE).map(bundle => (
                     <div 
                       key={bundle.id} 
                       className="flex justify-between items-center p-3 bg-slate-50 rounded hover:bg-slate-100 cursor-pointer" 
@@ -1121,7 +1122,7 @@ Merci de votre confiance.
               <div className="bg-white rounded-lg p-6 max-w-2xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                 <h3 className="text-lg font-semibold mb-4">Sélectionner Matériel</h3>
                 <div className="space-y-2">
-                  {materials.filter(m => m.status === 'active').map((material) => (
+                  {materials.filter(m => m.status === MATERIAL_STATUS.ACTIVE).map((material) => (
                     <div
                       key={material.id}
                       className="flex justify-between items-center p-3 bg-slate-50 rounded hover:bg-slate-100 cursor-pointer"
@@ -1159,11 +1160,11 @@ Merci de votre confiance.
           {/* Status & Action Buttons */}
           <div className="space-y-4 pt-4 border-t">
             <div className="flex justify-center gap-3">
-              <Button 
-                type="button" 
-                variant={formData.status === 'sent' ? 'default' : 'outline'}
+              <Button
+                type="button"
+                variant={formData.status === QUOTATION_STATUS.SENT ? 'default' : 'outline'}
                 onClick={() => {
-                  handleChange('status', 'sent');
+                  handleChange('status', QUOTATION_STATUS.SENT);
                   if (!formData.sent_date) {
                     handleChange('sent_date', format(new Date(), 'yyyy-MM-dd'));
                   }
@@ -1172,11 +1173,11 @@ Merci de votre confiance.
               >
                 Envoyée
               </Button>
-              <Button 
-                type="button" 
-                variant={formData.status === 'accepted' ? 'default' : 'outline'}
+              <Button
+                type="button"
+                variant={formData.status === QUOTATION_STATUS.ACCEPTED ? 'default' : 'outline'}
                 onClick={() => {
-                  handleChange('status', 'accepted');
+                  handleChange('status', QUOTATION_STATUS.ACCEPTED);
                   if (!formData.accepted_date) {
                     handleChange('accepted_date', format(new Date(), 'yyyy-MM-dd'));
                   }
@@ -1185,17 +1186,17 @@ Merci de votre confiance.
               >
                 Gagner
               </Button>
-              <Button 
-                type="button" 
-                variant={formData.status === 'declined' ? 'default' : 'outline'}
-                onClick={() => handleChange('status', 'declined')}
+              <Button
+                type="button"
+                variant={formData.status === QUOTATION_STATUS.REJECTED ? 'default' : 'outline'}
+                onClick={() => handleChange('status', QUOTATION_STATUS.REJECTED)}
                 className="flex-1 bg-red-500 hover:bg-red-600 text-white"
               >
                 Perdu
               </Button>
             </div>
 
-            {formData.status === 'accepted' && (
+            {formData.status === QUOTATION_STATUS.ACCEPTED && (
               <div className="flex justify-center gap-3 p-4 bg-green-50 rounded-lg">
                 <Button 
                   type="button" 
@@ -1211,7 +1212,7 @@ Merci de votre confiance.
                       customer_id: formData.customer_id,
                       customer_name: formData.customer_name,
                       description: `Created from quotation ${formData.quote_number}`,
-                      status: "scheduled",
+                      status: JOB_STATUS.SCHEDULED,
                       start_date: formData.work_start_date || null,
                       priority: "medium",
                       quotation_id: quotation?.id || null,
@@ -1234,7 +1235,7 @@ Merci de votre confiance.
                       if (quotation?.id) {
                         await base44.entities.Quotation.update(quotation.id, {
                           job_id: newJob.id,
-                          status: 'approved'
+                          status: QUOTATION_STATUS.ACCEPTED
                         });
                       }
                       
@@ -1255,7 +1256,7 @@ Merci de votre confiance.
                       customer_id: formData.customer_id,
                       customer_name: formData.customer_name,
                       invoice_date: new Date().toISOString(),
-                      status: "draft",
+                      status: INVOICE_STATUS.DRAFT,
                       line_items: (formData.submission_items || []).map(item => ({
                         ...item,
                         source: 'quoted'

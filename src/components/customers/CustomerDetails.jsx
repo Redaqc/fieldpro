@@ -6,9 +6,10 @@ import { Mail, Phone, MapPin, Building2, Edit, Trash2, Calendar } from "lucide-r
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { JOB_STATUS } from "@/constants/statuses";
 
 export default function CustomerDetails({ customer, onClose, onEdit, onUpdate, onDelete, jobs }) {
-  const completedJobs = jobs.filter(j => j.status === 'completed').length;
+  const completedJobs = jobs.filter(j => j.status === JOB_STATUS.COMPLETED).length;
   const totalRevenue = jobs
     .filter(j => j.actual_cost)
     .reduce((sum, j) => sum + j.actual_cost, 0);
@@ -150,8 +151,8 @@ export default function CustomerDetails({ customer, onClose, onEdit, onUpdate, o
                         )}
                       </div>
                       <Badge className={
-                        job.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        job.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
+                        job.status === JOB_STATUS.COMPLETED ? 'bg-green-100 text-green-800' :
+                        job.status === JOB_STATUS.IN_PROGRESS ? 'bg-yellow-100 text-yellow-800' :
                         'bg-blue-100 text-blue-800'
                       }>
                         {job.status.replace('_', ' ')}

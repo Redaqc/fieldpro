@@ -1,13 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { JOB_STATUS } from "@/constants/statuses";
 
 export default function WidgetTechnicianPerformance({ jobs = [], technicians = [] }) {
   const techPerformance = technicians.map(tech => {
-    const techJobs = jobs.filter(job => 
+    const techJobs = jobs.filter(job =>
       job.technicians?.some(t => t.id === tech.id) || job.technician_id === tech.id
     );
-    
-    const completed = techJobs.filter(j => j.status === 'completed').length;
+
+    const completed = techJobs.filter(j => j.status === JOB_STATUS.COMPLETED).length;
     const total = techJobs.length;
     const hoursSpent = techJobs.reduce((sum, job) => {
       const techData = job.technicians?.find(t => t.id === tech.id);
