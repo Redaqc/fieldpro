@@ -20,13 +20,22 @@ import {
 } from "@/components/ui/select";
 import { Trash2, Save, Plus, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { INVOICE_STATUS, INVOICE_STATUS_TRANSITIONS, INVOICE_STATUS_LABELS, isValidStatusTransition } from '@/constants/statuses';
+import { toast } from "sonner";
+
+/**
+ * AUDIT FIX: High Priority Issue #7 - Standardize Status Values
+ * AUDIT FIX: High Priority Issue #8 - Implement State Machine Validation
+ */
 
 const statusColors = {
-  draft: "bg-gray-100 text-gray-800",
-  sent: "bg-blue-100 text-blue-800",
-  paid: "bg-green-100 text-green-800",
-  overdue: "bg-red-100 text-red-800",
-  cancelled: "bg-slate-100 text-slate-800"
+  [INVOICE_STATUS.DRAFT]: "bg-gray-100 text-gray-800",
+  [INVOICE_STATUS.SENT]: "bg-blue-100 text-blue-800",
+  [INVOICE_STATUS.PAID]: "bg-green-100 text-green-800",
+  [INVOICE_STATUS.OVERDUE]: "bg-red-100 text-red-800",
+  [INVOICE_STATUS.CANCELLED]: "bg-slate-100 text-slate-800",
+  [INVOICE_STATUS.PARTIAL]: "bg-yellow-100 text-yellow-800",
+  [INVOICE_STATUS.VIEWED]: "bg-purple-100 text-purple-800"
 };
 
 export default function InvoiceModal({ invoice, customers, jobs, onClose, onDelete }) {
@@ -58,6 +67,22 @@ export default function InvoiceModal({ invoice, customers, jobs, onClose, onDele
   });
 
   const handleSave = () => {
+    /**
+     * AUDIT FIX: High Priority Issue #8 - State Machine Validation
+     * Validate invoice status transition before saving
+     */
+    if (formData.status !== invoice.status) {
+      const currentStatus = invoice.status || INVOICE_STATUS.DRAFT;
+      const newStatus = formData.status;
+
+      if (!isValidStatusTransition(currentStatus, newStatus, INVOICE_STATUS_TRANSITIONS)) {
+        toast.error('Transition de statut invalide', {
+          description: `Impossible de passer de "${INVOICE_STATUS_LABELS[currentStatus]}" à "${INVOICE_STATUS_LABELS[newStatus]}". Cette transition n'est pas autorisée.`
+        });
+        return;
+      }
+    }
+
     updateMutation.mutate(formData);
   };
 
@@ -178,11 +203,13 @@ export default function InvoiceModal({ invoice, customers, jobs, onClose, onDele
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="sent">Sent</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="overdue">Overdue</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value={INVOICE_STATUS.DRAFT}>{INVOICE_STATUS_LABELS[INVOICE_STATUS.DRAFT]}</SelectItem>
+                    <SelectItem value={INVOICE_STATUS.SENT}>{INVOICE_STATUS_LABELS[INVOICE_STATUS.SENT]}</SelectItem>
+                    <SelectItem value={INVOICE_STATUS.VIEWED}>{INVOICE_STATUS_LABELS[INVOICE_STATUS.VIEWED]}</SelectItem>
+                    <SelectItem value={INVOICE_STATUS.PARTIAL}>{INVOICE_STATUS_LABELS[INVOICE_STATUS.PARTIAL]}</SelectItem>
+                    <SelectItem value={INVOICE_STATUS.PAID}>{INVOICE_STATUS_LABELS[INVOICE_STATUS.PAID]}</SelectItem>
+                    <SelectItem value={INVOICE_STATUS.OVERDUE}>{INVOICE_STATUS_LABELS[INVOICE_STATUS.OVERDUE]}</SelectItem>
+                    <SelectItem value={INVOICE_STATUS.CANCELLED}>{INVOICE_STATUS_LABELS[INVOICE_STATUS.CANCELLED]}</SelectItem>
                   </SelectContent>
                 </Select>
               ) : (

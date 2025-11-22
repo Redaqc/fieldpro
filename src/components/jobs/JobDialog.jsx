@@ -23,9 +23,13 @@ import AssetAssignmentTab from "./AssetAssignmentTab";
 import JobProfitabilityPanel from "../profitability/JobProfitabilityPanel";
 import JobTemplates from "./JobTemplates";
 import AddressAutocompleteInput from "../shared/AddressAutocompleteInput";
-import { JOB_STATUS, PRIORITY } from '@/constants/statuses';
+import { JOB_STATUS, PRIORITY, JOB_STATUS_TRANSITIONS, isValidStatusTransition, JOB_STATUS_LABELS } from '@/constants/statuses';
+import { toast } from "sonner";
 
-/** AUDIT FIX: High Priority Issue #7 - Standardize Status Values */
+/**
+ * AUDIT FIX: High Priority Issue #7 - Standardize Status Values
+ * AUDIT FIX: High Priority Issue #8 - Implement State Machine Validation
+ */
 
 export default function JobDialog({ open, onClose, job, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
@@ -172,6 +176,22 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
     };
 
     if (job) {
+      /**
+       * AUDIT FIX: High Priority Issue #8 - State Machine Validation
+       * Validate status transition when updating a job
+       */
+      if (formData.status !== job.status) {
+        const currentStatus = job.status || JOB_STATUS.TODO;
+        const newStatus = formData.status;
+
+        if (!isValidStatusTransition(currentStatus, newStatus, JOB_STATUS_TRANSITIONS)) {
+          toast.error('Transition de statut invalide', {
+            description: `Impossible de passer de "${JOB_STATUS_LABELS[currentStatus]}" à "${JOB_STATUS_LABELS[newStatus]}". Cette transition n'est pas autorisée.`
+          });
+          return;
+        }
+      }
+
       updateJobMutation.mutate({ id: job.id, data: dataToSave });
     } else {
       const activity = [{

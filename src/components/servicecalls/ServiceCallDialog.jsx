@@ -21,9 +21,13 @@ import InvoicingTab from "../jobs/InvoicingTab";
 import MaterialUsageTab from "../jobs/MaterialUsageTab";
 import AssetAssignmentTab from "../jobs/AssetAssignmentTab";
 import AddressAutocompleteInput from "../shared/AddressAutocompleteInput";
-import { SERVICE_CALL_STATUS, JOB_STATUS } from '@/constants/statuses';
+import { SERVICE_CALL_STATUS, JOB_STATUS, SERVICE_CALL_STATUS_TRANSITIONS, isValidStatusTransition, SERVICE_CALL_STATUS_LABELS } from '@/constants/statuses';
+import { toast } from "sonner";
 
-/** AUDIT FIX: High Priority Issue #7 - Standardize Status Values */
+/**
+ * AUDIT FIX: High Priority Issue #7 - Standardize Status Values
+ * AUDIT FIX: High Priority Issue #8 - Implement State Machine Validation
+ */
 
 export default function ServiceCallDialog({ open, onClose, call, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
@@ -170,6 +174,22 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
     };
 
     if (call) {
+      /**
+       * AUDIT FIX: High Priority Issue #8 - State Machine Validation
+       * Validate status transition when updating a service call
+       */
+      if (formData.status !== call.status) {
+        const currentStatus = call.status || SERVICE_CALL_STATUS.NEW;
+        const newStatus = formData.status;
+
+        if (!isValidStatusTransition(currentStatus, newStatus, SERVICE_CALL_STATUS_TRANSITIONS)) {
+          toast.error('Transition de statut invalide', {
+            description: `Impossible de passer de "${SERVICE_CALL_STATUS_LABELS[currentStatus]}" à "${SERVICE_CALL_STATUS_LABELS[newStatus]}". Cette transition n'est pas autorisée.`
+          });
+          return;
+        }
+      }
+
       updateCallMutation.mutate({ id: call.id, data: dataToSave });
     } else {
       const activity = [{

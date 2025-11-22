@@ -5,11 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, User, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { JOB_STATUS } from '@/constants/statuses';
+import { JOB_STATUS, JOB_STATUS_TRANSITIONS, isValidStatusTransition, JOB_STATUS_LABELS } from '@/constants/statuses';
+import { toast } from "sonner";
 
 /**
  * AUDIT FIX: High Priority Issue #7 - Standardize Status Values
- * Using JOB_STATUS constants for consistency
+ * AUDIT FIX: High Priority Issue #8 - Implement State Machine Validation
+ * Using JOB_STATUS constants and validating status transitions
  */
 
 const COLUMNS = [
@@ -39,6 +41,18 @@ export default function KanbanBoard({ jobs, onEditJob, currentUser }) {
 
     if (job.status === newStatus) return;
 
+    /**
+     * AUDIT FIX: High Priority Issue #8 - State Machine Validation
+     * Validate status transition before allowing update
+     */
+    const currentStatus = job.status || JOB_STATUS.TODO;
+    if (!isValidStatusTransition(currentStatus, newStatus, JOB_STATUS_TRANSITIONS)) {
+      toast.error('Transition de statut invalide', {
+        description: `Impossible de passer de "${JOB_STATUS_LABELS[currentStatus]}" à "${JOB_STATUS_LABELS[newStatus]}". Cette transition n'est pas autorisée.`
+      });
+      return;
+    }
+
     const updates = {
       status: newStatus,
       activity_log: [
@@ -47,7 +61,7 @@ export default function KanbanBoard({ jobs, onEditJob, currentUser }) {
           timestamp: new Date().toISOString(),
           user: currentUser?.email || 'System',
           action: 'status_changed',
-          details: `Statut changé de "${job.status}" à "${newStatus}"`,
+          details: `Statut changé de "${JOB_STATUS_LABELS[currentStatus]}" à "${JOB_STATUS_LABELS[newStatus]}"`,
         },
       ],
     };

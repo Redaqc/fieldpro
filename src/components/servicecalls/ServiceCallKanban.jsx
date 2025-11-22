@@ -6,9 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, User, MapPin, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { SERVICE_CALL_STATUS } from '@/constants/statuses';
+import { SERVICE_CALL_STATUS, SERVICE_CALL_STATUS_TRANSITIONS, isValidStatusTransition, SERVICE_CALL_STATUS_LABELS } from '@/constants/statuses';
+import { toast } from "sonner";
 
-/** AUDIT FIX: High Priority Issue #7 - Standardize Status Values */
+/**
+ * AUDIT FIX: High Priority Issue #7 - Standardize Status Values
+ * AUDIT FIX: High Priority Issue #8 - Implement State Machine Validation
+ */
 
 const COLUMNS = [
   { id: SERVICE_CALL_STATUS.NEW, title: 'À faire', color: 'bg-slate-100' },
@@ -37,6 +41,18 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
 
     if (call.status === newStatus) return;
 
+    /**
+     * AUDIT FIX: High Priority Issue #8 - State Machine Validation
+     * Validate status transition before allowing update
+     */
+    const currentStatus = call.status || SERVICE_CALL_STATUS.NEW;
+    if (!isValidStatusTransition(currentStatus, newStatus, SERVICE_CALL_STATUS_TRANSITIONS)) {
+      toast.error('Transition de statut invalide', {
+        description: `Impossible de passer de "${SERVICE_CALL_STATUS_LABELS[currentStatus]}" à "${SERVICE_CALL_STATUS_LABELS[newStatus]}". Cette transition n'est pas autorisée.`
+      });
+      return;
+    }
+
     const updates = {
       status: newStatus,
       activity_log: [
@@ -45,7 +61,7 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
           timestamp: new Date().toISOString(),
           user: currentUser?.email || 'System',
           action: 'status_changed',
-          details: `Statut changé de "${call.status}" à "${newStatus}"`,
+          details: `Statut changé de "${SERVICE_CALL_STATUS_LABELS[currentStatus]}" à "${SERVICE_CALL_STATUS_LABELS[newStatus]}"`,
         },
       ],
     };
