@@ -5,13 +5,19 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, User, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { JOB_STATUS } from '@/constants/statuses';
+
+/**
+ * AUDIT FIX: High Priority Issue #7 - Standardize Status Values
+ * Using JOB_STATUS constants for consistency
+ */
 
 const COLUMNS = [
-  { id: 'todo', title: 'À faire', color: 'bg-slate-100' },
-  { id: 'in_progress', title: 'En cours', color: 'bg-blue-100' },
-  { id: 'review', title: 'En révision', color: 'bg-purple-100' },
-  { id: 'completed', title: 'Terminé', color: 'bg-green-100' },
-  { id: 'archived', title: 'Archivé', color: 'bg-gray-100' },
+  { id: JOB_STATUS.TODO, title: 'À faire', color: 'bg-slate-100' },
+  { id: JOB_STATUS.IN_PROGRESS, title: 'En cours', color: 'bg-blue-100' },
+  { id: JOB_STATUS.REVIEW, title: 'En révision', color: 'bg-purple-100' },
+  { id: JOB_STATUS.COMPLETED, title: 'Terminé', color: 'bg-green-100' },
+  { id: JOB_STATUS.ARCHIVED, title: 'Archivé', color: 'bg-gray-100' },
 ];
 
 export default function KanbanBoard({ jobs, onEditJob, currentUser }) {
@@ -46,7 +52,7 @@ export default function KanbanBoard({ jobs, onEditJob, currentUser }) {
       ],
     };
 
-    if (newStatus === 'completed' && !job.completed_at) {
+    if (newStatus === JOB_STATUS.COMPLETED && !job.completed_at) {
       updates.completed_at = new Date().toISOString();
       updates.activity_log.push({
         timestamp: new Date().toISOString(),

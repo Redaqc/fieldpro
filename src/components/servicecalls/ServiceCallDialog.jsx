@@ -21,12 +21,15 @@ import InvoicingTab from "../jobs/InvoicingTab";
 import MaterialUsageTab from "../jobs/MaterialUsageTab";
 import AssetAssignmentTab from "../jobs/AssetAssignmentTab";
 import AddressAutocompleteInput from "../shared/AddressAutocompleteInput";
+import { SERVICE_CALL_STATUS, JOB_STATUS } from '@/constants/statuses';
+
+/** AUDIT FIX: High Priority Issue #7 - Standardize Status Values */
 
 export default function ServiceCallDialog({ open, onClose, call, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    status: 'new',
+    status: SERVICE_CALL_STATUS.NEW,
     due_date: '',
     priority: 'medium',
     technicians: [],
@@ -124,7 +127,7 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
       setFormData({
         title: '',
         description: '',
-        status: 'new',
+        status: SERVICE_CALL_STATUS.NEW,
         due_date: '',
         priority: 'medium',
         technicians: [],
@@ -552,7 +555,7 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
             <DialogTitle className="text-lg sm:text-xl">{call ? 'Modifier l\'appel' : 'Nouvel appel de service'}</DialogTitle>
             {call && (
               <div className="flex gap-2">
-                {formData.status !== 'in_progress' && (
+                {formData.status !== SERVICE_CALL_STATUS.IN_PROGRESS && (
                   <Button
                     size="sm"
                     onClick={() => handleQuickStatus('in_progress')}
@@ -562,7 +565,7 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
                     Démarrer
                   </Button>
                 )}
-                {formData.status !== 'completed' && (
+                {formData.status !== SERVICE_CALL_STATUS.COMPLETED && (
                   <Button
                     size="sm"
                     onClick={() => handleQuickStatus('completed')}
@@ -1424,7 +1427,7 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
 
           <div className="flex flex-col sm:flex-row justify-between gap-2 pt-4">
             <div>
-              {call?.id && call.status !== 'converted' && (
+              {call?.id && call.status !== SERVICE_CALL_STATUS.CONVERTED && (
                 <Button 
                   type="button"
                   onClick={async () => {
@@ -1440,7 +1443,7 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
                           start_date: call.start_date,
                           due_date: call.due_date,
                           priority: call.priority,
-                          status: 'scheduled',
+                          status: JOB_STATUS.TODO,
                           work_type_id: call.work_type_id,
                           work_type_name: call.work_type_name,
                           work_type_color: call.work_type_color,
@@ -1458,7 +1461,7 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
                         
                         const newJob = await base44.entities.Job.create(jobData);
                         await base44.entities.ServiceCall.update(call.id, { 
-                          status: 'converted',
+                          status: SERVICE_CALL_STATUS.CONVERTED,
                           converted_to_job_id: newJob.id
                         });
                         

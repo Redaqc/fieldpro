@@ -23,14 +23,17 @@ import AssetAssignmentTab from "./AssetAssignmentTab";
 import JobProfitabilityPanel from "../profitability/JobProfitabilityPanel";
 import JobTemplates from "./JobTemplates";
 import AddressAutocompleteInput from "../shared/AddressAutocompleteInput";
+import { JOB_STATUS, PRIORITY } from '@/constants/statuses';
+
+/** AUDIT FIX: High Priority Issue #7 - Standardize Status Values */
 
 export default function JobDialog({ open, onClose, job, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    status: 'todo',
+    status: JOB_STATUS.TODO,
     due_date: '',
-    priority: 'medium',
+    priority: PRIORITY.MEDIUM,
     technicians: [],
     start_date: '',
     total_time_spent: 0,
@@ -126,9 +129,9 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
       setFormData({
         title: '',
         description: '',
-        status: 'todo',
+        status: JOB_STATUS.TODO,
         due_date: '',
-        priority: 'medium',
+        priority: PRIORITY.MEDIUM,
         technicians: [],
         start_date: '',
         total_time_spent: 0,
@@ -554,7 +557,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
             <DialogTitle className="text-lg sm:text-xl">{job ? 'Modifier le job' : 'Nouveau job'}</DialogTitle>
             {job && (
               <div className="flex gap-2">
-                {formData.status !== 'in_progress' && (
+                {formData.status !== JOB_STATUS.IN_PROGRESS && (
                   <Button
                     size="sm"
                     onClick={() => handleQuickStatus('in_progress')}
@@ -564,7 +567,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                     Démarrer
                   </Button>
                 )}
-                {formData.status !== 'completed' && (
+                {formData.status !== JOB_STATUS.COMPLETED && (
                   <Button
                     size="sm"
                     onClick={() => handleQuickStatus('completed')}
@@ -1419,7 +1422,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
           </Tabs>
 
           {/* Profitability Panel (if job completed/invoiced) */}
-          {job?.id && (job.status === 'completed' || job.status === 'invoiced') && (
+          {job?.id && (job.status === JOB_STATUS.COMPLETED || job.status === 'invoiced') && (
             <div className="pt-4 border-t">
               <JobProfitabilityPanel job={job} />
             </div>
