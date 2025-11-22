@@ -148,12 +148,24 @@ export default function TimeTracking() {
                 return;
               }
 
+              /**
+               * AUDIT FIX: High Priority Issue #13 - Comprehensive Audit Logging
+               * Add activity log for normal clock-in operations
+               */
               const timeEntry = await base44.entities.TimeEntry.create({
                 technician_id: technicianId,
                 technician_name: `${tech.first_name} ${tech.last_name}`,
                 clock_in: new Date().toISOString(),
                 status: "in_progress",
                 location_in: inZone ? zone.name : "Hors zone",
+                activity_log: [{
+                  timestamp: new Date().toISOString(),
+                  action: "clock_in",
+                  details: `Clock-in à ${inZone ? zone.name : "hors zone"}. GPS: ${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)} (précision: ${accuracy.toFixed(0)}m)`,
+                  user: `${tech.first_name} ${tech.last_name}`,
+                  location: inZone ? zone.name : "Hors zone",
+                  gps_accuracy: accuracy
+                }]
               });
 
               await base44.entities.GPSTracking.create({
@@ -274,6 +286,10 @@ export default function TimeTracking() {
                 ? `GPS imprécis (${accuracy.toFixed(0)}m)`
                 : "GPS enregistré";
 
+              /**
+               * AUDIT FIX: High Priority Issue #13 - Comprehensive Audit Logging
+               * Add activity log for clock-out operations
+               */
               const updated = await base44.entities.TimeEntry.update(entryId, {
                 clock_out: clockOut,
                 total_hours: parseFloat(totalHours),
@@ -281,10 +297,18 @@ export default function TimeTracking() {
                 location_out: locationOut,
                 activity_log: [
                   ...(entry.activity_log || []),
+                  {
+                    timestamp: clockOut,
+                    action: "clock_out",
+                    details: `Clock-out après ${totalHours}h travaillées${entry.break_minutes ? ` (dont ${entry.break_minutes}min de pause)` : ''}. GPS: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)} (précision: ${accuracy.toFixed(0)}m)`,
+                    user: entry.technician_name,
+                    total_hours: parseFloat(totalHours),
+                    gps_accuracy: accuracy
+                  },
                   ...(accuracy > 50 ? [{
                     timestamp: clockOut,
                     action: "gps_warning",
-                    details: `Clock-out avec GPS imprécis: ${accuracy.toFixed(0)}m (> 50m recommandé)`,
+                    details: `GPS imprécis lors du clock-out: ${accuracy.toFixed(0)}m (> 50m recommandé)`,
                     user: entry.technician_name
                   }] : [])
                 ]

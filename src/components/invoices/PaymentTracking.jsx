@@ -19,7 +19,13 @@ export default function PaymentTracking({ invoice }) {
 
   const recordPaymentMutation = useMutation({
     mutationFn: async (data) => {
+      /**
+       * AUDIT FIX: High Priority Issue #13 - Comprehensive Audit Logging
+       * Add activity log for payment recording
+       */
+      const user = await base44.auth.me();
       const totalPaid = (invoice.payments_received || []).reduce((sum, p) => sum + p.amount, 0) + data.amount;
+      const oldStatus = invoice.status;
       const newStatus = totalPaid >= invoice.total ? 'paid' : 'partial';
 
       return base44.entities.Invoice.update(invoice.id, {
@@ -29,12 +35,25 @@ export default function PaymentTracking({ invoice }) {
             amount: data.amount,
             method: data.method,
             date: data.date,
-            recorded_by: (await base44.auth.me()).email,
+            recorded_by: user.email,
             recorded_at: new Date().toISOString()
           }
         ],
         status: newStatus,
-        paid_date: newStatus === 'paid' ? new Date().toISOString() : invoice.paid_date
+        paid_date: newStatus === 'paid' ? new Date().toISOString() : invoice.paid_date,
+        activity_log: [
+          ...(invoice.activity_log || []),
+          {
+            timestamp: new Date().toISOString(),
+            user: user.email,
+            action: 'payment_recorded',
+            details: `Paiement enregistré: $${data.amount.toFixed(2)} via ${data.method}. Total payé: $${totalPaid.toFixed(2)}/${invoice.total.toFixed(2)}`,
+            old_status: oldStatus,
+            new_status: newStatus,
+            payment_amount: data.amount,
+            payment_method: data.method
+          }
+        ]
       });
     },
     onSuccess: () => {

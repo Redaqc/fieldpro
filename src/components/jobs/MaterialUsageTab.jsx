@@ -120,8 +120,22 @@ export default function MaterialUsageTab({ job }) {
       const usage = materialUsages.find(u => u.id === usageId);
       const updatedUsages = materialUsages.filter(u => u.id !== usageId);
 
+      /**
+       * AUDIT FIX: High Priority Issue #13 - Comprehensive Audit Logging
+       * Add activity log when removing materials
+       */
+      const user = await base44.auth.me();
       await base44.entities.Job.update(job.id, {
-        material_usages: updatedUsages
+        material_usages: updatedUsages,
+        activity_log: [
+          ...(job.activity_log || []),
+          {
+            timestamp: new Date().toISOString(),
+            user: user.email,
+            action: 'material_removed',
+            details: `Removed ${usage.quantity}x ${usage.material_name} (returned to inventory)`
+          }
+        ]
       });
 
       // Return materials to inventory
