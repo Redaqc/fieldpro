@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, User, CheckSquare, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import { JOB_STATUS } from "@/constants/statuses";
 
 export default function JobsList({ jobs, onEditJob }) {
   const [search, setSearch] = useState('');
@@ -21,11 +22,11 @@ export default function JobsList({ jobs, onEditJob }) {
   });
 
   const statusColors = {
-    todo: 'bg-slate-100 text-slate-800',
-    in_progress: 'bg-blue-100 text-blue-800',
-    review: 'bg-purple-100 text-purple-800',
-    completed: 'bg-green-100 text-green-800',
-    archived: 'bg-gray-100 text-gray-800',
+    [JOB_STATUS.TODO]: 'bg-slate-100 text-slate-800',
+    [JOB_STATUS.IN_PROGRESS]: 'bg-blue-100 text-blue-800',
+    [JOB_STATUS.REVIEW]: 'bg-purple-100 text-purple-800',
+    [JOB_STATUS.COMPLETED]: 'bg-green-100 text-green-800',
+    [JOB_STATUS.ARCHIVED]: 'bg-gray-100 text-gray-800',
   };
 
   const priorityColors = {
@@ -36,7 +37,7 @@ export default function JobsList({ jobs, onEditJob }) {
   };
 
   const isOverdue = (job) => {
-    if (!job.due_date || job.status === 'completed') return false;
+    if (!job.due_date || job.status === JOB_STATUS.COMPLETED) return false;
     return new Date(job.due_date) < new Date();
   };
 
@@ -55,11 +56,11 @@ export default function JobsList({ jobs, onEditJob }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les statuts</SelectItem>
-            <SelectItem value="todo">À faire</SelectItem>
-            <SelectItem value="in_progress">En cours</SelectItem>
-            <SelectItem value="review">En révision</SelectItem>
-            <SelectItem value="completed">Terminé</SelectItem>
-            <SelectItem value="archived">Archivé</SelectItem>
+            <SelectItem value={JOB_STATUS.TODO}>À faire</SelectItem>
+            <SelectItem value={JOB_STATUS.IN_PROGRESS}>En cours</SelectItem>
+            <SelectItem value={JOB_STATUS.REVIEW}>En révision</SelectItem>
+            <SelectItem value={JOB_STATUS.COMPLETED}>Terminé</SelectItem>
+            <SelectItem value={JOB_STATUS.ARCHIVED}>Archivé</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterPriority} onValueChange={setFilterPriority}>
@@ -104,10 +105,10 @@ export default function JobsList({ jobs, onEditJob }) {
                       </div>
                     )}
                     <Badge className={statusColors[job.status]}>
-                      {job.status === 'todo' ? 'À faire' :
-                       job.status === 'in_progress' ? 'En cours' :
-                       job.status === 'review' ? 'En révision' :
-                       job.status === 'completed' ? 'Terminé' : 'Archivé'}
+                      {job.status === JOB_STATUS.TODO ? 'À faire' :
+                       job.status === JOB_STATUS.IN_PROGRESS ? 'En cours' :
+                       job.status === JOB_STATUS.REVIEW ? 'En révision' :
+                       job.status === JOB_STATUS.COMPLETED ? 'Terminé' : 'Archivé'}
                     </Badge>
                     <Badge className={priorityColors[job.priority]}>
                       {job.priority}

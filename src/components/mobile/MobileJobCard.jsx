@@ -2,11 +2,11 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  MapPin, 
-  Navigation, 
-  Camera, 
-  FileSignature, 
+import {
+  MapPin,
+  Navigation,
+  Camera,
+  FileSignature,
   Clock,
   CheckCircle,
   PlayCircle,
@@ -18,6 +18,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import PhotoCaptureDialog from "./PhotoCaptureDialog";
 import SignatureCaptureDialog from "./SignatureCaptureDialog";
 import { useTranslation } from "@/components/shared/translations";
+import { JOB_STATUS } from "@/constants/statuses";
 
 export default function MobileJobCard({ job, technician, lang = 'fr', isOnline = true }) {
   const [expanded, setExpanded] = useState(false);
@@ -69,21 +70,21 @@ export default function MobileJobCard({ job, technician, lang = 'fr', isOnline =
   const handleStatusChange = (newStatus) => {
     updateJobMutation.mutate({
       jobId: job.id,
-      data: { 
+      data: {
         status: newStatus,
-        ...(newStatus === 'in_progress' && !job.started_at ? { started_at: new Date().toISOString() } : {}),
-        ...(newStatus === 'completed' ? { completed_at: new Date().toISOString() } : {})
+        ...(newStatus === JOB_STATUS.IN_PROGRESS && !job.started_at ? { started_at: new Date().toISOString() } : {}),
+        ...(newStatus === JOB_STATUS.COMPLETED ? { completed_at: new Date().toISOString() } : {})
       }
     });
   };
 
   const getStatusColor = () => {
     switch (job.status) {
-      case 'in_progress': return 'bg-blue-500';
+      case JOB_STATUS.IN_PROGRESS: return 'bg-blue-500';
       case 'scheduled': return 'bg-orange-500';
       case 'new': return 'bg-slate-500';
       case 'on_hold': return 'bg-yellow-500';
-      case 'review': return 'bg-purple-500';
+      case JOB_STATUS.REVIEW: return 'bg-purple-500';
       default: return 'bg-slate-500';
     }
   };
@@ -156,9 +157,9 @@ export default function MobileJobCard({ job, technician, lang = 'fr', isOnline =
 
           {/* Quick Actions - Large touch targets */}
           <div className="grid grid-cols-2 gap-2 mb-3">
-            {job.status !== 'in_progress' && job.status !== 'completed' && (
+            {job.status !== JOB_STATUS.IN_PROGRESS && job.status !== JOB_STATUS.COMPLETED && (
               <Button
-                onClick={() => handleStatusChange('in_progress')}
+                onClick={() => handleStatusChange(JOB_STATUS.IN_PROGRESS)}
                 className="h-12 bg-green-600 hover:bg-green-700 text-base font-medium"
                 disabled={!isOnline && job.status !== 'scheduled'}
               >
@@ -166,10 +167,10 @@ export default function MobileJobCard({ job, technician, lang = 'fr', isOnline =
                 {lang === 'fr' ? 'Démarrer' : 'Start'}
               </Button>
             )}
-            
-            {job.status === 'in_progress' && (
+
+            {job.status === JOB_STATUS.IN_PROGRESS && (
               <Button
-                onClick={() => handleStatusChange('completed')}
+                onClick={() => handleStatusChange(JOB_STATUS.COMPLETED)}
                 className="h-12 bg-blue-600 hover:bg-blue-700 text-base font-medium col-span-2"
               >
                 <CheckCircle className="w-5 h-5 mr-2" />
@@ -256,7 +257,7 @@ export default function MobileJobCard({ job, technician, lang = 'fr', isOnline =
               )}
 
               {/* Status Change Buttons */}
-              {job.status !== 'completed' && (
+              {job.status !== JOB_STATUS.COMPLETED && (
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   {job.status !== 'on_hold' && (
                     <Button
@@ -270,7 +271,7 @@ export default function MobileJobCard({ job, technician, lang = 'fr', isOnline =
                   )}
                   {job.status === 'on_hold' && (
                     <Button
-                      onClick={() => handleStatusChange('in_progress')}
+                      onClick={() => handleStatusChange(JOB_STATUS.IN_PROGRESS)}
                       variant="outline"
                       className="h-10"
                       disabled={!isOnline}

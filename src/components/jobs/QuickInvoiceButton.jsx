@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { FileText, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { JOB_STATUS, INVOICE_STATUS } from "@/constants/statuses";
 
 export default function QuickInvoiceButton({ job }) {
   const [showPreview, setShowPreview] = useState(false);
@@ -65,7 +66,7 @@ export default function QuickInvoiceButton({ job }) {
         customer_name: jobData.customer_name,
         invoice_date: new Date().toISOString(),
         due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'draft',
+        status: INVOICE_STATUS.DRAFT,
         line_items: lineItems,
         subtotal,
         tps,
@@ -110,7 +111,7 @@ export default function QuickInvoiceButton({ job }) {
     }
   };
 
-  if (job.status !== 'completed' && job.status !== 'review') {
+  if (job.status !== JOB_STATUS.COMPLETED && job.status !== JOB_STATUS.REVIEW) {
     return null;
   }
 
