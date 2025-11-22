@@ -25,6 +25,16 @@ import { MaintenanceSchedulesModule } from './maintenance-schedules/maintenance-
 import { GPSTrackingModule } from './gps-tracking/gps-tracking.module';
 import { GPSZonesModule } from './gps-zones/gps-zones.module';
 import { GPSAlertsModule } from './gps-alerts/gps-alerts.module';
+import { FormTemplatesModule } from './form-templates/form-templates.module';
+import { FormSubmissionsModule } from './form-submissions/form-submissions.module';
+import { FormAutomationsModule } from './form-automations/form-automations.module';
+import { AutomationsModule } from './automations/automations.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { NotificationPreferencesModule } from './notification-preferences/notification-preferences.module';
+import { NotificationTemplatesModule } from './notification-templates/notification-templates.module';
+import { PushSubscriptionsModule } from './push-subscriptions/push-subscriptions.module';
+import { AlertsModule } from './alerts/alerts.module';
+import { ProfitabilityRecordsModule } from './profitability-records/profitability-records.module';
 
 @Module({
   imports: [
@@ -67,6 +77,16 @@ import { GPSAlertsModule } from './gps-alerts/gps-alerts.module';
     GPSTrackingModule,
     GPSZonesModule,
     GPSAlertsModule,
+    FormTemplatesModule,
+    FormSubmissionsModule,
+    FormAutomationsModule,
+    AutomationsModule,
+    NotificationsModule,
+    NotificationPreferencesModule,
+    NotificationTemplatesModule,
+    PushSubscriptionsModule,
+    AlertsModule,
+    ProfitabilityRecordsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
