@@ -181,9 +181,59 @@ export default function Schedule() {
       // Check working hours (if defined)
       if (tech.working_hours) {
         const startHour = newStart.getHours();
+        const startMinute = newStart.getMinutes();
         const endHour = newEnd.getHours();
-        // Placeholder - working_hours structure would need to be defined
-        // Example: { start: 8, end: 17 }
+        const endMinute = newEnd.getMinutes();
+        const dayOfWeek = newStart.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+        const { start, end, days } = tech.working_hours;
+
+        // Check if job is scheduled on a working day
+        if (days && Array.isArray(days) && !days.includes(dayOfWeek)) {
+          const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          conflicts.push({
+            type: 'non_working_day',
+            technician: tech,
+            event: event,
+            message: `${tech.first_name} ${tech.last_name} doesn't work on ${dayNames[dayOfWeek]}s`
+          });
+        }
+
+        // Check if job starts before working hours
+        if (start !== undefined) {
+          const workStartHour = typeof start === 'number' ? start : parseInt(start);
+          const workStartMinute = tech.working_hours.start_minute || 0;
+          const jobStartTime = startHour * 60 + startMinute;
+          const workStartTime = workStartHour * 60 + workStartMinute;
+
+          if (jobStartTime < workStartTime) {
+            const formatTime = (h, m) => `${h}:${m.toString().padStart(2, '0')}`;
+            conflicts.push({
+              type: 'before_hours',
+              technician: tech,
+              event: event,
+              message: `${tech.first_name} ${tech.last_name}'s shift starts at ${formatTime(workStartHour, workStartMinute)}`
+            });
+          }
+        }
+
+        // Check if job ends after working hours
+        if (end !== undefined) {
+          const workEndHour = typeof end === 'number' ? end : parseInt(end);
+          const workEndMinute = tech.working_hours.end_minute || 0;
+          const jobEndTime = endHour * 60 + endMinute;
+          const workEndTime = workEndHour * 60 + workEndMinute;
+
+          if (jobEndTime > workEndTime) {
+            const formatTime = (h, m) => `${h}:${m.toString().padStart(2, '0')}`;
+            conflicts.push({
+              type: 'after_hours',
+              technician: tech,
+              event: event,
+              message: `${tech.first_name} ${tech.last_name}'s shift ends at ${formatTime(workEndHour, workEndMinute)}`
+            });
+          }
+        }
       }
     });
 

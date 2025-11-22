@@ -303,6 +303,82 @@ export default function TechnicianDialog({ open, onClose, onSave, technician }) 
                       ))}
                     </div>
                   </div>
+
+                  {/* Working Hours Configuration */}
+                  <div className="mt-6 pt-6 border-t">
+                    <h4 className="text-sm font-semibold mb-3">Heures de travail</h4>
+
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs text-slate-600">Début (heure)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="23"
+                            value={formData.working_hours?.start || 8}
+                            onChange={(e) => handleChange('working_hours', {
+                              ...formData.working_hours,
+                              start: parseInt(e.target.value)
+                            })}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-slate-600">Fin (heure)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="23"
+                            value={formData.working_hours?.end || 17}
+                            onChange={(e) => handleChange('working_hours', {
+                              ...formData.working_hours,
+                              end: parseInt(e.target.value)
+                            })}
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-slate-600 mb-2 block">Jours de travail</Label>
+                        <div className="grid grid-cols-7 gap-1">
+                          {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((day, index) => {
+                            const days = formData.working_hours?.days || [1, 2, 3, 4, 5];
+                            const isActive = days.includes(index);
+                            return (
+                              <button
+                                key={index}
+                                type="button"
+                                className={`
+                                  h-10 text-xs font-medium rounded transition-all
+                                  ${isActive
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                  }
+                                `}
+                                onClick={() => {
+                                  const currentDays = formData.working_hours?.days || [1, 2, 3, 4, 5];
+                                  const newDays = isActive
+                                    ? currentDays.filter(d => d !== index)
+                                    : [...currentDays, index].sort();
+                                  handleChange('working_hours', {
+                                    ...formData.working_hours,
+                                    days: newDays
+                                  });
+                                }}
+                              >
+                                {day}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {formData.working_hours?.start || 8}:00 - {formData.working_hours?.end || 17}:00
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </TabsContent>
