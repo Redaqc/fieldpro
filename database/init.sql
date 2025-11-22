@@ -287,6 +287,106 @@ BEGIN
   ', schema_name, schema_name);
 
   -- ============================================
+  -- NOTIFICATIONS TABLE
+  -- ============================================
+  EXECUTE format('
+    CREATE TABLE IF NOT EXISTS %I.notifications (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      user_id UUID NOT NULL,
+      type VARCHAR(50) NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      message TEXT NOT NULL,
+      priority VARCHAR(50) DEFAULT ''medium'',
+      entity_type VARCHAR(50),
+      entity_id UUID,
+      action_url VARCHAR(500),
+      metadata JSONB DEFAULT ''{}''::jsonb,
+      is_read BOOLEAN DEFAULT false,
+      read_at TIMESTAMP,
+      sent_at TIMESTAMP,
+      scheduled_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  ', schema_name);
+
+  -- ============================================
+  -- NOTIFICATION PREFERENCES TABLE
+  -- ============================================
+  EXECUTE format('
+    CREATE TABLE IF NOT EXISTS %I.notification_preferences (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      user_id UUID NOT NULL UNIQUE,
+      preferences JSONB NOT NULL DEFAULT ''{}''::jsonb,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  ', schema_name);
+
+  -- ============================================
+  -- TIME ENTRIES TABLE
+  -- ============================================
+  EXECUTE format('
+    CREATE TABLE IF NOT EXISTS %I.time_entries (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      user_id UUID NOT NULL,
+      type VARCHAR(50) NOT NULL,
+      start_time TIMESTAMP NOT NULL,
+      end_time TIMESTAMP,
+      duration_minutes INTEGER,
+      job_id UUID,
+      service_call_id UUID,
+      description TEXT,
+      is_billable BOOLEAN DEFAULT true,
+      hourly_rate DECIMAL(10, 2),
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (job_id) REFERENCES %I.jobs(id) ON DELETE SET NULL,
+      FOREIGN KEY (service_call_id) REFERENCES %I.service_calls(id) ON DELETE SET NULL
+    )
+  ', schema_name, schema_name, schema_name);
+
+  -- ============================================
+  -- FORMS TABLE
+  -- ============================================
+  EXECUTE format('
+    CREATE TABLE IF NOT EXISTS %I.forms (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      category VARCHAR(100) NOT NULL,
+      fields JSONB NOT NULL,
+      require_signature BOOLEAN DEFAULT false,
+      is_active BOOLEAN DEFAULT true,
+      settings JSONB DEFAULT ''{}''::jsonb,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  ', schema_name);
+
+  -- ============================================
+  -- FORM SUBMISSIONS TABLE
+  -- ============================================
+  EXECUTE format('
+    CREATE TABLE IF NOT EXISTS %I.form_submissions (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      form_id UUID NOT NULL,
+      submitted_by UUID NOT NULL,
+      responses JSONB NOT NULL,
+      signature TEXT,
+      job_id UUID,
+      service_call_id UUID,
+      customer_id UUID,
+      metadata JSONB DEFAULT ''{}''::jsonb,
+      submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (form_id) REFERENCES %I.forms(id) ON DELETE CASCADE,
+      FOREIGN KEY (job_id) REFERENCES %I.jobs(id) ON DELETE SET NULL,
+      FOREIGN KEY (service_call_id) REFERENCES %I.service_calls(id) ON DELETE SET NULL,
+      FOREIGN KEY (customer_id) REFERENCES %I.customers(id) ON DELETE SET NULL
+    )
+  ', schema_name, schema_name, schema_name, schema_name, schema_name);
+
+  -- ============================================
   -- INDEXES
   -- ============================================
   EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_customers_email ON %I.customers(email)', schema_name, schema_name);
@@ -298,6 +398,20 @@ BEGIN
   EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_invoices_customer ON %I.invoices(customer_id)', schema_name, schema_name);
   EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_quotations_customer ON %I.quotations(customer_id)', schema_name, schema_name);
   EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_activities_entity ON %I.activities(entity_type, entity_id)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_notifications_user ON %I.notifications(user_id)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_notifications_is_read ON %I.notifications(user_id, is_read)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_notification_preferences_user ON %I.notification_preferences(user_id)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_time_entries_user ON %I.time_entries(user_id)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_time_entries_job ON %I.time_entries(job_id)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_time_entries_service_call ON %I.time_entries(service_call_id)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_time_entries_start_time ON %I.time_entries(start_time)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_forms_category ON %I.forms(category)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_forms_is_active ON %I.forms(is_active)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_form_submissions_form ON %I.form_submissions(form_id)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_form_submissions_submitted_by ON %I.form_submissions(submitted_by)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_form_submissions_job ON %I.form_submissions(job_id)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_form_submissions_service_call ON %I.form_submissions(service_call_id)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_form_submissions_customer ON %I.form_submissions(customer_id)', schema_name, schema_name);
 
   -- Reset search path
   EXECUTE 'SET search_path TO public';

@@ -17,6 +17,9 @@ import { QuotationsModule } from './quotations/quotations.module';
 import { TechniciansModule } from './technicians/technicians.module';
 import { MaterialsModule } from './materials/materials.module';
 import { AssetsModule } from './assets/assets.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { TimeTrackingModule } from './time-tracking/time-tracking.module';
+import { FormsModule } from './forms/forms.module';
 import { HealthModule } from './health/health.module';
 
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
@@ -87,6 +90,9 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     TechniciansModule,
     MaterialsModule,
     AssetsModule,
+    NotificationsModule,
+    TimeTrackingModule,
+    FormsModule,
     HealthModule,
   ],
 })
