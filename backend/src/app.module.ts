@@ -17,6 +17,7 @@ import { TimeEntriesModule } from './time-entries/time-entries.module';
 import { AssetsModule } from './assets/assets.module';
 import { QuotationsModule } from './quotations/quotations.module';
 import { WorkTypesModule } from './work-types/work-types.module';
+import { RecurringJobsModule } from './recurring-jobs/recurring-jobs.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { WorkTypesModule } from './work-types/work-types.module';
     AssetsModule,
     QuotationsModule,
     WorkTypesModule,
+    RecurringJobsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
