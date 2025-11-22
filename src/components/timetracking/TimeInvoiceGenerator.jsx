@@ -28,11 +28,26 @@ export default function TimeInvoiceGenerator({ entries, technicians, jobs, lang 
   // Filter entries based on selection
   const filteredEntries = useMemo(() => {
     return entries.filter(entry => {
+      /**
+       * AUDIT FIX: High Priority Issue #11 - Time Entry Invoice Tracking
+       * Filter out entries that have already been invoiced to prevent double billing
+       */
       const matchesJob = !selectedJob || entry.job_id === selectedJob;
       const matchesTech = !selectedTechnician || entry.technician_id === selectedTechnician;
       const isCompleted = entry.status === 'completed' || entry.status === 'approved';
-      return matchesJob && matchesTech && isCompleted;
+      const notInvoiced = !entry.invoice_id; // CRITICAL: Prevent double billing
+      return matchesJob && matchesTech && isCompleted && notInvoiced;
     });
+  }, [entries, selectedJob, selectedTechnician]);
+
+  // Count already invoiced entries for information
+  const invoicedEntriesCount = useMemo(() => {
+    return entries.filter(entry => {
+      const matchesJob = !selectedJob || entry.job_id === selectedJob;
+      const matchesTech = !selectedTechnician || entry.technician_id === selectedTechnician;
+      const isInvoiced = !!entry.invoice_id;
+      return matchesJob && matchesTech && isInvoiced;
+    }).length;
   }, [entries, selectedJob, selectedTechnician]);
 
   // Calculate totals
@@ -120,11 +135,29 @@ export default function TimeInvoiceGenerator({ entries, technicians, jobs, lang 
         notes: `${lang === 'fr' ? 'Facture générée depuis' : 'Invoice generated from'} ${selectedEntries.size} ${lang === 'fr' ? 'entrées de temps' : 'time entries'}`
       });
 
+      /**
+       * AUDIT FIX: High Priority Issue #11 - Time Entry Invoice Tracking
+       * Mark time entries as invoiced by setting invoice_id to prevent double billing
+       */
       // Update time entries as invoiced
+      const user = await base44.auth.me();
       for (const entryId of selectedEntries) {
+        const entry = entries.find(e => e.id === entryId);
         await base44.entities.TimeEntry.update(entryId, {
           status: 'approved',
-          notes: `${lang === 'fr' ? 'Facturé' : 'Invoiced'} - ${invoice.invoice_number || invoice.id}`
+          invoice_id: invoice.id,
+          invoice_number: invoice.invoice_number || invoice.id,
+          invoiced_at: new Date().toISOString(),
+          notes: entry.notes ? `${entry.notes}\n${lang === 'fr' ? 'Facturé' : 'Invoiced'} - ${invoice.invoice_number || invoice.id}` : `${lang === 'fr' ? 'Facturé' : 'Invoiced'} - ${invoice.invoice_number || invoice.id}`,
+          activity_log: [
+            ...(entry.activity_log || []),
+            {
+              timestamp: new Date().toISOString(),
+              action: 'invoiced',
+              details: `Time entry added to invoice ${invoice.invoice_number || invoice.id}`,
+              user: user.email
+            }
+          ]
         });
       }
 
@@ -210,11 +243,19 @@ export default function TimeInvoiceGenerator({ entries, technicians, jobs, lang 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">
-              {lang === 'fr' ? 'Sélectionner les entrées à facturer' : 'Select Entries to Invoice'}
-            </CardTitle>
+            <div>
+              <CardTitle className="text-lg">
+                {lang === 'fr' ? 'Sélectionner les entrées à facturer' : 'Select Entries to Invoice'}
+              </CardTitle>
+              {/* AUDIT FIX: High Priority Issue #11 - Show invoiced entries count */}
+              {invoicedEntriesCount > 0 && (
+                <p className="text-xs text-slate-500 mt-1">
+                  {invoicedEntriesCount} {lang === 'fr' ? 'entrée(s) déjà facturée(s) (masquée(s))' : 'entry/entries already invoiced (hidden)'}
+                </p>
+              )}
+            </div>
             <Button onClick={toggleAll} variant="outline" size="sm">
-              {selectedEntries.size === filteredEntries.length 
+              {selectedEntries.size === filteredEntries.length
                 ? (lang === 'fr' ? 'Tout désélectionner' : 'Deselect All')
                 : (lang === 'fr' ? 'Tout sélectionner' : 'Select All')}
             </Button>
