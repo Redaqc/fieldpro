@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Download, TrendingUp, TrendingDown, DollarSign, Percent } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { format, startOfMonth, endOfMonth, parseISO, isWithinInterval } from "date-fns";
+import { JOB_STATUS } from "@/constants/statuses";
 
 export default function ProfitabilityReports() {
   const [dateRange, setDateRange] = useState({
@@ -44,10 +45,10 @@ export default function ProfitabilityReports() {
 
     return jobs.filter(job => {
       if (selectedStatus !== 'all' && job.status !== selectedStatus) return false;
-      
-      const jobDate = job.completed_at ? parseISO(job.completed_at) : 
+
+      const jobDate = job.completed_at ? parseISO(job.completed_at) :
                       job.created_date ? parseISO(job.created_date) : new Date();
-      
+
       return isWithinInterval(jobDate, { start, end });
     }).map(job => {
       const revenue = job.invoice_total || 0;
@@ -207,9 +208,9 @@ export default function ProfitabilityReports() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les statuts</SelectItem>
-                  <SelectItem value="completed">Terminé</SelectItem>
-                  <SelectItem value="in_progress">En cours</SelectItem>
-                  <SelectItem value="todo">À faire</SelectItem>
+                  <SelectItem value={JOB_STATUS.COMPLETED}>Terminé</SelectItem>
+                  <SelectItem value={JOB_STATUS.IN_PROGRESS}>En cours</SelectItem>
+                  <SelectItem value={JOB_STATUS.TODO}>À faire</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -425,8 +426,8 @@ export default function ProfitabilityReports() {
                       <td className="p-3 font-medium">{job.title}</td>
                       <td className="p-3">
                         <span className={`px-2 py-1 rounded text-xs ${
-                          job.status === 'completed' ? 'bg-green-100 text-green-700' :
-                          job.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                          job.status === JOB_STATUS.COMPLETED ? 'bg-green-100 text-green-700' :
+                          job.status === JOB_STATUS.IN_PROGRESS ? 'bg-blue-100 text-blue-700' :
                           'bg-slate-100 text-slate-700'
                         }`}>
                           {job.status}

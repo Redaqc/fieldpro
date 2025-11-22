@@ -3,8 +3,8 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  TrendingUp, 
+import {
+  TrendingUp,
   DollarSign,
   AlertTriangle,
   CheckCircle,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
+import { JOB_STATUS } from "@/constants/statuses";
 
 export default function ManagerDashboard() {
   const [timeRange, setTimeRange] = useState('month');
@@ -57,13 +58,13 @@ export default function ManagerDashboard() {
 
   // KPIs Calculation
   const kpis = useMemo(() => {
-    const completedJobs = jobs.filter(j => j.status === 'completed').length;
+    const completedJobs = jobs.filter(j => j.status === JOB_STATUS.COMPLETED).length;
     const totalJobs = jobs.length;
     const completionRate = totalJobs > 0 ? (completedJobs / totalJobs) * 100 : 0;
 
-    const onTimeJobs = jobs.filter(j => 
-      j.status === 'completed' && 
-      j.completed_at && 
+    const onTimeJobs = jobs.filter(j =>
+      j.status === JOB_STATUS.COMPLETED &&
+      j.completed_at &&
       j.due_date &&
       new Date(j.completed_at) <= new Date(j.due_date)
     ).length;
@@ -93,10 +94,10 @@ export default function ManagerDashboard() {
   // Technician performance
   const techPerformance = useMemo(() => {
     return technicians.map(tech => {
-      const techJobs = jobs.filter(j => 
+      const techJobs = jobs.filter(j =>
         j.technicians?.some(t => t.id === tech.id)
       );
-      const completed = techJobs.filter(j => j.status === 'completed').length;
+      const completed = techJobs.filter(j => j.status === JOB_STATUS.COMPLETED).length;
       const hours = techJobs.reduce((sum, j) => {
         const techData = j.technicians.find(t => t.id === tech.id);
         return sum + (techData?.time_spent || 0);
@@ -135,11 +136,10 @@ export default function ManagerDashboard() {
   // Job status distribution
   const statusDistribution = useMemo(() => {
     const statuses = {
-      'new': 0,
-      'scheduled': 0,
-      'in_progress': 0,
-      'review': 0,
-      'completed': 0
+      [JOB_STATUS.SCHEDULED]: 0,
+      [JOB_STATUS.IN_PROGRESS]: 0,
+      [JOB_STATUS.REVIEW]: 0,
+      [JOB_STATUS.COMPLETED]: 0
     };
 
     jobs.forEach(job => {

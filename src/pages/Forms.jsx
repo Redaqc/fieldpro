@@ -15,6 +15,15 @@ import { fr } from "date-fns/locale";
 import FormFillDialog from "@/components/forms/FormFillDialog";
 import SubmissionDetailDialog from "@/components/forms/SubmissionDetailDialog";
 
+// Note: Form submission statuses don't have a dedicated constant set yet
+// Using string literals: 'draft', 'submitted', 'reviewed', 'approved'
+const FORM_SUBMISSION_STATUS = {
+  DRAFT: 'draft',
+  SUBMITTED: 'submitted',
+  REVIEWED: 'reviewed',
+  APPROVED: 'approved'
+};
+
 export default function Forms() {
   const [activeTab, setActiveTab] = useState('templates');
   const [searchTerm, setSearchTerm] = useState('');
@@ -103,9 +112,9 @@ export default function Forms() {
 
   const submissionStats = {
     total: submissions.length,
-    submitted: submissions.filter(s => s.status === 'submitted').length,
-    reviewed: submissions.filter(s => s.status === 'reviewed').length,
-    approved: submissions.filter(s => s.status === 'approved').length,
+    submitted: submissions.filter(s => s.status === FORM_SUBMISSION_STATUS.SUBMITTED).length,
+    reviewed: submissions.filter(s => s.status === FORM_SUBMISSION_STATUS.REVIEWED).length,
+    approved: submissions.filter(s => s.status === FORM_SUBMISSION_STATUS.APPROVED).length,
   };
 
   const getCategoryColor = (category) => {
@@ -126,10 +135,10 @@ export default function Forms() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'draft': return 'bg-slate-100 text-slate-700';
-      case 'submitted': return 'bg-blue-100 text-blue-700';
-      case 'reviewed': return 'bg-purple-100 text-purple-700';
-      case 'approved': return 'bg-green-100 text-green-700';
+      case FORM_SUBMISSION_STATUS.DRAFT: return 'bg-slate-100 text-slate-700';
+      case FORM_SUBMISSION_STATUS.SUBMITTED: return 'bg-blue-100 text-blue-700';
+      case FORM_SUBMISSION_STATUS.REVIEWED: return 'bg-purple-100 text-purple-700';
+      case FORM_SUBMISSION_STATUS.APPROVED: return 'bg-green-100 text-green-700';
       default: return 'bg-slate-100 text-slate-700';
     }
   };
@@ -331,10 +340,10 @@ export default function Forms() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tous statuts</SelectItem>
-                    <SelectItem value="draft">Brouillon</SelectItem>
-                    <SelectItem value="submitted">Soumis</SelectItem>
-                    <SelectItem value="reviewed">Révisé</SelectItem>
-                    <SelectItem value="approved">Approuvé</SelectItem>
+                    <SelectItem value={FORM_SUBMISSION_STATUS.DRAFT}>Brouillon</SelectItem>
+                    <SelectItem value={FORM_SUBMISSION_STATUS.SUBMITTED}>Soumis</SelectItem>
+                    <SelectItem value={FORM_SUBMISSION_STATUS.REVIEWED}>Révisé</SelectItem>
+                    <SelectItem value={FORM_SUBMISSION_STATUS.APPROVED}>Approuvé</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={dateFilter} onValueChange={setDateFilter}>
@@ -370,10 +379,10 @@ export default function Forms() {
                         <div className="flex items-center gap-3">
                           <h3 className="text-lg font-semibold text-slate-900">{submission.form_name}</h3>
                           <Badge className={getStatusColor(submission.status)}>
-                            {submission.status === 'draft' ? 'Brouillon' :
-                             submission.status === 'submitted' ? 'Soumis' :
-                             submission.status === 'reviewed' ? 'Révisé' :
-                             submission.status === 'approved' ? 'Approuvé' : submission.status}
+                            {submission.status === FORM_SUBMISSION_STATUS.DRAFT ? 'Brouillon' :
+                             submission.status === FORM_SUBMISSION_STATUS.SUBMITTED ? 'Soumis' :
+                             submission.status === FORM_SUBMISSION_STATUS.REVIEWED ? 'Révisé' :
+                             submission.status === FORM_SUBMISSION_STATUS.APPROVED ? 'Approuvé' : submission.status}
                           </Badge>
                         </div>
 

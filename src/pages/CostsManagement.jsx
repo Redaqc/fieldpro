@@ -13,6 +13,7 @@ import { Plus, FileText, Download, Search, DollarSign, Calendar, Edit, Trash2, U
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { BarChart, Bar, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { INVOICE_STATUS } from "@/constants/statuses";
 
 const CATEGORY_COLORS = {
   materials: '#3b82f6',
@@ -103,8 +104,8 @@ export default function CostsManagement() {
   });
 
   const totalAmount = filteredInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
-  const pendingAmount = filteredInvoices.filter(inv => inv.status === 'pending').reduce((sum, inv) => sum + (inv.amount || 0), 0);
-  const paidAmount = filteredInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + (inv.amount || 0), 0);
+  const pendingAmount = filteredInvoices.filter(inv => inv.status === INVOICE_STATUS.SENT).reduce((sum, inv) => sum + (inv.amount || 0), 0);
+  const paidAmount = filteredInvoices.filter(inv => inv.status === INVOICE_STATUS.PAID).reduce((sum, inv) => sum + (inv.amount || 0), 0);
 
   // Data for visualizations
   const costsByCategory = useMemo(() => {
@@ -382,12 +383,12 @@ export default function CostsManagement() {
                       <td className="p-3 text-right font-semibold">${invoice.amount.toFixed(2)}</td>
                       <td className="p-3">
                         <span className={`px-2 py-1 rounded text-xs ${
-                          invoice.status === 'paid' ? 'bg-green-100 text-green-700' :
-                          invoice.status === 'overdue' ? 'bg-red-100 text-red-700' :
+                          invoice.status === INVOICE_STATUS.PAID ? 'bg-green-100 text-green-700' :
+                          invoice.status === INVOICE_STATUS.OVERDUE ? 'bg-red-100 text-red-700' :
                           'bg-orange-100 text-orange-700'
                         }`}>
-                          {invoice.status === 'paid' ? 'Payé' :
-                           invoice.status === 'overdue' ? 'En retard' : 'En attente'}
+                          {invoice.status === INVOICE_STATUS.PAID ? 'Payé' :
+                           invoice.status === INVOICE_STATUS.OVERDUE ? 'En retard' : 'En attente'}
                         </span>
                       </td>
                       <td className="p-3">
@@ -630,7 +631,7 @@ function InvoiceDialog({ open, onClose, invoice, jobs, onSave }) {
     due_date: '',
     amount: 0,
     category: 'materials',
-    status: 'pending',
+    status: INVOICE_STATUS.SENT,
     notes: '',
     attachment_url: '',
   });
@@ -650,7 +651,7 @@ function InvoiceDialog({ open, onClose, invoice, jobs, onSave }) {
         due_date: '',
         amount: 0,
         category: 'materials',
-        status: 'pending',
+        status: INVOICE_STATUS.SENT,
         notes: '',
         attachment_url: '',
       });
@@ -792,9 +793,9 @@ function InvoiceDialog({ open, onClose, invoice, jobs, onSave }) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">En attente</SelectItem>
-                  <SelectItem value="paid">Payé</SelectItem>
-                  <SelectItem value="overdue">En retard</SelectItem>
+                  <SelectItem value={INVOICE_STATUS.SENT}>En attente</SelectItem>
+                  <SelectItem value={INVOICE_STATUS.PAID}>Payé</SelectItem>
+                  <SelectItem value={INVOICE_STATUS.OVERDUE}>En retard</SelectItem>
                 </SelectContent>
               </Select>
             </div>

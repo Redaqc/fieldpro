@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { 
-  BarChart, Bar, PieChart, Pie, Cell, 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
+import {
+  BarChart, Bar, PieChart, Pie, Cell,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 import { Download, TrendingUp, DollarSign, Users, Briefcase } from "lucide-react";
 import { format, subDays, eachDayOfInterval } from "date-fns";
+import { JOB_STATUS, INVOICE_STATUS } from "@/constants/statuses";
 
 export default function BIDashboard() {
   const [dateRange, setDateRange] = useState({
@@ -56,26 +57,26 @@ export default function BIDashboard() {
 
   // Revenue over time
   const revenueTimeline = useMemo(() => {
-    const days = eachDayOfInterval({ 
-      start: new Date(dateRange.start), 
-      end: new Date(dateRange.end) 
+    const days = eachDayOfInterval({
+      start: new Date(dateRange.start),
+      end: new Date(dateRange.end)
     });
 
     return days.map(day => {
       const dayStr = format(day, 'MMM dd');
       const dayRevenue = filteredData.invoices
-        .filter(i => i.status === 'paid' && format(new Date(i.paid_date || i.invoice_date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'))
+        .filter(i => i.status === INVOICE_STATUS.PAID && format(new Date(i.paid_date || i.invoice_date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'))
         .reduce((sum, i) => sum + (i.total || 0), 0);
-      
+
       return { date: dayStr, revenue: dayRevenue };
     });
   }, [filteredData, dateRange]);
 
   // Jobs by status
   const jobsByStatus = useMemo(() => {
-    const statuses = ['todo', 'in_progress', 'review', 'completed'];
-    const colors = { todo: '#94a3b8', in_progress: '#3b82f6', review: '#8b5cf6', completed: '#10b981' };
-    
+    const statuses = [JOB_STATUS.TODO, JOB_STATUS.IN_PROGRESS, JOB_STATUS.REVIEW, JOB_STATUS.COMPLETED];
+    const colors = { [JOB_STATUS.TODO]: '#94a3b8', [JOB_STATUS.IN_PROGRESS]: '#3b82f6', [JOB_STATUS.REVIEW]: '#8b5cf6', [JOB_STATUS.COMPLETED]: '#10b981' };
+
     return statuses.map(status => ({
       name: status.replace('_', ' '),
       value: filteredData.jobs.filter(j => j.status === status).length,
@@ -87,11 +88,11 @@ export default function BIDashboard() {
   const techPerformance = useMemo(() => {
     return technicians.slice(0, 10).map(tech => {
       const techJobs = filteredData.jobs.filter(j => j.technicians?.some(t => t.id === tech.id));
-      const completed = techJobs.filter(j => j.status === 'completed').length;
+      const completed = techJobs.filter(j => j.status === JOB_STATUS.COMPLETED).length;
       const revenue = filteredData.invoices
         .filter(inv => {
           const job = jobs.find(j => j.id === inv.job_id);
-          return job?.technicians?.some(t => t.id === tech.id) && inv.status === 'paid';
+          return job?.technicians?.some(t => t.id === tech.id) && inv.status === INVOICE_STATUS.PAID;
         })
         .reduce((sum, i) => sum + (i.total || 0), 0);
 
@@ -107,7 +108,7 @@ export default function BIDashboard() {
   // Customer lifetime value
   const topCustomers = useMemo(() => {
     return customers.map(customer => {
-      const customerInvoices = filteredData.invoices.filter(i => i.customer_id === customer.id && i.status === 'paid');
+      const customerInvoices = filteredData.invoices.filter(i => i.customer_id === customer.id && i.status === INVOICE_STATUS.PAID);
       const ltv = customerInvoices.reduce((sum, i) => sum + (i.total || 0), 0);
       
       return {
@@ -121,15 +122,15 @@ export default function BIDashboard() {
   // KPIs
   const kpis = useMemo(() => {
     const totalRevenue = filteredData.invoices
-      .filter(i => i.status === 'paid')
+      .filter(i => i.status === INVOICE_STATUS.PAID)
       .reduce((sum, i) => sum + (i.total || 0), 0);
-    
-    const avgJobValue = filteredData.jobs.length > 0 
-      ? totalRevenue / filteredData.jobs.length 
+
+    const avgJobValue = filteredData.jobs.length > 0
+      ? totalRevenue / filteredData.jobs.length
       : 0;
 
     const completionRate = filteredData.jobs.length > 0
-      ? (filteredData.jobs.filter(j => j.status === 'completed').length / filteredData.jobs.length * 100)
+      ? (filteredData.jobs.filter(j => j.status === JOB_STATUS.COMPLETED).length / filteredData.jobs.length * 100)
       : 0;
 
     return {
