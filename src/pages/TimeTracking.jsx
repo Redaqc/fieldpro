@@ -100,8 +100,24 @@ export default function TimeTracking() {
 
   const clockInMutation = useMutation({
     mutationFn: async (technicianId) => {
+      /**
+       * AUDIT FIX: High Priority Issue #9 - Prevent Duplicate Clock-Ins
+       * Check for existing active time entry before allowing clock-in
+       */
       const tech = technicians.find(t => t.id === technicianId);
-      
+
+      // VALIDATION: Check if technician already has an active entry (not clocked out)
+      const activeEntries = await base44.entities.TimeEntry.filter({
+        technician_id: technicianId,
+        clock_out: null
+      });
+
+      if (activeEntries && activeEntries.length > 0) {
+        throw new Error(
+          `${tech.first_name} ${tech.last_name} est déjà pointé. Veuillez pointer la sortie avant de pointer à nouveau.`
+        );
+      }
+
       return new Promise((resolve, reject) => {
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
