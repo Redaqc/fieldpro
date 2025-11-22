@@ -35,6 +35,8 @@ import { NotificationTemplatesModule } from './notification-templates/notificati
 import { PushSubscriptionsModule } from './push-subscriptions/push-subscriptions.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { ProfitabilityRecordsModule } from './profitability-records/profitability-records.module';
+import { DocumentsModule } from './documents/documents.module';
+import { CustomerFeedbackModule } from './customer-feedback/customer-feedback.module';
 
 @Module({
   imports: [
@@ -87,6 +89,8 @@ import { ProfitabilityRecordsModule } from './profitability-records/profitabilit
     PushSubscriptionsModule,
     AlertsModule,
     ProfitabilityRecordsModule,
+    DocumentsModule,
+    CustomerFeedbackModule,
   ],
   controllers: [AppController],
   providers: [AppService],
