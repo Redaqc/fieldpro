@@ -26,14 +26,25 @@ export default function TimeEntryDialog({ open, onClose, onSave, entry, technici
   const handleChange = (field, value) => {
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
-      
+
+      /**
+       * AUDIT FIX: High Priority Issue #15 - Validate Break Times
+       * Ensure break time cannot exceed total worked time
+       */
       // Calculate total hours when clock_in or clock_out changes
       if ((field === 'clock_in' || field === 'clock_out' || field === 'break_minutes') && updated.clock_in && updated.clock_out) {
         const totalMinutes = differenceInMinutes(new Date(updated.clock_out), new Date(updated.clock_in));
+
+        // VALIDATION: Prevent break time from exceeding total time
+        if (field === 'break_minutes' && value > totalMinutes) {
+          alert(`Le temps de pause (${value} min) ne peut pas dépasser le temps total travaillé (${totalMinutes} min)`);
+          return prev; // Don't update if invalid
+        }
+
         const totalHours = ((totalMinutes - (updated.break_minutes || 0)) / 60).toFixed(2);
         updated.total_hours = parseFloat(totalHours);
       }
-      
+
       return updated;
     });
   };
