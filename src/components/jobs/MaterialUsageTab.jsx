@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function MaterialUsageTab({ job }) {
   const [adding, setAdding] = useState(false);
+  const [error, setError] = useState(null);
   const [newUsage, setNewUsage] = useState({
     material_id: '',
     quantity: 1,
@@ -27,9 +28,21 @@ export default function MaterialUsageTab({ job }) {
 
   const addUsageMutation = useMutation({
     mutationFn: async (usage) => {
+      /**
+       * AUDIT FIX: Critical Issue #4 - Inventory Quantity Validation
+       * Prevent negative inventory by checking stock before assignment
+       */
       const material = materials.find(m => m.id === usage.material_id);
+
+      // VALIDATION: Check if sufficient inventory is available
+      if (material.quantity < usage.quantity) {
+        throw new Error(
+          `Insufficient inventory: ${material.name} has only ${material.quantity} units available, but ${usage.quantity} units were requested.`
+        );
+      }
+
       const cost = material.unit_cost * usage.quantity;
-      
+
       const updatedUsages = [
         ...materialUsages,
         {
@@ -59,7 +72,7 @@ export default function MaterialUsageTab({ job }) {
         ]
       });
 
-      // Decrement material inventory
+      // Decrement material inventory (now safe after validation)
       await base44.entities.Material.update(material.id, {
         quantity: material.quantity - usage.quantity
       });
@@ -68,7 +81,11 @@ export default function MaterialUsageTab({ job }) {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['materials'] });
       setAdding(false);
+      setError(null);
       setNewUsage({ material_id: '', quantity: 1, notes: '' });
+    },
+    onError: (error) => {
+      setError(error.message);
     },
   });
 
@@ -153,9 +170,19 @@ export default function MaterialUsageTab({ job }) {
               />
             </div>
 
+            {/* Error Message Display */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">
+                <strong>Error:</strong> {error}
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Button
-                onClick={() => addUsageMutation.mutate(newUsage)}
+                onClick={() => {
+                  setError(null);
+                  addUsageMutation.mutate(newUsage);
+                }}
                 disabled={!newUsage.material_id || addUsageMutation.isPending}
                 className="flex-1"
               >
@@ -165,6 +192,7 @@ export default function MaterialUsageTab({ job }) {
                 variant="outline"
                 onClick={() => {
                   setAdding(false);
+                  setError(null);
                   setNewUsage({ material_id: '', quantity: 1, notes: '' });
                 }}
               >

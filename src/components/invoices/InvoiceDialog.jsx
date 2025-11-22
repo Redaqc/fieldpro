@@ -205,12 +205,32 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
   };
 
   const addMaterial = (material) => {
+    /**
+     * AUDIT FIX: Critical Issue #4 - Inventory Quantity Validation
+     * Check inventory availability before adding material to invoice
+     */
+    // VALIDATION: Check if material has any inventory available
+    if (!material.quantity || material.quantity <= 0) {
+      alert(`Cannot add material: ${material.name} is out of stock (${material.quantity || 0} units available).`);
+      return;
+    }
+
+    // Show warning if adding would exceed available quantity
+    if (material.quantity < 1) {
+      const confirm = window.confirm(
+        `Warning: ${material.name} has only ${material.quantity} units in stock. Do you want to add it anyway?`
+      );
+      if (!confirm) return;
+    }
+
     addItem({
       description: material.name,
       quantity: 1,
       unit_price: material.unit_price,
       total: material.unit_price,
-      type: "item"
+      type: "item",
+      material_id: material.id, // Track material ID for future inventory deduction
+      available_quantity: material.quantity // Track available quantity at time of addition
     });
   };
 
@@ -234,12 +254,24 @@ export default function InvoiceDialog({ open, onClose, onSave, invoice, customer
 
   const updateLineItem = (index, field, value) => {
     const newItems = [...formData.line_items];
+    const item = newItems[index];
+
+    // VALIDATION: Check inventory quantity for material items
+    if (field === 'quantity' && item.material_id && item.available_quantity !== undefined) {
+      if (value > item.available_quantity) {
+        const proceed = window.confirm(
+          `Warning: You're requesting ${value} units but only ${item.available_quantity} units are available in inventory. Do you want to proceed anyway?`
+        );
+        if (!proceed) return; // Don't update if user cancels
+      }
+    }
+
     newItems[index] = { ...newItems[index], [field]: value };
-    
+
     if (field === 'quantity' || field === 'unit_price') {
       newItems[index].total = (newItems[index].quantity || 0) * (newItems[index].unit_price || 0);
     }
-    
+
     setFormData(prev => ({ ...prev, line_items: newItems }));
     calculateTotals(newItems);
   };

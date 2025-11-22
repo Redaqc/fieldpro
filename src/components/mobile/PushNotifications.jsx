@@ -2,11 +2,28 @@ import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Bell, BellOff } from "lucide-react";
+import { Bell, BellOff, AlertCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+
+/**
+ * AUDIT FIX: Critical Issue #1 (Frontend)
+ * - Added proper error handling
+ * - Added user_email to subscription payload
+ * - Added loading and error states
+ * - Added user-friendly error messages
+ */
 
 export default function PushNotifications() {
   const [permission, setPermission] = useState('default');
   const [supported, setSupported] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Get current user
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
 
   useEffect(() => {
     if ('Notification' in window) {
@@ -17,11 +34,20 @@ export default function PushNotifications() {
 
   const requestPermission = async () => {
     if (!supported) {
-      alert('Push notifications not supported');
+      setError('Push notifications are not supported on this device/browser');
       return;
     }
 
+    if (!user?.email) {
+      setError('User not authenticated. Please log in to enable notifications.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
     try {
+      // Request notification permission
       const result = await Notification.requestPermission();
       setPermission(result);
 
@@ -29,23 +55,38 @@ export default function PushNotifications() {
         // Register service worker for push notifications
         if ('serviceWorker' in navigator) {
           const registration = await navigator.serviceWorker.register('/sw.js');
-          
+
           // Subscribe to push notifications
           const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(
-              Deno.env.get('VAPID_PUBLIC_KEY') || ''
+              import.meta.env.VITE_VAPID_PUBLIC_KEY || ''
             )
           });
 
-          // Save subscription to backend
-          await base44.functions.invoke('savePushSubscription', {
-            subscription: subscription.toJSON()
+          // Save subscription to backend with user email
+          const response = await base44.functions.invoke('savePushSubscription', {
+            subscription: subscription.toJSON(),
+            user_email: user.email
           });
+
+          if (!response.success) {
+            throw new Error(response.error || 'Failed to save subscription');
+          }
+
+          setError(null);
         }
+      } else if (result === 'denied') {
+        setError('Notification permission was denied. Please enable in browser settings.');
       }
-    } catch (error) {
-      console.error('Failed to enable notifications:', error);
+    } catch (err) {
+      console.error('[PushNotifications] Failed to enable notifications:', err);
+      setError(
+        err.message ||
+        'Failed to enable push notifications. Please try again or contact support.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,24 +110,37 @@ export default function PushNotifications() {
   return (
     <Card>
       <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {permission === 'granted' ? (
-              <Bell className="w-5 h-5 text-green-600" />
-            ) : (
-              <BellOff className="w-5 h-5 text-slate-400" />
-            )}
-            <div>
-              <p className="font-medium text-sm">Push Notifications</p>
-              <p className="text-xs text-slate-500">
-                {permission === 'granted' ? 'Enabled' : 'Disabled'}
-              </p>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {permission === 'granted' ? (
+                <Bell className="w-5 h-5 text-green-600" />
+              ) : (
+                <BellOff className="w-5 h-5 text-slate-400" />
+              )}
+              <div>
+                <p className="font-medium text-sm">Push Notifications</p>
+                <p className="text-xs text-slate-500">
+                  {permission === 'granted' ? 'Enabled' : 'Disabled'}
+                </p>
+              </div>
             </div>
+            {permission !== 'granted' && (
+              <Button
+                size="sm"
+                onClick={requestPermission}
+                disabled={loading || !user}
+              >
+                {loading ? 'Enabling...' : 'Enable'}
+              </Button>
+            )}
           </div>
-          {permission !== 'granted' && (
-            <Button size="sm" onClick={requestPermission}>
-              Enable
-            </Button>
+
+          {error && (
+            <div className="flex items-start gap-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <p>{error}</p>
+            </div>
           )}
         </div>
       </CardContent>
