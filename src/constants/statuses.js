@@ -14,28 +14,40 @@
 // ============================================================================
 
 export const JOB_STATUS = {
+  NEW: 'new',
   TODO: 'todo',
+  SCHEDULED: 'scheduled',
   IN_PROGRESS: 'in_progress',
+  ON_HOLD: 'on_hold',
   REVIEW: 'review',
   COMPLETED: 'completed',
+  INVOICED: 'invoiced',
   ARCHIVED: 'archived',
   CANCELLED: 'cancelled'
 };
 
 export const JOB_STATUS_LABELS = {
+  [JOB_STATUS.NEW]: 'New',
   [JOB_STATUS.TODO]: 'To Do',
+  [JOB_STATUS.SCHEDULED]: 'Scheduled',
   [JOB_STATUS.IN_PROGRESS]: 'In Progress',
+  [JOB_STATUS.ON_HOLD]: 'On Hold',
   [JOB_STATUS.REVIEW]: 'Under Review',
   [JOB_STATUS.COMPLETED]: 'Completed',
+  [JOB_STATUS.INVOICED]: 'Invoiced',
   [JOB_STATUS.ARCHIVED]: 'Archived',
   [JOB_STATUS.CANCELLED]: 'Cancelled'
 };
 
 export const JOB_STATUS_COLORS = {
+  [JOB_STATUS.NEW]: 'bg-cyan-100 text-cyan-700',
   [JOB_STATUS.TODO]: 'bg-slate-100 text-slate-700',
+  [JOB_STATUS.SCHEDULED]: 'bg-indigo-100 text-indigo-700',
   [JOB_STATUS.IN_PROGRESS]: 'bg-blue-100 text-blue-700',
+  [JOB_STATUS.ON_HOLD]: 'bg-orange-100 text-orange-700',
   [JOB_STATUS.REVIEW]: 'bg-purple-100 text-purple-700',
   [JOB_STATUS.COMPLETED]: 'bg-green-100 text-green-700',
+  [JOB_STATUS.INVOICED]: 'bg-emerald-100 text-emerald-700',
   [JOB_STATUS.ARCHIVED]: 'bg-gray-100 text-gray-700',
   [JOB_STATUS.CANCELLED]: 'bg-red-100 text-red-700'
 };
@@ -254,24 +266,30 @@ export const CUSTOMER_STATUS_COLORS = {
 
 export const TECHNICIAN_STATUS = {
   AVAILABLE: 'available',
+  BUSY: 'busy',
   ON_BREAK: 'on_break',
   ON_JOB: 'on_job',
+  OFF_DUTY: 'off_duty',
   OFFLINE: 'offline',
   INACTIVE: 'inactive'
 };
 
 export const TECHNICIAN_STATUS_LABELS = {
   [TECHNICIAN_STATUS.AVAILABLE]: 'Available',
+  [TECHNICIAN_STATUS.BUSY]: 'Busy',
   [TECHNICIAN_STATUS.ON_BREAK]: 'On Break',
   [TECHNICIAN_STATUS.ON_JOB]: 'On Job',
+  [TECHNICIAN_STATUS.OFF_DUTY]: 'Off Duty',
   [TECHNICIAN_STATUS.OFFLINE]: 'Offline',
   [TECHNICIAN_STATUS.INACTIVE]: 'Inactive'
 };
 
 export const TECHNICIAN_STATUS_COLORS = {
   [TECHNICIAN_STATUS.AVAILABLE]: 'bg-green-100 text-green-700',
+  [TECHNICIAN_STATUS.BUSY]: 'bg-amber-100 text-amber-700',
   [TECHNICIAN_STATUS.ON_BREAK]: 'bg-yellow-100 text-yellow-700',
   [TECHNICIAN_STATUS.ON_JOB]: 'bg-blue-100 text-blue-700',
+  [TECHNICIAN_STATUS.OFF_DUTY]: 'bg-slate-100 text-slate-700',
   [TECHNICIAN_STATUS.OFFLINE]: 'bg-gray-100 text-gray-700',
   [TECHNICIAN_STATUS.INACTIVE]: 'bg-red-100 text-red-700'
 };
