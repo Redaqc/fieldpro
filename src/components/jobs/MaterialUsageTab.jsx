@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Package } from "lucide-react";
+import { Plus, Trash2, Package, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function MaterialUsageTab({ job }) {
@@ -18,6 +18,12 @@ export default function MaterialUsageTab({ job }) {
   });
   const queryClient = useQueryClient();
 
+  /**
+   * AUDIT FIX: High Priority Issue #14 - Lock Material Costs on Invoice
+   * Prevent modification of materials after job is invoiced
+   */
+  const isJobInvoiced = job.invoice_generated || job.invoice_id;
+
   const { data: materials = [] } = useQuery({
     queryKey: ['materials'],
     queryFn: () => base44.entities.Material.list(),
@@ -28,6 +34,16 @@ export default function MaterialUsageTab({ job }) {
 
   const addUsageMutation = useMutation({
     mutationFn: async (usage) => {
+      /**
+       * AUDIT FIX: High Priority Issue #14 - Lock Material Costs on Invoice
+       * Prevent adding materials after job is invoiced
+       */
+      if (isJobInvoiced) {
+        throw new Error(
+          'Cannot add materials: This job has already been invoiced. Material costs are locked to preserve invoice accuracy.'
+        );
+      }
+
       /**
        * AUDIT FIX: Critical Issue #4 - Inventory Quantity Validation
        * Prevent negative inventory by checking stock before assignment
@@ -91,6 +107,16 @@ export default function MaterialUsageTab({ job }) {
 
   const removeUsageMutation = useMutation({
     mutationFn: async (usageId) => {
+      /**
+       * AUDIT FIX: High Priority Issue #14 - Lock Material Costs on Invoice
+       * Prevent removing materials after job is invoiced
+       */
+      if (isJobInvoiced) {
+        throw new Error(
+          'Cannot remove materials: This job has already been invoiced. Material costs are locked to preserve invoice accuracy.'
+        );
+      }
+
       const usage = materialUsages.find(u => u.id === usageId);
       const updatedUsages = materialUsages.filter(u => u.id !== usageId);
 
@@ -126,6 +152,16 @@ export default function MaterialUsageTab({ job }) {
           <p className="text-2xl font-bold text-slate-900">${totalMaterialCost.toFixed(2)}</p>
         </div>
       </div>
+
+      {/* AUDIT FIX: High Priority Issue #14 - Material Lock Warning */}
+      {isJobInvoiced && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded-lg flex items-start gap-2">
+          <Lock className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <strong>Material Costs Locked:</strong> This job has been invoiced. Material costs are locked to preserve invoice accuracy and prevent accounting errors.
+          </div>
+        </div>
+      )}
 
       {/* Add Material Form */}
       {adding && (
@@ -204,9 +240,14 @@ export default function MaterialUsageTab({ job }) {
       )}
 
       {!adding && (
-        <Button onClick={() => setAdding(true)} variant="outline" className="w-full">
+        <Button
+          onClick={() => setAdding(true)}
+          variant="outline"
+          className="w-full"
+          disabled={isJobInvoiced}
+        >
           <Plus className="w-4 h-4 mr-2" />
-          Add Material Usage
+          {isJobInvoiced ? 'Materials Locked (Job Invoiced)' : 'Add Material Usage'}
         </Button>
       )}
 
@@ -245,8 +286,10 @@ export default function MaterialUsageTab({ job }) {
                         removeUsageMutation.mutate(usage.id);
                       }
                     }}
+                    disabled={isJobInvoiced}
+                    title={isJobInvoiced ? 'Cannot remove - job is invoiced' : 'Remove material'}
                   >
-                    <Trash2 className="w-4 h-4 text-red-600" />
+                    <Trash2 className={`w-4 h-4 ${isJobInvoiced ? 'text-slate-300' : 'text-red-600'}`} />
                   </Button>
                 </div>
               </CardContent>
