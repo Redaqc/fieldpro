@@ -423,6 +423,62 @@ BEGIN
   ', schema_name, schema_name, schema_name, schema_name);
 
   -- ============================================
+  -- BUNDLES TABLE
+  -- ============================================
+  EXECUTE format('
+    CREATE TABLE IF NOT EXISTS %I.bundles (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      items JSONB NOT NULL,
+      price DECIMAL(10, 2) NOT NULL,
+      category VARCHAR(100),
+      is_active BOOLEAN DEFAULT true,
+      discount_percent DECIMAL(5, 2) DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  ', schema_name);
+
+  -- ============================================
+  -- PRICE LISTS TABLE
+  -- ============================================
+  EXECUTE format('
+    CREATE TABLE IF NOT EXISTS %I.price_lists (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      items JSONB NOT NULL,
+      effective_from TIMESTAMP,
+      effective_until TIMESTAMP,
+      is_active BOOLEAN DEFAULT true,
+      is_default BOOLEAN DEFAULT false,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  ', schema_name);
+
+  -- ============================================
+  -- WORK TYPES TABLE
+  -- ============================================
+  EXECUTE format('
+    CREATE TABLE IF NOT EXISTS %I.work_types (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      category VARCHAR(100),
+      default_hourly_rate DECIMAL(10, 2),
+      default_duration_minutes INTEGER,
+      color VARCHAR(20) DEFAULT ''#3B82F6'',
+      is_active BOOLEAN DEFAULT true,
+      require_signature BOOLEAN DEFAULT false,
+      require_photo BOOLEAN DEFAULT false,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  ', schema_name);
+
+  -- ============================================
   -- INDEXES
   -- ============================================
   EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_customers_email ON %I.customers(email)', schema_name, schema_name);
@@ -454,6 +510,12 @@ BEGIN
   EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_checklist_completions_completed_by ON %I.checklist_completions(completed_by)', schema_name, schema_name);
   EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_checklist_completions_job ON %I.checklist_completions(job_id)', schema_name, schema_name);
   EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_checklist_completions_service_call ON %I.checklist_completions(service_call_id)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_bundles_category ON %I.bundles(category)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_bundles_is_active ON %I.bundles(is_active)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_price_lists_is_active ON %I.price_lists(is_active)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_price_lists_is_default ON %I.price_lists(is_default)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_work_types_category ON %I.work_types(category)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_work_types_is_active ON %I.work_types(is_active)', schema_name, schema_name);
 
   -- Reset search path
   EXECUTE 'SET search_path TO public';

@@ -21,6 +21,9 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { TimeTrackingModule } from './time-tracking/time-tracking.module';
 import { FormsModule } from './forms/forms.module';
 import { ChecklistsModule } from './checklists/checklists.module';
+import { BundlesModule } from './bundles/bundles.module';
+import { PriceListsModule } from './price-lists/price-lists.module';
+import { WorkTypesModule } from './work-types/work-types.module';
 import { HealthModule } from './health/health.module';
 
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
@@ -95,6 +98,9 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     TimeTrackingModule,
     FormsModule,
     ChecklistsModule,
+    BundlesModule,
+    PriceListsModule,
+    WorkTypesModule,
     HealthModule,
   ],
 })
