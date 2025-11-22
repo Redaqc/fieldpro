@@ -37,6 +37,12 @@ import { AlertsModule } from './alerts/alerts.module';
 import { ProfitabilityRecordsModule } from './profitability-records/profitability-records.module';
 import { DocumentsModule } from './documents/documents.module';
 import { CustomerFeedbackModule } from './customer-feedback/customer-feedback.module';
+import { AppSettingsModule } from './app-settings/app-settings.module';
+import { LanguageSettingsModule } from './language-settings/language-settings.module';
+import { TaxSettingsModule } from './tax-settings/tax-settings.module';
+import { CompanyInfoModule } from './company-info/company-info.module';
+import { BrandingSettingsModule } from './branding-settings/branding-settings.module';
+import { DashboardConfigModule } from './dashboard-config/dashboard-config.module';
 
 @Module({
   imports: [
@@ -91,6 +97,12 @@ import { CustomerFeedbackModule } from './customer-feedback/customer-feedback.mo
     ProfitabilityRecordsModule,
     DocumentsModule,
     CustomerFeedbackModule,
+    AppSettingsModule,
+    LanguageSettingsModule,
+    TaxSettingsModule,
+    CompanyInfoModule,
+    BrandingSettingsModule,
+    DashboardConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],
