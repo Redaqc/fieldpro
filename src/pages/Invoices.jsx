@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, BarChart3, Download } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format, differenceInDays } from "date-fns";
+import { differenceInDays } from "date-fns";
 
 import InvoicesList from "../components/invoices/InvoicesList";
 import InvoiceDialog from "../components/invoices/InvoiceDialog";

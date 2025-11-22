@@ -1,12 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { CheckSquare, Users, Calendar } from "lucide-react";
+import { CheckSquare } from "lucide-react";
 
 export default function BulkJobActions({ jobs, selectedJobs, onClearSelection }) {
   const [dialogOpen, setDialogOpen] = useState(false);

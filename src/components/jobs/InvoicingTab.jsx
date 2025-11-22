@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Minus, GripVertical, Type, FileText, Package, CircleDot, EyeOff, Receipt, RefreshCw, CheckCircle } from "lucide-react";
+import { Plus, Minus, GripVertical, Type, FileText, EyeOff, Receipt, RefreshCw, CheckCircle } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

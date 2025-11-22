@@ -1,6 +1,4 @@
-import React from "react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { TrendingUp } from "lucide-react";
 
 export default function StatsCard({ title, value, icon: Icon, iconColor, bgColor, trend }) {
   return (

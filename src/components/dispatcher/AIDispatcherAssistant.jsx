@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Zap, MapPin, Clock, AlertTriangle, Users, CheckCircle, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, addMinutes, differenceInMinutes } from "date-fns";
+import { format } from "date-fns";
 
 export default function AIDispatcherAssistant({ jobs, serviceCalls, technicians, onAssign }) {
   const [analyzing, setAnalyzing] = useState(false);

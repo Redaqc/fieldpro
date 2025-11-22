@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { 
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
+  BarChart, Bar, PieChart, Pie, Cell, 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from "recharts";
-import { Download, TrendingUp, DollarSign, Users, Briefcase, Filter } from "lucide-react";
-import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
+import { Download, TrendingUp, DollarSign, Users, Briefcase } from "lucide-react";
+import { format, subDays, eachDayOfInterval } from "date-fns";
 
 export default function BIDashboard() {
   const [dateRange, setDateRange] = useState({

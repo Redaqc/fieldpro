@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addWeeks, addMonths, isSameMonth, isSameDay, startOfDay, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addWeeks, addMonths, isSameMonth, isSameDay, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import JobDialog from "../components/jobs/JobDialog";
 

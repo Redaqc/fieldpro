@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AlertTriangle, Users, TrendingUp, DollarSign, LayoutDashboard, BarChart, Clock, UserCheck, UserCircle, FileText, Activity, Briefcase, Trophy, Package, TrendingDown } from "lucide-react";
+import { AlertTriangle, Users, TrendingUp, DollarSign, LayoutDashboard, Clock, UserCheck, FileText, Activity, Briefcase, Trophy, Package, TrendingDown } from "lucide-react";
 
 const AVAILABLE_WIDGETS = [
   { id: 'today_summary', name: 'Today Summary', icon: LayoutDashboard, description: 'Résumé financier du jour/mois', color: 'text-blue-600', bgColor: 'bg-blue-100' },

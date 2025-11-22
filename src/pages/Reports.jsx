@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { BarChart3, TrendingUp, Clock, DollarSign, Users, FileText, MapPin, AlertTriangle, Download, BarChart2, PhoneCall, Briefcase, Package, Percent, Wrench, Calendar, CheckSquare, Receipt, CreditCard, Activity } from "lucide-react";
+import { BarChart3, TrendingUp, Clock, DollarSign, FileText, AlertTriangle, Download, BarChart2, Briefcase, Package, Percent, Wrench, CheckSquare, Receipt, CreditCard, Activity } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { format, endOfDay, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
+import { format, endOfDay } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 
 const STANDARD_REPORTS = [

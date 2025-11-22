@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useId, useCallback } from 'react';
+import { useState, useRef, useEffect, useId, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin, X, AlertCircle } from 'lucide-react';

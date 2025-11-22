@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Briefcase, Users, Clock, DollarSign, TrendingUp, CheckCircle } from "lucide-react";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";

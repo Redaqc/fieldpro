@@ -1,4 +1,3 @@
-import React from "react";
 import { differenceInDays } from "date-fns";
 
 export default function InvoiceStats({ invoices, onFilterChange }) {

@@ -1,7 +1,5 @@
-import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { UserCircle } from "lucide-react";
 
 const statusColors = {
   available: "bg-green-100 text-green-700 border-green-200",

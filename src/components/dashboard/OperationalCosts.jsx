@@ -1,8 +1,7 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { DollarSign, TrendingUp, Users, Clock } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function OperationalCosts({ technicians, timeEntries, jobs }) {
   const [period, setPeriod] = useState('month');

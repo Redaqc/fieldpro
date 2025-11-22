@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Route, Clock, MapPin, Loader2 } from "lucide-react";
+import { Route, MapPin, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
 export default function RouteOptimizerButton({ technician, date, jobs }) {

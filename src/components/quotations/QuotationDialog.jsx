@@ -1,14 +1,13 @@
-import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Save, X, Package, List, FileText, Heading, Copy, Minus, GripVertical, FileDown } from "lucide-react";
+import { Plus, Package, List, FileText, Heading, Copy, Minus, GripVertical, FileDown } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { addDays, format } from "date-fns";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useTaxCalculation } from "@/components/shared/useTaxCalculation";

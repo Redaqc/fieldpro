@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,9 +12,7 @@ import {
   AlertTriangle, 
   CheckCircle, 
   Calendar,
-  Navigation,
-  Zap,
-  Search
+  Zap
 } from "lucide-react";
 import { format } from "date-fns";
 import AIDispatcherAssistant from "../components/dispatcher/AIDispatcherAssistant";

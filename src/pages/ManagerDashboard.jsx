@@ -1,22 +1,17 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { 
   TrendingUp, 
-  TrendingDown, 
-  Users, 
-  Briefcase, 
   DollarSign,
-  Clock,
   AlertTriangle,
   CheckCircle,
   Target
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { differenceInDays, format, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 
 export default function ManagerDashboard() {
   const [timeRange, setTimeRange] = useState('month');

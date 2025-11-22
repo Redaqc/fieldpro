@@ -1,21 +1,17 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { 
-  MapPin, 
   Clock, 
   CheckCircle, 
-  AlertCircle, 
-  PlayCircle, 
-  StopCircle,
+  PlayCircle,
   WifiOff,
   Wifi,
   Battery,
   RefreshCw
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import MobileJobCard from "@/components/mobile/MobileJobCard";
 import QuickPunchCard from "@/components/mobile/QuickPunchCard";
 import OfflineManager from "@/components/mobile/OfflineManager";

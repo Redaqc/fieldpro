@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, CheckSquare, AlertCircle, MapPin, Edit } from "lucide-react";
+import { Calendar, User, MapPin, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
@@ -81,15 +81,6 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
     return new Date(call.due_date) < new Date();
   };
 
-  // Debug: Afficher les appels dans la console
-  React.useEffect(() => {
-    console.log('Total service calls:', calls.length);
-    console.log('Service calls data:', calls);
-    COLUMNS.forEach(column => {
-      const columnCalls = getCallsByStatus(column.id);
-      console.log(`${column.title} (${column.id}):`, columnCalls.length, 'calls');
-    });
-  }, [calls]);
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>

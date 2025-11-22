@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlayCircle, StopCircle, Clock, MapPin } from "lucide-react";
@@ -54,7 +54,7 @@ export default function QuickPunchCard({ technician, activeTimeEntry, lang = 'fr
           });
           location = `${position.coords.latitude},${position.coords.longitude}`;
         } catch (error) {
-          console.log('[QuickPunch] GPS error:', error);
+          console.error('[QuickPunch] GPS error:', error);
         } finally {
           setGettingLocation(false);
         }
@@ -90,7 +90,7 @@ export default function QuickPunchCard({ technician, activeTimeEntry, lang = 'fr
           });
           location = `${position.coords.latitude},${position.coords.longitude}`;
         } catch (error) {
-          console.log('[QuickPunch] GPS error:', error);
+          console.error('[QuickPunch] GPS error:', error);
         } finally {
           setGettingLocation(false);
         }

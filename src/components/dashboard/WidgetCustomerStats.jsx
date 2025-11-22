@@ -1,6 +1,5 @@
-import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, TrendingUp, DollarSign } from "lucide-react";
+import { Users, TrendingUp } from "lucide-react";
 
 export default function WidgetCustomerStats({ customers = [], jobs = [], invoices = [] }) {
   const activeCustomers = customers.filter(c => c.status === 'active').length;

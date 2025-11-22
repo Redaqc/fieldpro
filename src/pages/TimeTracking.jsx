@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Clock, LogIn, LogOut, Calendar, Download, FileText, DollarSign, BarChart3, CalendarDays } from "lucide-react";
+import { Clock, LogIn, LogOut, Download, DollarSign, BarChart3, CalendarDays } from "lucide-react";
 import { format, differenceInMinutes, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
 import TimeEntryDialog from "@/components/timetracking/TimeEntryDialog";

@@ -1,4 +1,3 @@
-import React from "react";
 import { Card } from "@/components/ui/card";
 import { FileText, Send, TrendingUp, TrendingDown } from "lucide-react";
 

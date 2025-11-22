@@ -1,9 +1,8 @@
-import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, CheckSquare, Paperclip, AlertCircle, MapPin } from "lucide-react";
+import { Calendar, User, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 

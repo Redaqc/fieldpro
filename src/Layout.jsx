@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
@@ -43,11 +43,9 @@ import {
               SidebarHeader,
               SidebarFooter,
               SidebarProvider,
-              SidebarTrigger,
               } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 

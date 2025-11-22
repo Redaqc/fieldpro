@@ -1,16 +1,14 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { DollarSign, FileText, Clock, User, CheckCircle, AlertCircle } from "lucide-react";
+import { DollarSign, FileText, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import { useTaxCalculation } from "@/components/shared/useTaxCalculation";
 
 export default function TimeInvoiceGenerator({ entries, technicians, jobs, lang = 'fr' }) {

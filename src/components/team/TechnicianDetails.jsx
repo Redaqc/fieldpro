@@ -1,8 +1,7 @@
-import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, Phone, Briefcase, DollarSign, Package, Edit, X } from "lucide-react";
+import { Mail, Phone, Briefcase, DollarSign, Package, Edit } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card } from "@/components/ui/card";

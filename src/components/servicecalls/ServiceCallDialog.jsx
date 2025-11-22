@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock, List, StopCircle, TrendingDown, GitBranch, Flag, BarChart, Package, Wrench } from "lucide-react";
+import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, Palette, Play, CheckCircle, List, StopCircle, TrendingDown, GitBranch, Flag, BarChart, Package, Wrench } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import TaskDependenciesTab from "../jobs/TaskDependenciesTab";

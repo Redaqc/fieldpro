@@ -1,7 +1,6 @@
-import React from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Zap, Plus, Briefcase, Phone, Users, FileText, Package, Calendar } from "lucide-react";
+import { Zap, Briefcase, Phone, Users, FileText, Calendar } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { useNavigate } from "react-router-dom";
 

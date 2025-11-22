@@ -1,4 +1,3 @@
-import React from "react";
 import { format, isToday, isTomorrow, isThisWeek } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, User, Clock, AlertCircle } from "lucide-react";
