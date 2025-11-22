@@ -122,6 +122,20 @@ export default function TimeTracking() {
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
             async (position) => {
+              /**
+               * AUDIT FIX: High Priority Issue #10 - GPS Accuracy Validation (MEDIUM #24)
+               * Validate GPS accuracy before accepting clock-in
+               */
+              const accuracy = position.coords.accuracy;
+
+              // VALIDATION: GPS accuracy must be within 50 meters for reliable location
+              if (accuracy > 50) {
+                reject(new Error(
+                  `Précision GPS insuffisante: ${accuracy.toFixed(0)}m. Déplacez-vous vers un endroit avec une meilleure réception GPS (< 50m requis).`
+                ));
+                return;
+              }
+
               const coords = {
                 latitude: position.coords.latitude,
                 longitude: position.coords.longitude,
@@ -154,29 +168,77 @@ export default function TimeTracking() {
 
               resolve(timeEntry);
             },
-            (error) => {
+            async (error) => {
+              /**
+               * AUDIT FIX: High Priority Issue #10 - GPS Bypass Logging
+               * Log all GPS bypass attempts for audit trail
+               */
               if (!tech.gps_punch_outside_zone) {
                 reject(new Error('Impossible d\'obtenir votre localisation GPS'));
               } else {
-                base44.entities.TimeEntry.create({
+                // Log GPS bypass for audit trail
+                await base44.entities.GPSTracking.create({
+                  technician_id: technicianId,
+                  technician_name: `${tech.first_name} ${tech.last_name}`,
+                  latitude: null,
+                  longitude: null,
+                  accuracy: null,
+                  timestamp: new Date().toISOString(),
+                  activity_type: "punch_in",
+                  notes: `GPS_BYPASS: Location unavailable. Error: ${error.message}. Permission: gps_punch_outside_zone granted.`
+                });
+
+                const timeEntry = await base44.entities.TimeEntry.create({
                   technician_id: technicianId,
                   technician_name: `${tech.first_name} ${tech.last_name}`,
                   clock_in: new Date().toISOString(),
                   status: "in_progress",
-                }).then(resolve).catch(reject);
+                  location_in: "GPS non disponible (bypass autorisé)",
+                  activity_log: [{
+                    timestamp: new Date().toISOString(),
+                    action: "gps_bypass",
+                    details: `Clock-in sans GPS. Raison: ${error.message}. Permission accordée.`,
+                    user: `${tech.first_name} ${tech.last_name}`
+                  }]
+                });
+                resolve(timeEntry);
               }
             }
           );
         } else {
+          /**
+           * AUDIT FIX: High Priority Issue #10 - GPS Bypass Logging
+           * Log when geolocation is not available on device
+           */
           if (!tech.gps_punch_outside_zone) {
             reject(new Error('GPS non disponible sur cet appareil'));
           } else {
-            base44.entities.TimeEntry.create({
+            // Log GPS bypass for audit trail
+            await base44.entities.GPSTracking.create({
+              technician_id: technicianId,
+              technician_name: `${tech.first_name} ${tech.last_name}`,
+              latitude: null,
+              longitude: null,
+              accuracy: null,
+              timestamp: new Date().toISOString(),
+              activity_type: "punch_in",
+              notes: "GPS_BYPASS: Geolocation not supported by device. Permission: gps_punch_outside_zone granted."
+            });
+
+            const timeEntry = await base44.entities.TimeEntry.create({
               technician_id: technicianId,
               technician_name: `${tech.first_name} ${tech.last_name}`,
               clock_in: new Date().toISOString(),
               status: "in_progress",
-            }).then(resolve).catch(reject);
+              location_in: "GPS non disponible (bypass autorisé)",
+              activity_log: [{
+                timestamp: new Date().toISOString(),
+                action: "gps_bypass",
+                details: "Clock-in sans GPS. Raison: Appareil ne supporte pas la géolocalisation. Permission accordée.",
+                user: `${tech.first_name} ${tech.last_name}`
+              }]
+            });
+            resolve(timeEntry);
           }
         }
       });
@@ -198,15 +260,34 @@ export default function TimeTracking() {
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
             async (position) => {
+              /**
+               * AUDIT FIX: High Priority Issue #10 - GPS Accuracy Validation (MEDIUM #24)
+               * Validate GPS accuracy for clock-out as well
+               */
+              const accuracy = position.coords.accuracy;
               const clockOut = new Date().toISOString();
               const totalMinutes = differenceInMinutes(new Date(clockOut), new Date(entry.clock_in));
               const totalHours = ((totalMinutes - (entry.break_minutes || 0)) / 60).toFixed(2);
-              
+
+              // Log if GPS accuracy is poor (but still allow clock-out - don't trap workers)
+              const locationOut = accuracy > 50
+                ? `GPS imprécis (${accuracy.toFixed(0)}m)`
+                : "GPS enregistré";
+
               const updated = await base44.entities.TimeEntry.update(entryId, {
                 clock_out: clockOut,
                 total_hours: parseFloat(totalHours),
                 status: "completed",
-                location_out: "GPS enregistré",
+                location_out: locationOut,
+                activity_log: [
+                  ...(entry.activity_log || []),
+                  ...(accuracy > 50 ? [{
+                    timestamp: clockOut,
+                    action: "gps_warning",
+                    details: `Clock-out avec GPS imprécis: ${accuracy.toFixed(0)}m (> 50m recommandé)`,
+                    user: entry.technician_name
+                  }] : [])
+                ]
               });
 
               await base44.entities.GPSTracking.create({
@@ -217,32 +298,87 @@ export default function TimeTracking() {
                 accuracy: position.coords.accuracy,
                 timestamp: clockOut,
                 activity_type: "punch_out",
+                notes: accuracy > 50 ? `GPS_WARNING: Poor accuracy (${accuracy.toFixed(0)}m > 50m threshold)` : null
               });
 
               resolve(updated);
             },
-            (error) => {
+            async (error) => {
+              /**
+               * AUDIT FIX: High Priority Issue #10 - GPS Bypass Logging
+               * Log GPS bypass on clock-out (but still allow - don't trap workers)
+               */
               const clockOut = new Date().toISOString();
               const totalMinutes = differenceInMinutes(new Date(clockOut), new Date(entry.clock_in));
               const totalHours = ((totalMinutes - (entry.break_minutes || 0)) / 60).toFixed(2);
-              
-              base44.entities.TimeEntry.update(entryId, {
+
+              // Log GPS bypass for audit trail
+              await base44.entities.GPSTracking.create({
+                technician_id: entry.technician_id,
+                technician_name: entry.technician_name,
+                latitude: null,
+                longitude: null,
+                accuracy: null,
+                timestamp: clockOut,
+                activity_type: "punch_out",
+                notes: `GPS_BYPASS: Clock-out without GPS. Error: ${error.message}`
+              });
+
+              const updated = await base44.entities.TimeEntry.update(entryId, {
                 clock_out: clockOut,
                 total_hours: parseFloat(totalHours),
                 status: "completed",
-              }).then(resolve).catch(reject);
+                location_out: "GPS non disponible",
+                activity_log: [
+                  ...(entry.activity_log || []),
+                  {
+                    timestamp: clockOut,
+                    action: "gps_bypass",
+                    details: `Clock-out sans GPS. Raison: ${error.message}`,
+                    user: entry.technician_name
+                  }
+                ]
+              });
+              resolve(updated);
             }
           );
         } else {
+          /**
+           * AUDIT FIX: High Priority Issue #10 - GPS Bypass Logging
+           * Log when geolocation not available on device for clock-out
+           */
           const clockOut = new Date().toISOString();
           const totalMinutes = differenceInMinutes(new Date(clockOut), new Date(entry.clock_in));
           const totalHours = ((totalMinutes - (entry.break_minutes || 0)) / 60).toFixed(2);
-          
-          base44.entities.TimeEntry.update(entryId, {
+
+          // Log GPS bypass for audit trail
+          await base44.entities.GPSTracking.create({
+            technician_id: entry.technician_id,
+            technician_name: entry.technician_name,
+            latitude: null,
+            longitude: null,
+            accuracy: null,
+            timestamp: clockOut,
+            activity_type: "punch_out",
+            notes: "GPS_BYPASS: Clock-out without GPS. Geolocation not supported by device."
+          });
+
+          const updated = await base44.entities.TimeEntry.update(entryId, {
             clock_out: clockOut,
             total_hours: parseFloat(totalHours),
             status: "completed",
-          }).then(resolve).catch(reject);
+            location_out: "GPS non disponible",
+            activity_log: [
+              ...(entry.activity_log || []),
+              {
+                timestamp: clockOut,
+                action: "gps_bypass",
+                details: "Clock-out sans GPS. Raison: Appareil ne supporte pas la géolocalisation.",
+                user: entry.technician_name
+              }
+            ]
+          });
+          resolve(updated);
         }
       });
     },
