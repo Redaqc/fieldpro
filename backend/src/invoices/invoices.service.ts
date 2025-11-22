@@ -66,12 +66,9 @@ export class InvoicesService {
       where.job_id = filters.job_id;
     }
 
+    // ✅ FIXED: Removed unsupported include parameter
     return this.tenantPrisma.findMany(tenantId, 'Invoice', {
       where,
-      include: {
-        customer: true,
-        job: true,
-      },
       orderBy: {
         created_at: 'desc',
       },
@@ -79,13 +76,9 @@ export class InvoicesService {
   }
 
   async findOne(tenantId: string, id: string) {
+    // ✅ FIXED: Removed unsupported include parameter
     return this.tenantPrisma.findOne(tenantId, 'Invoice', {
       where: { id },
-      include: {
-        customer: true,
-        job: true,
-        payments: true,
-      },
     });
   }
 

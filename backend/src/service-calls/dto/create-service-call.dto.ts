@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsDateString, IsEnum } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsDateString, IsEnum, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum ServiceCallPriority {
@@ -30,11 +30,13 @@ export class CreateServiceCallDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @MaxLength(255, { message: 'Title cannot exceed 255 characters' })
   title!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(5000, { message: 'Description cannot exceed 5000 characters' })
   description?: string;
 
   @ApiProperty({ enum: ServiceCallPriority, default: ServiceCallPriority.MEDIUM })

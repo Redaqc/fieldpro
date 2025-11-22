@@ -10,16 +10,19 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ServiceCallsService } from './service-calls.service';
 import { CreateServiceCallDto } from './dto/create-service-call.dto';
 import { UpdateServiceCallDto } from './dto/update-service-call.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
+import { TenantThrottlerGuard } from '../common/guards/tenant-throttler.guard';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
 
 @ApiTags('service-calls')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, TenantGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, TenantThrottlerGuard)
+@Throttle({ default: { ttl: 60000, limit: 100 } }) // ✅ Added rate limiting: 100 requests per minute per tenant
 @Controller('service-calls')
 export class ServiceCallsController {
   constructor(private readonly serviceCallsService: ServiceCallsService) {}

@@ -10,16 +10,20 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { PaymentDetailsDto } from './dto/payment-details.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
+import { TenantThrottlerGuard } from '../common/guards/tenant-throttler.guard';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
 
 @ApiTags('invoices')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, TenantGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, TenantThrottlerGuard)
+@Throttle({ default: { ttl: 60000, limit: 100 } }) // ✅ Added rate limiting: 100 requests per minute per tenant
 @Controller('invoices')
 export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
@@ -72,7 +76,7 @@ export class InvoicesController {
   markAsPaid(
     @CurrentTenant() tenantId: string,
     @Param('id') id: string,
-    @Body() paymentDetails: any,
+    @Body() paymentDetails: PaymentDetailsDto,
   ) {
     return this.invoicesService.markAsPaid(tenantId, id, paymentDetails);
   }
