@@ -1428,9 +1428,31 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
           <div className="flex flex-col sm:flex-row justify-between gap-2 pt-4">
             <div>
               {call?.id && call.status !== SERVICE_CALL_STATUS.CONVERTED && (
-                <Button 
+                <Button
                   type="button"
                   onClick={async () => {
+                    /**
+                     * AUDIT FIX: High Priority Issue #12 - Validate Service Call Conversions
+                     * Only allow conversion from valid statuses, add comprehensive logging
+                     */
+                    // VALIDATION: Only allow conversion from specific statuses
+                    const validConversionStatuses = [
+                      SERVICE_CALL_STATUS.IN_PROGRESS,
+                      SERVICE_CALL_STATUS.COMPLETED,
+                      'review' // Allow review status as well
+                    ];
+
+                    if (!validConversionStatuses.includes(call.status)) {
+                      alert(`Cannot convert: Service call must be in progress, completed, or in review. Current status: ${call.status}`);
+                      return;
+                    }
+
+                    // VALIDATION: Prevent re-conversion even if status was manually changed
+                    if (call.converted_to_job_id) {
+                      alert('This service call has already been converted to a job.');
+                      return;
+                    }
+
                     if (confirm('Convert this service call to a full job? This will create a new job with all details.')) {
                       try {
                         const jobData = {
@@ -1460,11 +1482,27 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
                         };
                         
                         const newJob = await base44.entities.Job.create(jobData);
-                        await base44.entities.ServiceCall.update(call.id, { 
+
+                        /**
+                         * AUDIT FIX: High Priority Issue #12 - Add Activity Logging
+                         * Log conversion on ServiceCall for full audit trail
+                         */
+                        await base44.entities.ServiceCall.update(call.id, {
                           status: SERVICE_CALL_STATUS.CONVERTED,
-                          converted_to_job_id: newJob.id
+                          converted_to_job_id: newJob.id,
+                          converted_at: new Date().toISOString(),
+                          activity_log: [
+                            ...(call.activity_log || []),
+                            {
+                              timestamp: new Date().toISOString(),
+                              user: currentUser?.email || 'System',
+                              action: 'converted_to_job',
+                              details: `Converted to Job #${newJob.job_number || newJob.id}. Previous status: ${call.status}`,
+                              job_id: newJob.id
+                            }
+                          ]
                         });
-                        
+
                         alert('Service call converted to job successfully!');
                         onClose();
                       } catch (err) {
