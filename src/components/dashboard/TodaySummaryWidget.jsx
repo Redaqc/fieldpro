@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TrendingUp, FileText, AlertCircle, TrendingDown, Users, DollarSign } from "lucide-react";
 import { useTranslation } from "@/components/shared/translations";
+import { INVOICE_STATUS, PAYMENT_STATUS } from "@/constants/statuses";
 
 export default function TodaySummaryWidget({ invoices = [], payments = [], jobs = [], expenses = [], lang = 'fr' }) {
   const t = useTranslation(lang);
@@ -12,20 +13,20 @@ export default function TodaySummaryWidget({ invoices = [], payments = [], jobs 
   const monthlySales = invoices
     .filter(inv => {
       const invDate = new Date(inv.invoice_date || inv.created_date);
-      return invDate.getMonth() === currentMonth && 
+      return invDate.getMonth() === currentMonth &&
              invDate.getFullYear() === currentYear &&
-             inv.status === 'paid';
+             inv.status === INVOICE_STATUS.PAID;
     })
     .reduce((sum, inv) => sum + (inv.total || 0), 0);
 
   // Factures dues (envoyées mais non payées)
   const invoicesDue = invoices
-    .filter(inv => inv.status === 'sent' && (!inv.due_date || new Date(inv.due_date) >= new Date()))
+    .filter(inv => inv.status === INVOICE_STATUS.SENT && (!inv.due_date || new Date(inv.due_date) >= new Date()))
     .reduce((sum, inv) => sum + (inv.total || 0), 0);
 
   // Factures en retard
   const invoicesOverdue = invoices
-    .filter(inv => inv.status === 'overdue' || (inv.status === 'sent' && inv.due_date && new Date(inv.due_date) < new Date()))
+    .filter(inv => inv.status === INVOICE_STATUS.OVERDUE || (inv.status === INVOICE_STATUS.SENT && inv.due_date && new Date(inv.due_date) < new Date()))
     .reduce((sum, inv) => sum + (inv.total || 0), 0);
 
   // Dépenses du mois
@@ -51,9 +52,9 @@ export default function TodaySummaryWidget({ invoices = [], payments = [], jobs 
   const paymentsReceived = payments
     .filter(pay => {
       const payDate = new Date(pay.payment_date);
-      return payDate.getMonth() === currentMonth && 
+      return payDate.getMonth() === currentMonth &&
              payDate.getFullYear() === currentYear &&
-             pay.status === 'completed';
+             pay.status === PAYMENT_STATUS.COMPLETED;
     })
     .reduce((sum, pay) => sum + (pay.amount || 0), 0);
 

@@ -3,14 +3,15 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Clock } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { useTranslation } from "@/components/shared/translations";
+import { JOB_STATUS } from "@/constants/statuses";
 
 export default function OverdueJobsWidget({ jobs, lang = 'fr' }) {
   const t = useTranslation(lang);
-  const overdueJobs = jobs.filter(job => 
-    job.due_date && 
-    new Date(job.due_date) < new Date() && 
-    job.status !== 'completed' && 
-    job.status !== 'cancelled'
+  const overdueJobs = jobs.filter(job =>
+    job.due_date &&
+    new Date(job.due_date) < new Date() &&
+    job.status !== JOB_STATUS.COMPLETED &&
+    job.status !== JOB_STATUS.CANCELLED
   ).sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
 
   return (

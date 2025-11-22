@@ -2,12 +2,13 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { TrendingUp, Flag, CheckCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { JOB_STATUS } from "@/constants/statuses";
 
 export default function WidgetProjectProgress({ jobs }) {
   const activeProjects = jobs
-    .filter(job => 
-      job.status !== 'archived' && 
-      job.status !== 'completed' &&
+    .filter(job =>
+      job.status !== JOB_STATUS.ARCHIVED &&
+      job.status !== JOB_STATUS.COMPLETED &&
       (job.milestones?.length > 0 || job.checklist?.length > 0)
     )
     .map(job => {

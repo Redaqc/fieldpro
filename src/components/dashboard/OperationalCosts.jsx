@@ -2,15 +2,16 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { DollarSign, TrendingUp, Users, Clock } from "lucide-react";
+import { TIME_ENTRY_STATUS } from "@/constants/statuses";
 
 export default function OperationalCosts({ technicians, timeEntries, jobs }) {
   const [period, setPeriod] = useState('month');
 
   const costAnalysis = useMemo(() => {
     return technicians.map(tech => {
-      const techEntries = timeEntries.filter(e => 
-        e.technician_id === tech.id && 
-        e.status === 'completed'
+      const techEntries = timeEntries.filter(e =>
+        e.technician_id === tech.id &&
+        e.status === TIME_ENTRY_STATUS.COMPLETED
       );
       
       const totalHours = techEntries.reduce((sum, e) => sum + (e.total_hours || 0), 0);
@@ -42,9 +43,9 @@ export default function OperationalCosts({ technicians, timeEntries, jobs }) {
     return last6Months.map(({ month, date }) => {
       const monthEntries = timeEntries.filter(e => {
         const entryDate = new Date(e.clock_in);
-        return entryDate.getMonth() === date.getMonth() && 
+        return entryDate.getMonth() === date.getMonth() &&
                entryDate.getFullYear() === date.getFullYear() &&
-               e.status === 'completed';
+               e.status === TIME_ENTRY_STATUS.COMPLETED;
       });
 
       const totalCost = monthEntries.reduce((sum, e) => {

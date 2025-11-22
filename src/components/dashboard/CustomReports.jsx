@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Download, FileText, Filter } from "lucide-react";
 import { format } from "date-fns";
+import { JOB_STATUS, INVOICE_STATUS, TIME_ENTRY_STATUS } from "@/constants/statuses";
 
 export default function CustomReports({ jobs, technicians, timeEntries, invoices }) {
   const [reportType, setReportType] = useState('jobs');
@@ -64,7 +65,7 @@ export default function CustomReports({ jobs, technicians, timeEntries, invoices
           return {
             technician: `${tech.first_name} ${tech.last_name}`,
             totalJobs: techJobs.length,
-            completedJobs: techJobs.filter(j => j.status === 'completed').length,
+            completedJobs: techJobs.filter(j => j.status === JOB_STATUS.COMPLETED).length,
             totalHours: techEntries.reduce((sum, e) => sum + (e.total_hours || 0), 0),
             avgTimePerJob: techJobs.length > 0 ? 
               techEntries.reduce((sum, e) => sum + (e.total_hours || 0), 0) / techJobs.length : 0,
@@ -221,17 +222,17 @@ export default function CustomReports({ jobs, technicians, timeEntries, invoices
                   <SelectItem value="all">Tous</SelectItem>
                   {reportType === 'jobs' ? (
                     <>
-                      <SelectItem value="scheduled">Planifié</SelectItem>
-                      <SelectItem value="in_progress">En cours</SelectItem>
-                      <SelectItem value="completed">Complété</SelectItem>
-                      <SelectItem value="cancelled">Annulé</SelectItem>
+                      <SelectItem value={JOB_STATUS.SCHEDULED}>Planifié</SelectItem>
+                      <SelectItem value={JOB_STATUS.IN_PROGRESS}>En cours</SelectItem>
+                      <SelectItem value={JOB_STATUS.COMPLETED}>Complété</SelectItem>
+                      <SelectItem value={JOB_STATUS.CANCELLED}>Annulé</SelectItem>
                     </>
                   ) : (
                     <>
-                      <SelectItem value="draft">Brouillon</SelectItem>
-                      <SelectItem value="sent">Envoyé</SelectItem>
-                      <SelectItem value="paid">Payé</SelectItem>
-                      <SelectItem value="overdue">En retard</SelectItem>
+                      <SelectItem value={INVOICE_STATUS.DRAFT}>Brouillon</SelectItem>
+                      <SelectItem value={INVOICE_STATUS.SENT}>Envoyé</SelectItem>
+                      <SelectItem value={INVOICE_STATUS.PAID}>Payé</SelectItem>
+                      <SelectItem value={INVOICE_STATUS.OVERDUE}>En retard</SelectItem>
                     </>
                   )}
                 </SelectContent>

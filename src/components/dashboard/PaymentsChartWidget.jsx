@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { format, subMonths } from "date-fns";
 import { useTranslation } from "@/components/shared/translations";
+import { PAYMENT_STATUS } from "@/constants/statuses";
 
 export default function PaymentsChartWidget({ payments, lang = 'fr' }) {
   const t = useTranslation(lang);
@@ -11,9 +12,9 @@ export default function PaymentsChartWidget({ payments, lang = 'fr' }) {
   });
 
   const chartData = last6Months.map(month => {
-    const monthPayments = payments.filter(p => 
-      format(new Date(p.payment_date || p.created_date), 'MMM yyyy') === month && 
-      p.status === 'completed'
+    const monthPayments = payments.filter(p =>
+      format(new Date(p.payment_date || p.created_date), 'MMM yyyy') === month &&
+      p.status === PAYMENT_STATUS.COMPLETED
     );
     
     return {
@@ -24,7 +25,7 @@ export default function PaymentsChartWidget({ payments, lang = 'fr' }) {
   });
 
   const totalReceived = payments
-    .filter(p => p.status === 'completed')
+    .filter(p => p.status === PAYMENT_STATUS.COMPLETED)
     .reduce((sum, p) => sum + (p.amount || 0), 0);
 
   return (
