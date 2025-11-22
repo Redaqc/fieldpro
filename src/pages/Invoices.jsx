@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, BarChart3, Download } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { differenceInDays } from "date-fns";
+import { INVOICE_STATUS } from "@/constants/statuses";
 
 import InvoicesList from "../components/invoices/InvoicesList";
 import InvoiceDialog from "../components/invoices/InvoiceDialog";
@@ -90,14 +91,14 @@ export default function Invoices() {
                              (!endDate || new Date(invoice.issue_date) <= new Date(endDate));
 
     let matchesAge = true;
-    if (ageFilter !== "all" && invoice.status !== 'paid' && invoice.status !== 'cancelled' && invoice.issue_date) {
+    if (ageFilter !== "all" && invoice.status !== INVOICE_STATUS.PAID && invoice.status !== INVOICE_STATUS.CANCELLED && invoice.issue_date) {
       const days = differenceInDays(new Date(), new Date(invoice.issue_date));
       switch(ageFilter) {
         case "draft":
-          matchesAge = invoice.status === 'draft';
+          matchesAge = invoice.status === INVOICE_STATUS.DRAFT;
           break;
         case "unpaid":
-          matchesAge = invoice.status !== 'draft';
+          matchesAge = invoice.status !== INVOICE_STATUS.DRAFT;
           break;
         case "under30":
           matchesAge = days < 30;
@@ -114,7 +115,7 @@ export default function Invoices() {
         default:
           matchesAge = true;
       }
-    } else if (ageFilter !== "all" && (invoice.status === 'paid' || invoice.status === 'cancelled')) {
+    } else if (ageFilter !== "all" && (invoice.status === INVOICE_STATUS.PAID || invoice.status === INVOICE_STATUS.CANCELLED)) {
       matchesAge = false;
     }
 

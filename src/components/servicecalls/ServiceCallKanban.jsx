@@ -50,7 +50,7 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
       ],
     };
 
-    if (newStatus === 'completed' && !call.completed_at) {
+    if (newStatus === SERVICE_CALL_STATUS.COMPLETED && !call.completed_at) {
       updates.completed_at = new Date().toISOString();
     }
 
@@ -59,13 +59,13 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
 
   const getCallsByStatus = (status) => {
     return calls.filter(c => {
-      const callStatus = c.status || 'new';
+      const callStatus = c.status || SERVICE_CALL_STATUS.NEW;
       // Pour la colonne "À faire", inclure aussi les statuts vides, null, undefined, et 'todo' (ancien statut)
-      if (status === 'new') {
-        return !c.status || c.status === 'new' || c.status === '' || c.status === 'todo';
+      if (status === SERVICE_CALL_STATUS.NEW) {
+        return !c.status || c.status === SERVICE_CALL_STATUS.NEW || c.status === '' || c.status === 'todo';
       }
       return callStatus === status;
-    }).sort((a, b) => 
+    }).sort((a, b) =>
       new Date(b.created_date) - new Date(a.created_date)
     );
   };
@@ -80,7 +80,7 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
   };
 
   const isOverdue = (call) => {
-    if (!call.due_date || call.status === 'completed') return false;
+    if (!call.due_date || call.status === SERVICE_CALL_STATUS.COMPLETED) return false;
     return new Date(call.due_date) < new Date();
   };
 

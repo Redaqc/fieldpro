@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertCircle } from "lucide-react";
+import { PAYMENT_STATUS, INVOICE_STATUS } from "@/constants/statuses";
 
 export default function PaymentDialog({ open, onClose, invoice }) {
   const [formData, setFormData] = useState({
@@ -30,7 +31,7 @@ export default function PaymentDialog({ open, onClose, invoice }) {
       if (!invoice?.id) return [];
       return await base44.entities.Payment.filter({
         invoice_id: invoice.id,
-        status: 'completed'
+        status: PAYMENT_STATUS.COMPLETED
       });
     },
     enabled: !!invoice?.id && open,
@@ -77,7 +78,7 @@ export default function PaymentDialog({ open, onClose, invoice }) {
         payment_method: data.payment_method,
         reference_number: data.reference_number,
         notes: data.notes,
-        status: 'completed',
+        status: PAYMENT_STATUS.COMPLETED,
         recorded_by: user.email
       });
 
@@ -87,17 +88,17 @@ export default function PaymentDialog({ open, onClose, invoice }) {
       // Determine correct invoice status based on total paid
       let newStatus;
       if (newTotalPaid >= invoiceTotal) {
-        newStatus = 'paid';
+        newStatus = INVOICE_STATUS.PAID;
       } else if (newTotalPaid > 0) {
-        newStatus = 'partial';
+        newStatus = INVOICE_STATUS.PARTIAL;
       } else {
-        newStatus = invoice.status || 'sent';
+        newStatus = invoice.status || INVOICE_STATUS.SENT;
       }
 
       // Update invoice with correct status
       await base44.entities.Invoice.update(invoice.id, {
         status: newStatus,
-        paid_date: newStatus === 'paid' ? data.payment_date : invoice.paid_date,
+        paid_date: newStatus === INVOICE_STATUS.PAID ? data.payment_date : invoice.paid_date,
         payment_method: data.payment_method,
         total_paid: newTotalPaid
       });

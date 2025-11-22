@@ -16,7 +16,7 @@ import MobileJobCard from "@/components/mobile/MobileJobCard";
 import QuickPunchCard from "@/components/mobile/QuickPunchCard";
 import OfflineManager from "@/components/mobile/OfflineManager";
 import { useTranslation } from "@/components/shared/translations";
-import { JOB_STATUS } from "@/constants/statuses";
+import { JOB_STATUS, TIME_ENTRY_STATUS } from "@/constants/statuses";
 
 export default function TechnicianMobile() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -74,7 +74,7 @@ export default function TechnicianMobile() {
       if (!technician?.id) return null;
       const entries = await base44.entities.TimeEntry.filter({
         technician_id: technician.id,
-        status: 'in_progress'
+        status: TIME_ENTRY_STATUS.ACTIVE
       });
       return entries[0] || null;
     },

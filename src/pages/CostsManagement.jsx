@@ -184,7 +184,7 @@ export default function CostsManagement() {
         category: values[3]?.trim() || 'other',
         amount: parseFloat(values[4]) || 0,
         invoice_date: values[5]?.trim() || format(new Date(), 'yyyy-MM-dd'),
-        status: values[6]?.trim() || 'pending',
+        status: values[6]?.trim() || INVOICE_STATUS.SENT,
       };
       
       if (invoice.supplier_name && invoice.amount > 0) {

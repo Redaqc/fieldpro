@@ -10,6 +10,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useTaxCalculation } from "@/components/shared/useTaxCalculation";
+import { INVOICE_STATUS, TIME_ENTRY_STATUS } from "@/constants/statuses";
 
 export default function TimeInvoiceGenerator({ entries, technicians, jobs, lang = 'fr' }) {
   const [selectedJob, setSelectedJob] = useState("");
@@ -34,7 +35,7 @@ export default function TimeInvoiceGenerator({ entries, technicians, jobs, lang 
        */
       const matchesJob = !selectedJob || entry.job_id === selectedJob;
       const matchesTech = !selectedTechnician || entry.technician_id === selectedTechnician;
-      const isCompleted = entry.status === 'completed' || entry.status === 'approved';
+      const isCompleted = entry.status === TIME_ENTRY_STATUS.COMPLETED || entry.status === TIME_ENTRY_STATUS.APPROVED;
       const notInvoiced = !entry.invoice_id; // CRITICAL: Prevent double billing
       return matchesJob && matchesTech && isCompleted && notInvoiced;
     });
@@ -131,7 +132,7 @@ export default function TimeInvoiceGenerator({ entries, technicians, jobs, lang 
         tps: taxes.find(t => t.name.includes('TPS') || t.name.includes('GST'))?.amount || 0,
         tvq: taxes.find(t => t.name.includes('TVQ') || t.name.includes('QST'))?.amount || 0,
         total: total,
-        status: 'draft',
+        status: INVOICE_STATUS.DRAFT,
         notes: `${lang === 'fr' ? 'Facture générée depuis' : 'Invoice generated from'} ${selectedEntries.size} ${lang === 'fr' ? 'entrées de temps' : 'time entries'}`
       });
 
@@ -144,7 +145,7 @@ export default function TimeInvoiceGenerator({ entries, technicians, jobs, lang 
       for (const entryId of selectedEntries) {
         const entry = entries.find(e => e.id === entryId);
         await base44.entities.TimeEntry.update(entryId, {
-          status: 'approved',
+          status: TIME_ENTRY_STATUS.APPROVED,
           invoice_id: invoice.id,
           invoice_number: invoice.invoice_number || invoice.id,
           invoiced_at: new Date().toISOString(),
