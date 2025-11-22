@@ -6,13 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, User, MapPin, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { SERVICE_CALL_STATUS } from '@/constants/statuses';
+
+/** AUDIT FIX: High Priority Issue #7 - Standardize Status Values */
 
 const COLUMNS = [
-  { id: 'new', title: 'À faire', color: 'bg-slate-100' },
-  { id: 'in_progress', title: 'En cours', color: 'bg-blue-100' },
-  { id: 'review', title: 'En révision', color: 'bg-purple-100' },
-  { id: 'completed', title: 'Terminé', color: 'bg-green-100' },
-  { id: 'cancelled', title: 'Archivé', color: 'bg-slate-100' },
+  { id: SERVICE_CALL_STATUS.NEW, title: 'À faire', color: 'bg-slate-100' },
+  { id: SERVICE_CALL_STATUS.IN_PROGRESS, title: 'En cours', color: 'bg-blue-100' },
+  { id: SERVICE_CALL_STATUS.REVIEW, title: 'En révision', color: 'bg-purple-100' },
+  { id: SERVICE_CALL_STATUS.COMPLETED, title: 'Terminé', color: 'bg-green-100' },
+  { id: SERVICE_CALL_STATUS.CANCELLED, title: 'Archivé', color: 'bg-slate-100' },
 ];
 
 export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
