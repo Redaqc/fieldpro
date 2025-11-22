@@ -14,6 +14,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { ServiceCallsModule } from './service-calls/service-calls.module';
 import { MaterialsModule } from './materials/materials.module';
 import { TimeEntriesModule } from './time-entries/time-entries.module';
+import { AssetsModule } from './assets/assets.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { TimeEntriesModule } from './time-entries/time-entries.module';
     ServiceCallsModule,
     MaterialsModule,
     TimeEntriesModule,
+    AssetsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
