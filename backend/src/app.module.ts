@@ -11,6 +11,9 @@ import { JobsModule } from './jobs/jobs.module';
 import { TechniciansModule } from './technicians/technicians.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { PaymentsModule } from './payments/payments.module';
+import { ServiceCallsModule } from './service-calls/service-calls.module';
+import { MaterialsModule } from './materials/materials.module';
+import { TimeEntriesModule } from './time-entries/time-entries.module';
 
 @Module({
   imports: [
@@ -39,6 +42,9 @@ import { PaymentsModule } from './payments/payments.module';
     TechniciansModule,
     InvoicesModule,
     PaymentsModule,
+    ServiceCallsModule,
+    MaterialsModule,
+    TimeEntriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
