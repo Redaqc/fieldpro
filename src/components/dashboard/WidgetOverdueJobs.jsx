@@ -2,10 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { JOB_STATUS } from '@/constants/statuses';
 
 export default function WidgetOverdueJobs({ jobs = [], onJobClick }) {
   const overdueJobs = jobs.filter(job => {
-    if (!job.due_date || job.status === 'completed') return false;
+    if (!job.due_date || job.status === JOB_STATUS.COMPLETED) return false;
     return new Date(job.due_date) < new Date();
   });
 
