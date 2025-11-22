@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: fieldpro-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fieldpro
+      POSTGRES_PASSWORD: fieldpro_password
+      POSTGRES_DB: fieldpro
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - fieldpro-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fieldpro"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NestJS Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fieldpro-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      API_PREFIX: api/v1
+      DATABASE_URL: postgresql://fieldpro:fieldpro_password@postgres:5432/fieldpro?schema=public
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-your-super-secret-jwt-access-key-change-in-production}
+      JWT_ACCESS_EXPIRATION: 15m
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-super-secret-jwt-refresh-key-change-in-production}
+      JWT_REFRESH_EXPIRATION: 7d
+      CORS_ORIGIN: http://localhost:3000
+      UPLOAD_DIR: /app/uploads
+      SWAGGER_ENABLED: "true"
+    volumes:
+      - backend_uploads:/app/uploads
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fieldpro-network
+    command: >
+      sh -c "npx prisma migrate deploy &&
+             node dist/main.js"
+
+  # Next.js Frontend (placeholder - will be added in Phase 5)
+  # frontend:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: fieldpro-frontend
+  #   restart: unless-stopped
+  #   environment:
+  #     NODE_ENV: production
+  #     NEXT_PUBLIC_API_URL: http://backend:3001/api/v1
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - fieldpro-network
+
+  # Nginx Reverse Proxy (optional)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: fieldpro-nginx
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   depends_on:
+  #     - frontend
+  #     - backend
+  #   networks:
+  #     - fieldpro-network
+
+volumes:
+  postgres_data:
+    driver: local
+  backend_uploads:
+    driver: local
+
+networks:
+  fieldpro-network:
+    driver: bridge
