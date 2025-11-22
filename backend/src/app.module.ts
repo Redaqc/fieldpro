@@ -50,6 +50,7 @@ import { IntegrationSettingsModule } from './integration-settings/integration-se
 import { SyncLogModule } from './sync-log/sync-log.module';
 import { WebhookModule } from './webhook/webhook.module';
 import { TeamMessageModule } from './team-message/team-message.module';
+import { RolesModule } from './roles/roles.module';
 
 @Module({
   imports: [
@@ -117,6 +118,7 @@ import { TeamMessageModule } from './team-message/team-message.module';
     SyncLogModule,
     WebhookModule,
     TeamMessageModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
