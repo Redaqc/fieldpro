@@ -22,6 +22,9 @@ import { SupplierInvoicesModule } from './supplier-invoices/supplier-invoices.mo
 import { PriceListsModule } from './price-lists/price-lists.module';
 import { BundlesModule } from './bundles/bundles.module';
 import { MaintenanceSchedulesModule } from './maintenance-schedules/maintenance-schedules.module';
+import { GPSTrackingModule } from './gps-tracking/gps-tracking.module';
+import { GPSZonesModule } from './gps-zones/gps-zones.module';
+import { GPSAlertsModule } from './gps-alerts/gps-alerts.module';
 
 @Module({
   imports: [
@@ -61,6 +64,9 @@ import { MaintenanceSchedulesModule } from './maintenance-schedules/maintenance-
     PriceListsModule,
     BundlesModule,
     MaintenanceSchedulesModule,
+    GPSTrackingModule,
+    GPSZonesModule,
+    GPSAlertsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
