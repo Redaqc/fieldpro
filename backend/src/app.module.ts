@@ -18,6 +18,9 @@ import { AssetsModule } from './assets/assets.module';
 import { QuotationsModule } from './quotations/quotations.module';
 import { WorkTypesModule } from './work-types/work-types.module';
 import { RecurringJobsModule } from './recurring-jobs/recurring-jobs.module';
+import { SupplierInvoicesModule } from './supplier-invoices/supplier-invoices.module';
+import { PriceListsModule } from './price-lists/price-lists.module';
+import { BundlesModule } from './bundles/bundles.module';
 
 @Module({
   imports: [
@@ -53,6 +56,9 @@ import { RecurringJobsModule } from './recurring-jobs/recurring-jobs.module';
     QuotationsModule,
     WorkTypesModule,
     RecurringJobsModule,
+    SupplierInvoicesModule,
+    PriceListsModule,
+    BundlesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
