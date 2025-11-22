@@ -5,6 +5,7 @@ import { PlayCircle, StopCircle, Clock, MapPin } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "@/components/shared/translations";
+import { TIME_ENTRY_STATUS } from '@/constants/statuses';
 
 export default function QuickPunchCard({ technician, activeTimeEntry, lang = 'fr', isOnline }) {
   const [elapsedTime, setElapsedTime] = useState('00:00:00');
@@ -66,7 +67,7 @@ export default function QuickPunchCard({ technician, activeTimeEntry, lang = 'fr
         clock_in: new Date().toISOString(),
         location_in: location,
         gps_verified: !!location,
-        status: 'in_progress'
+        status: TIME_ENTRY_STATUS.IN_PROGRESS
       });
     },
     onSuccess: () => {
@@ -104,7 +105,7 @@ export default function QuickPunchCard({ technician, activeTimeEntry, lang = 'fr
         clock_out: clockOut.toISOString(),
         location_out: location,
         total_hours: totalHours,
-        status: 'completed'
+        status: TIME_ENTRY_STATUS.COMPLETED
       });
     },
     onSuccess: () => {
