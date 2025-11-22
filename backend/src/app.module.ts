@@ -15,6 +15,7 @@ import { ServiceCallsModule } from './service-calls/service-calls.module';
 import { MaterialsModule } from './materials/materials.module';
 import { TimeEntriesModule } from './time-entries/time-entries.module';
 import { AssetsModule } from './assets/assets.module';
+import { QuotationsModule } from './quotations/quotations.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { AssetsModule } from './assets/assets.module';
     MaterialsModule,
     TimeEntriesModule,
     AssetsModule,
+    QuotationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
