@@ -43,6 +43,13 @@ import { TaxSettingsModule } from './tax-settings/tax-settings.module';
 import { CompanyInfoModule } from './company-info/company-info.module';
 import { BrandingSettingsModule } from './branding-settings/branding-settings.module';
 import { DashboardConfigModule } from './dashboard-config/dashboard-config.module';
+import { CustomFieldModule } from './custom-field/custom-field.module';
+import { ChecklistTemplateModule } from './checklist-template/checklist-template.module';
+import { IntegrationModule } from './integration/integration.module';
+import { IntegrationSettingsModule } from './integration-settings/integration-settings.module';
+import { SyncLogModule } from './sync-log/sync-log.module';
+import { WebhookModule } from './webhook/webhook.module';
+import { TeamMessageModule } from './team-message/team-message.module';
 
 @Module({
   imports: [
@@ -103,6 +110,13 @@ import { DashboardConfigModule } from './dashboard-config/dashboard-config.modul
     CompanyInfoModule,
     BrandingSettingsModule,
     DashboardConfigModule,
+    CustomFieldModule,
+    ChecklistTemplateModule,
+    IntegrationModule,
+    IntegrationSettingsModule,
+    SyncLogModule,
+    WebhookModule,
+    TeamMessageModule,
   ],
   controllers: [AppController],
   providers: [AppService],
