@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Mail, Phone, Briefcase, Trash2, UserCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TECHNICIAN_STATUS, JOB_STATUS } from "@/constants/statuses";
 
 const statusColors = {
-  available: "bg-green-100 text-green-700",
-  busy: "bg-yellow-100 text-yellow-700",
-  off_duty: "bg-gray-100 text-gray-700"
+  [TECHNICIAN_STATUS.AVAILABLE]: "bg-green-100 text-green-700",
+  [TECHNICIAN_STATUS.BUSY]: "bg-yellow-100 text-yellow-700",
+  [TECHNICIAN_STATUS.OFF_DUTY]: "bg-gray-100 text-gray-700"
 };
 
 const TechnicianCard = memo(({ tech, jobCount, onTechnicianClick, onUpdateStatus, onDelete }) => (
@@ -70,17 +71,17 @@ const TechnicianCard = memo(({ tech, jobCount, onTechnicianClick, onUpdateStatus
     </div>
 
     <div className="space-y-2">
-      <Select 
-        value={tech.status || 'available'} 
+      <Select
+        value={tech.status || TECHNICIAN_STATUS.AVAILABLE}
         onValueChange={(status) => onUpdateStatus(tech.id, status)}
       >
         <SelectTrigger className="w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="available">Disponible</SelectItem>
-          <SelectItem value="busy">Occupé</SelectItem>
-          <SelectItem value="off_duty">Hors service</SelectItem>
+          <SelectItem value={TECHNICIAN_STATUS.AVAILABLE}>Disponible</SelectItem>
+          <SelectItem value={TECHNICIAN_STATUS.BUSY}>Occupé</SelectItem>
+          <SelectItem value={TECHNICIAN_STATUS.OFF_DUTY}>Hors service</SelectItem>
         </SelectContent>
       </Select>
 
@@ -109,7 +110,7 @@ export default function TeamList({ technicians, isLoading, onTechnicianClick, on
   const jobCountMap = useMemo(() => {
     const map = {};
     jobs.forEach(job => {
-      if (job.technician_id && (job.status === 'scheduled' || job.status === 'in_progress')) {
+      if (job.technician_id && (job.status === JOB_STATUS.SCHEDULED || job.status === JOB_STATUS.IN_PROGRESS)) {
         map[job.technician_id] = (map[job.technician_id] || 0) + 1;
       }
     });
@@ -203,17 +204,17 @@ export default function TeamList({ technicians, isLoading, onTechnicianClick, on
                 
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <span className="text-sm text-slate-500">{jobCount} jobs</span>
-                  <Select 
-                    value={tech.status || 'available'} 
+                  <Select
+                    value={tech.status || TECHNICIAN_STATUS.AVAILABLE}
                     onValueChange={(status) => onUpdateStatus(tech.id, status)}
                   >
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="available">Disponible</SelectItem>
-                      <SelectItem value="busy">Occupé</SelectItem>
-                      <SelectItem value="off_duty">Hors service</SelectItem>
+                      <SelectItem value={TECHNICIAN_STATUS.AVAILABLE}>Disponible</SelectItem>
+                      <SelectItem value={TECHNICIAN_STATUS.BUSY}>Occupé</SelectItem>
+                      <SelectItem value={TECHNICIAN_STATUS.OFF_DUTY}>Hors service</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button

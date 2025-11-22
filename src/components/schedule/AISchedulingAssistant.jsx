@@ -6,21 +6,22 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, Loader2, MapPin, Clock, TrendingUp, Users, Route, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { JOB_STATUS, TECHNICIAN_STATUS } from "@/constants/statuses";
 
 export default function AISchedulingAssistant({ selectedDate, jobs, technicians, onApplySuggestion }) {
   const [suggestions, setSuggestions] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const unassignedJobs = jobs.filter(j => 
-    !j.technician_id && 
-    j.status === 'scheduled' &&
+  const unassignedJobs = jobs.filter(j =>
+    !j.technician_id &&
+    j.status === JOB_STATUS.SCHEDULED &&
     j.scheduled_date === selectedDate
   );
 
-  const scheduledJobs = jobs.filter(j => 
-    j.technician_id && 
+  const scheduledJobs = jobs.filter(j =>
+    j.technician_id &&
     j.scheduled_date === selectedDate &&
-    (j.status === 'scheduled' || j.status === 'in_progress')
+    (j.status === JOB_STATUS.SCHEDULED || j.status === JOB_STATUS.IN_PROGRESS)
   );
 
   const generateOptimalSchedule = async () => {
@@ -42,8 +43,8 @@ ${i + 1}. ${j.title}
    - Heure prévue: ${j.scheduled_time || 'Flexible'}
 `).join('\n')}
 
-**Techniciens disponibles (${technicians.filter(t => t.status !== 'off_duty').length}):**
-${technicians.filter(t => t.status !== 'off_duty').map((t, i) => `
+**Techniciens disponibles (${technicians.filter(t => t.status !== TECHNICIAN_STATUS.OFF_DUTY).length}):**
+${technicians.filter(t => t.status !== TECHNICIAN_STATUS.OFF_DUTY).map((t, i) => `
 ${i + 1}. ${t.first_name} ${t.last_name}
    - Spécialités: ${t.specialization?.join(', ') || 'Général'}
    - Statut: ${t.status}

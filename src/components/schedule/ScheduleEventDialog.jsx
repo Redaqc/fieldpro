@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertCircle, Briefcase, Phone } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { JOB_STATUS, SERVICE_CALL_STATUS, PRIORITY } from "@/constants/statuses";
 
 export default function ScheduleEventDialog({ 
   open, 
@@ -26,8 +27,8 @@ export default function ScheduleEventDialog({
     description: '',
     start: new Date(),
     end: new Date(Date.now() + 2 * 60 * 60 * 1000),
-    priority: 'medium',
-    status: 'todo',
+    priority: PRIORITY.MEDIUM,
+    status: JOB_STATUS.TODO,
     technician_ids: []
   });
   const [conflicts, setConflicts] = useState([]);
@@ -43,8 +44,8 @@ export default function ScheduleEventDialog({
         description: event.data?.description || '',
         start: event.start || new Date(),
         end: event.end || new Date(Date.now() + 2 * 60 * 60 * 1000),
-        priority: event.priority || 'medium',
-        status: event.status || 'todo',
+        priority: event.priority || PRIORITY.MEDIUM,
+        status: event.status || JOB_STATUS.TODO,
         technician_ids: event.technicians?.map(t => t.id) || []
       });
       if (event.type) setType(event.type);
@@ -314,10 +315,10 @@ export default function ScheduleEventDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
+                  <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
+                  <SelectItem value={PRIORITY.MEDIUM}>Medium</SelectItem>
+                  <SelectItem value={PRIORITY.HIGH}>High</SelectItem>
+                  <SelectItem value={PRIORITY.URGENT}>Urgent</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -329,10 +330,10 @@ export default function ScheduleEventDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todo">To Do</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="review">Review</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value={JOB_STATUS.TODO}>To Do</SelectItem>
+                  <SelectItem value={JOB_STATUS.IN_PROGRESS}>In Progress</SelectItem>
+                  <SelectItem value={JOB_STATUS.REVIEW}>Review</SelectItem>
+                  <SelectItem value={JOB_STATUS.COMPLETED}>Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>

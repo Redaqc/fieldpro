@@ -5,11 +5,12 @@ import { Mail, Phone, Briefcase, DollarSign, Package, Edit } from "lucide-react"
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card } from "@/components/ui/card";
+import { TECHNICIAN_STATUS, JOB_STATUS } from "@/constants/statuses";
 
 const statusColors = {
-  available: "bg-green-100 text-green-700",
-  busy: "bg-yellow-100 text-yellow-700",
-  off_duty: "bg-gray-100 text-gray-700"
+  [TECHNICIAN_STATUS.AVAILABLE]: "bg-green-100 text-green-700",
+  [TECHNICIAN_STATUS.BUSY]: "bg-yellow-100 text-yellow-700",
+  [TECHNICIAN_STATUS.OFF_DUTY]: "bg-gray-100 text-gray-700"
 };
 
 export default function TechnicianDetails({ open, onClose, technician, onEdit }) {
@@ -30,8 +31,8 @@ export default function TechnicianDetails({ open, onClose, technician, onEdit })
   if (!technician) return null;
 
   const techJobs = jobs.filter(j => j.technician_id === technician.id);
-  const activeJobs = techJobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress');
-  const completedJobs = techJobs.filter(j => j.status === 'completed');
+  const activeJobs = techJobs.filter(j => j.status === JOB_STATUS.SCHEDULED || j.status === JOB_STATUS.IN_PROGRESS);
+  const completedJobs = techJobs.filter(j => j.status === JOB_STATUS.COMPLETED);
   const assignedAssets = assets.filter(a => a.assigned_to === technician.id);
 
   return (
@@ -58,9 +59,9 @@ export default function TechnicianDetails({ open, onClose, technician, onEdit })
                 <DialogTitle className="text-2xl">
                   {technician.first_name} {technician.last_name}
                 </DialogTitle>
-                <Badge className={statusColors[technician.status || 'available']}>
-                  {technician.status === 'available' ? 'Disponible' :
-                   technician.status === 'busy' ? 'Occupé' : 'Hors service'}
+                <Badge className={statusColors[technician.status || TECHNICIAN_STATUS.AVAILABLE]}>
+                  {technician.status === TECHNICIAN_STATUS.AVAILABLE ? 'Disponible' :
+                   technician.status === TECHNICIAN_STATUS.BUSY ? 'Occupé' : 'Hors service'}
                 </Badge>
               </div>
             </div>
@@ -203,13 +204,13 @@ export default function TechnicianDetails({ open, onClose, technician, onEdit })
                       <p className="text-xs text-slate-500">{job.customer_name}</p>
                     </div>
                     <Badge className={
-                      job.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
-                      job.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
+                      job.status === JOB_STATUS.SCHEDULED ? 'bg-blue-100 text-blue-800' :
+                      job.status === JOB_STATUS.IN_PROGRESS ? 'bg-yellow-100 text-yellow-800' :
                       'bg-green-100 text-green-800'
                     }>
-                      {job.status === 'scheduled' && 'Planifié'}
-                      {job.status === 'in_progress' && 'En cours'}
-                      {job.status === 'completed' && 'Complété'}
+                      {job.status === JOB_STATUS.SCHEDULED && 'Planifié'}
+                      {job.status === JOB_STATUS.IN_PROGRESS && 'En cours'}
+                      {job.status === JOB_STATUS.COMPLETED && 'Complété'}
                     </Badge>
                   </div>
                 ))}

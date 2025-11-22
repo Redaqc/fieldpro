@@ -6,6 +6,7 @@ import { Sparkles, Zap, MapPin, Clock, AlertTriangle, Users, CheckCircle, X } fr
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { JOB_STATUS, SERVICE_CALL_STATUS, PRIORITY } from "@/constants/statuses";
 
 export default function AIDispatcherAssistant({ jobs, serviceCalls, technicians, onAssign }) {
   const [analyzing, setAnalyzing] = useState(false);
@@ -36,7 +37,7 @@ export default function AIDispatcherAssistant({ jobs, serviceCalls, technicians,
 
       const updateData = {
         technicians: [techData],
-        status: 'scheduled',
+        status: JOB_STATUS.SCHEDULED,
         start_date: scheduledTime
       };
 
@@ -56,16 +57,16 @@ export default function AIDispatcherAssistant({ jobs, serviceCalls, technicians,
     setAnalyzing(true);
     try {
       // Combine unassigned work
-      const unassignedJobs = jobs.filter(j => 
-        (!j.technicians || j.technicians.length === 0) && 
-        j.status !== 'completed' && 
-        j.status !== 'cancelled'
+      const unassignedJobs = jobs.filter(j =>
+        (!j.technicians || j.technicians.length === 0) &&
+        j.status !== JOB_STATUS.COMPLETED &&
+        j.status !== JOB_STATUS.CANCELLED
       ).map(j => ({ ...j, type: 'job' }));
 
-      const unassignedCalls = serviceCalls.filter(c => 
-        (!c.technicians || c.technicians.length === 0) && 
-        c.status !== 'completed' && 
-        c.status !== 'cancelled'
+      const unassignedCalls = serviceCalls.filter(c =>
+        (!c.technicians || c.technicians.length === 0) &&
+        c.status !== SERVICE_CALL_STATUS.COMPLETED &&
+        c.status !== SERVICE_CALL_STATUS.CANCELLED
       ).map(c => ({ ...c, type: 'service_call' }));
 
       const allUnassigned = [...unassignedJobs, ...unassignedCalls];
@@ -77,14 +78,14 @@ export default function AIDispatcherAssistant({ jobs, serviceCalls, technicians,
       }
 
       // Get current assignments
-      const assignedJobs = jobs.filter(j => j.technicians?.length > 0 && j.status !== 'completed');
-      const assignedCalls = serviceCalls.filter(c => c.technicians?.length > 0 && c.status !== 'completed');
+      const assignedJobs = jobs.filter(j => j.technicians?.length > 0 && j.status !== JOB_STATUS.COMPLETED);
+      const assignedCalls = serviceCalls.filter(c => c.technicians?.length > 0 && c.status !== SERVICE_CALL_STATUS.COMPLETED);
 
       // Calculate technician workloads
       const techWorkload = technicians.map(tech => {
         const myJobs = assignedJobs.filter(j => j.technicians.some(t => t.id === tech.id));
         const myCalls = assignedCalls.filter(c => c.technicians.some(t => t.id === tech.id));
-        
+
         return {
           id: tech.id,
           name: `${tech.first_name} ${tech.last_name}`,
@@ -369,13 +370,13 @@ Provide assignments as JSON array with this structure:
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <Badge className={
-                              assignment.workItem?.type === 'job' 
-                                ? 'bg-blue-100 text-blue-700' 
+                              assignment.workItem?.type === 'job'
+                                ? 'bg-blue-100 text-blue-700'
                                 : 'bg-green-100 text-green-700'
                             }>
                               {assignment.workItem?.type === 'job' ? 'JOB' : 'SERVICE CALL'}
                             </Badge>
-                            {assignment.workItem?.priority === 'urgent' && (
+                            {assignment.workItem?.priority === PRIORITY.URGENT && (
                               <Badge className="bg-red-100 text-red-700">URGENT</Badge>
                             )}
                             <Badge variant="outline" className="text-xs">
