@@ -1,0 +1,1084 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  TECHNICIAN
+  CUSTOMER
+}
+
+enum JobStatus {
+  PENDING
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  ON_HOLD
+}
+
+enum JobPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CHECK
+  CARD
+  TRANSFER
+  STRIPE
+  OTHER
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum ServiceCallStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum AssetStatus {
+  ACTIVE
+  MAINTENANCE
+  RETIRED
+  DISPOSED
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
+  ALERT
+}
+
+enum IntegrationType {
+  ZOHO_BOOKS
+  QUICKBOOKS
+  SAGE50
+  STRIPE
+  GOOGLE_CALENDAR
+}
+
+enum SyncStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum AlertType {
+  GEOFENCE_ENTRY
+  GEOFENCE_EXIT
+  SPEEDING
+  LOW_BATTERY
+  OFFLINE
+}
+
+enum RecurringFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+// ============================================================================
+// USER & AUTHENTICATION
+// ============================================================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String // Hashed
+  fullName      String?   @map("full_name")
+  role          UserRole  @default(TECHNICIAN)
+  active        Boolean   @default(true)
+  emailVerified Boolean   @default(false) @map("email_verified")
+
+  // Timestamps
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  lastLoginAt   DateTime? @map("last_login_at")
+
+  // Relations
+  technician           Technician?
+  refreshTokens        RefreshToken[]
+  notifications        Notification[]
+  dashboardConfigs     DashboardConfig[]
+  notificationPrefs    NotificationPreference?
+  languageSetting      LanguageSettings?
+  teamMessagesSent     TeamMessage[] @relation("SentMessages")
+  teamMessagesReceived TeamMessage[] @relation("ReceivedMessages")
+  formSubmissions      FormSubmission[]
+  documents            Document[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ============================================================================
+// ROLES & PERMISSIONS
+// ============================================================================
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  permissions Json // Store as JSON: { "jobs": true, "customers": true, etc. }
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  technicians Technician[]
+
+  @@map("roles")
+}
+
+// ============================================================================
+// CORE ENTITIES
+// ============================================================================
+
+model Customer {
+  id          String   @id @default(uuid())
+  firstName   String   @map("first_name")
+  lastName    String   @map("last_name")
+  email       String?
+  phone       String?
+  companyName String?  @map("company_name")
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String?  @map("zip_code")
+  country     String?  @default("Canada")
+  notes       String?
+
+  customerType String? @map("customer_type") // residential, commercial
+  tags         Json?   // String array stored as JSON
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  jobs         Job[]
+  quotations   Quotation[]
+  invoices     Invoice[]
+  serviceCalls ServiceCall[]
+  feedback     CustomerFeedback[]
+
+  @@index([email])
+  @@index([phone])
+  @@map("customers")
+}
+
+model Technician {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  firstName       String   @map("first_name")
+  lastName        String   @map("last_name")
+  email           String   @unique
+  phone           String?
+
+  employeeNumber  String?  @map("employee_number")
+  address         String?
+  avatarUrl       String?  @map("avatar_url")
+  color           String?  @default("#0074D9") // Calendar color
+
+  specialization  Json?    // Array of work types
+  hourlyRate      Float?   @map("hourly_rate")
+
+  roleId          String?  @map("role_id")
+  visibleModules  Json?    @map("visible_modules") // Array of module names
+  workingHours    Json?    @map("working_hours") // { start: 8, end: 17, days: [1,2,3,4,5] }
+
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           Role?          @relation(fields: [roleId], references: [id])
+  jobs           Job[]          @relation("AssignedJobs")
+  timeEntries    TimeEntry[]
+  gpsTracking    GPSTracking[]
+  gpsAlerts      GPSAlert[]
+  assignedAssets Asset[]
+
+  @@index([email])
+  @@index([roleId])
+  @@map("technicians")
+}
+
+model Job {
+  id                String      @id @default(uuid())
+  jobNumber         String      @unique @map("job_number")
+  title             String
+  description       String?
+
+  customerId        String      @map("customer_id")
+  assignedTechnicians Json?     @map("assigned_technicians") // Array of technician IDs
+
+  status            JobStatus   @default(PENDING)
+  priority          JobPriority @default(MEDIUM)
+
+  scheduledStart    DateTime?   @map("scheduled_start")
+  scheduledEnd      DateTime?   @map("scheduled_end")
+  actualStart       DateTime?   @map("actual_start")
+  actualEnd         DateTime?   @map("actual_end")
+
+  address           String?
+  latitude          Float?
+  longitude         Float?
+
+  estimatedHours    Float?      @map("estimated_hours")
+  estimatedCost     Float?      @map("estimated_cost")
+  actualCost        Float?      @map("actual_cost")
+
+  tags              Json?       // String array
+
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  customer          Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  technicians       Technician[]   @relation("AssignedJobs")
+  invoices          Invoice[]
+  timeEntries       TimeEntry[]
+  documents         Document[]
+  formSubmissions   FormSubmission[]
+  profitability     ProfitabilityRecord?
+
+  @@index([customerId])
+  @@index([status])
+  @@index([priority])
+  @@index([scheduledStart])
+  @@map("jobs")
+}
+
+model ServiceCall {
+  id          String            @id @default(uuid())
+  callNumber  String            @unique @map("call_number")
+  customerId  String            @map("customer_id")
+  title       String
+  description String?
+  priority    JobPriority       @default(MEDIUM)
+  status      ServiceCallStatus @default(OPEN)
+  assignedTo  String?           @map("assigned_to")
+
+  scheduledDate DateTime?       @map("scheduled_date")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([status])
+  @@map("service_calls")
+}
+
+model RecurringJob {
+  id                  String              @id @default(uuid())
+  jobTemplateId       String?             @map("job_template_id")
+  customerId          String              @map("customer_id")
+  frequency           RecurringFrequency
+  frequencyValue      Int                 @default(1) @map("frequency_value")
+
+  startDate           DateTime            @map("start_date")
+  endDate             DateTime?           @map("end_date")
+  nextOccurrence      DateTime            @map("next_occurrence")
+
+  assignedTechnicians Json?               @map("assigned_technicians")
+  autoAssign          Boolean             @default(false) @map("auto_assign")
+  active              Boolean             @default(true)
+
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+
+  @@index([customerId])
+  @@index([nextOccurrence])
+  @@map("recurring_jobs")
+}
+
+// ============================================================================
+// FINANCIAL
+// ============================================================================
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique @map("invoice_number")
+  customerId    String        @map("customer_id")
+  jobId         String?       @map("job_id")
+
+  issueDate     DateTime      @map("issue_date")
+  dueDate       DateTime      @map("due_date")
+  status        InvoiceStatus @default(DRAFT)
+
+  subtotal      Float         @default(0)
+  tax           Float         @default(0)
+  total         Float         @default(0)
+  paidAmount    Float         @default(0) @map("paid_amount")
+
+  lineItems     Json          @map("line_items") // Array of { description, quantity, price }
+  notes         String?
+
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  customer Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  job      Job?      @relation(fields: [jobId], references: [id])
+  payments Payment[]
+
+  @@index([customerId])
+  @@index([jobId])
+  @@index([status])
+  @@map("invoices")
+}
+
+model Payment {
+  id                     String        @id @default(uuid())
+  invoiceId              String        @map("invoice_id")
+  amount                 Float
+  paymentDate            DateTime      @map("payment_date")
+  paymentMethod          PaymentMethod @map("payment_method")
+  transactionId          String?       @map("transaction_id")
+  stripePaymentIntentId  String?       @map("stripe_payment_intent_id")
+  status                 String        @default("completed")
+  notes                  String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("payments")
+}
+
+model Quotation {
+  id           String           @id @default(uuid())
+  quoteNumber  String           @unique @map("quote_number")
+  customerId   String           @map("customer_id")
+  title        String
+  description  String?
+  status       QuotationStatus  @default(DRAFT)
+
+  issueDate    DateTime         @map("issue_date")
+  expiryDate   DateTime         @map("expiry_date")
+
+  lineItems    Json             @map("line_items")
+  subtotal     Float            @default(0)
+  tax          Float            @default(0)
+  total        Float            @default(0)
+  notes        String?
+
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([status])
+  @@map("quotations")
+}
+
+model SupplierInvoice {
+  id            String   @id @default(uuid())
+  supplierName  String   @map("supplier_name")
+  invoiceNumber String   @map("invoice_number")
+  invoiceDate   DateTime @map("invoice_date")
+  dueDate       DateTime @map("due_date")
+  amount        Float
+  paidAmount    Float    @default(0) @map("paid_amount")
+  status        String   @default("pending")
+  category      String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([supplierName])
+  @@map("supplier_invoices")
+}
+
+model ProfitabilityRecord {
+  id           String   @id @default(uuid())
+  jobId        String   @unique @map("job_id")
+  revenue      Float
+  laborCost    Float    @map("labor_cost")
+  materialCost Float    @map("material_cost")
+  overheadCost Float    @map("overhead_cost")
+  totalCost    Float    @map("total_cost")
+  profit       Float
+  profitMargin Float    @map("profit_margin")
+
+  calculatedAt DateTime @default(now()) @map("calculated_at")
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@map("profitability_records")
+}
+
+// ============================================================================
+// INVENTORY & ASSETS
+// ============================================================================
+
+model Asset {
+  id              String      @id @default(uuid())
+  assetNumber     String      @unique @map("asset_number")
+  name            String
+  brand           String?
+  model           String?
+  serialNumber    String?     @map("serial_number")
+
+  purchaseDate    DateTime?   @map("purchase_date")
+  warrantyExpiry  DateTime?   @map("warranty_expiry")
+
+  status          AssetStatus @default(ACTIVE)
+  location        String?
+  assignedTo      String?     @map("assigned_to")
+
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  technician           Technician?           @relation(fields: [assignedTo], references: [id])
+  maintenanceSchedules MaintenanceSchedule[]
+
+  @@index([assignedTo])
+  @@index([status])
+  @@map("assets")
+}
+
+model MaintenanceSchedule {
+  id                   String    @id @default(uuid())
+  assetId              String    @map("asset_id")
+  maintenanceType      String    @map("maintenance_type")
+  scheduleType         String    @map("schedule_type")
+  frequency            String?
+  nextMaintenanceDate  DateTime  @map("next_maintenance_date")
+  lastMaintenanceDate  DateTime? @map("last_maintenance_date")
+  assignedTo           String?   @map("assigned_to")
+  notes                String?
+  active               Boolean   @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("maintenance_schedules")
+}
+
+model Material {
+  id             String   @id @default(uuid())
+  name           String
+  sku            String?  @unique
+  description    String?
+  unitPrice      Float    @map("unit_price")
+  quantityOnHand Int      @default(0) @map("quantity_on_hand")
+  minStockLevel  Int?     @map("min_stock_level")
+  unit           String?
+  supplier       String?
+  category       String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([sku])
+  @@index([category])
+  @@map("materials")
+}
+
+model PriceList {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  unitPrice   Float    @map("unit_price")
+  category    String?
+  active      Boolean  @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("price_lists")
+}
+
+model Bundle {
+  id                 String   @id @default(uuid())
+  name               String
+  description        String?
+  items              Json // Array of bundle items
+  totalPrice         Float    @map("total_price")
+  discountPercentage Float?   @map("discount_percentage")
+  active             Boolean  @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("bundles")
+}
+
+// ============================================================================
+// TIME TRACKING
+// ============================================================================
+
+model TimeEntry {
+  id            String    @id @default(uuid())
+  technicianId  String    @map("technician_id")
+  jobId         String?   @map("job_id")
+
+  startTime     DateTime  @map("start_time")
+  endTime       DateTime? @map("end_time")
+  durationHours Float?    @map("duration_hours")
+  description   String?
+
+  billable      Boolean   @default(true)
+  hourlyRate    Float?    @map("hourly_rate")
+  totalCost     Float?    @map("total_cost")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  job        Job?       @relation(fields: [jobId], references: [id])
+
+  @@index([technicianId])
+  @@index([jobId])
+  @@index([startTime])
+  @@map("time_entries")
+}
+
+model WorkType {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  description     String?
+  defaultDuration Int?     @map("default_duration") // Minutes
+  defaultPrice    Float?   @map("default_price")
+  color           String?
+  labelFr         String?  @map("label_fr")
+  active          Boolean  @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("work_types")
+}
+
+// ============================================================================
+// GPS & TRACKING
+// ============================================================================
+
+model GPSTracking {
+  id           String   @id @default(uuid())
+  technicianId String   @map("technician_id")
+  latitude     Float
+  longitude    Float
+  accuracy     Float?
+  speed        Float?
+  heading      Float?
+  batteryLevel Int?     @map("battery_level")
+
+  timestamp DateTime @default(now())
+
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+
+  @@index([technicianId])
+  @@index([timestamp])
+  @@map("gps_tracking")
+}
+
+model GPSZone {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  zoneType    String  @map("zone_type")
+  coordinates Json // GeoJSON polygon
+  radius      Float?
+  active      Boolean @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  alerts GPSAlert[]
+
+  @@map("gps_zones")
+}
+
+model GPSAlert {
+  id           String    @id @default(uuid())
+  technicianId String    @map("technician_id")
+  zoneId       String?   @map("zone_id")
+  alertType    AlertType @map("alert_type")
+  message      String
+  acknowledged Boolean   @default(false)
+
+  timestamp DateTime @default(now())
+
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  zone       GPSZone?   @relation(fields: [zoneId], references: [id])
+
+  @@index([technicianId])
+  @@index([zoneId])
+  @@map("gps_alerts")
+}
+
+// ============================================================================
+// FORMS & AUTOMATION
+// ============================================================================
+
+model FormTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  fields      Json // Array of form field definitions
+  category    String?
+  createdBy   String?  @map("created_by")
+  active      Boolean  @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  submissions  FormSubmission[]
+  automations  FormAutomation[]
+
+  @@map("form_templates")
+}
+
+model FormSubmission {
+  id             String   @id @default(uuid())
+  formTemplateId String   @map("form_template_id")
+  submittedBy    String   @map("submitted_by")
+  jobId          String?  @map("job_id")
+  submissionData Json     @map("submission_data")
+  status         String?
+
+  submissionDate DateTime @default(now()) @map("submission_date")
+
+  formTemplate FormTemplate @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [submittedBy], references: [id])
+  job          Job?         @relation(fields: [jobId], references: [id])
+
+  @@index([formTemplateId])
+  @@index([submittedBy])
+  @@index([jobId])
+  @@map("form_submissions")
+}
+
+model FormAutomation {
+  id                String   @id @default(uuid())
+  formTemplateId    String   @map("form_template_id")
+  triggerConditions Json     @map("trigger_conditions")
+  actions           Json // Array of automation actions
+  active            Boolean  @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  formTemplate FormTemplate @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([formTemplateId])
+  @@map("form_automations")
+}
+
+model Automation {
+  id                String   @id @default(uuid())
+  name              String
+  description       String?
+  triggerType       String   @map("trigger_type")
+  triggerConditions Json     @map("trigger_conditions")
+  actions           Json
+  active            Boolean  @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("automations")
+}
+
+// ============================================================================
+// DOCUMENTS & FILES
+// ============================================================================
+
+model Document {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  filePath    String   @map("file_path") // Local file path
+  fileUrl     String?  @map("file_url") // Accessible URL
+  fileType    String?  @map("file_type")
+  fileSize    Int?     @map("file_size")
+  category    String?
+  tags        Json?
+
+  uploadedBy  String   @map("uploaded_by")
+  entityType  String?  @map("entity_type") // job, customer, invoice
+  entityId    String?  @map("entity_id")
+
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  user User  @relation(fields: [uploadedBy], references: [id])
+  job  Job?  @relation(fields: [entityId], references: [id])
+
+  @@index([uploadedBy])
+  @@index([entityType, entityId])
+  @@map("documents")
+}
+
+model CustomerFeedback {
+  id         String   @id @default(uuid())
+  customerId String   @map("customer_id")
+  jobId      String?  @map("job_id")
+  rating     Int // 1-5
+  comments   String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("customer_feedback")
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  title     String
+  message   String
+  type      NotificationType
+  read      Boolean          @default(false)
+  actionUrl String?          @map("action_url")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id                   String  @id @default(uuid())
+  userId               String  @unique @map("user_id")
+  emailNotifications   Boolean @default(true) @map("email_notifications")
+  pushNotifications    Boolean @default(true) @map("push_notifications")
+  smsNotifications     Boolean @default(false) @map("sms_notifications")
+  notificationTypes    Json?   @map("notification_types")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model NotificationTemplate {
+  id        String  @id @default(uuid())
+  name      String
+  type      String // email, sms, push
+  subject   String?
+  body      String
+  variables Json? // Available template variables
+  active    Boolean @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_templates")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userEmail String   @map("user_email")
+  endpoint  String
+  keys      String // JSON string
+  active    Boolean  @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userEmail, endpoint])
+  @@index([userEmail])
+  @@index([endpoint])
+  @@map("push_subscriptions")
+}
+
+model Alert {
+  id      String           @id @default(uuid())
+  type    NotificationType
+  message String
+  userId  String           @map("user_id")
+  read    Boolean          @default(false)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("alerts")
+}
+
+// ============================================================================
+// CONFIGURATION & SETTINGS
+// ============================================================================
+
+model AppSettings {
+  id             String   @id @default(uuid())
+  menuModules    Json?    @map("menu_modules")
+  defaultLanguage String? @map("default_language")
+  timezone       String?
+  dateFormat     String?  @map("date_format")
+  currency       String?
+  companyInfo    Json?    @map("company_info")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+}
+
+model LanguageSettings {
+  id       String  @id @default(uuid())
+  userId   String? @unique @map("user_id")
+  language String  @default("fr")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("language_settings")
+}
+
+model TaxSettings {
+  id       String  @id @default(uuid())
+  taxName  String  @map("tax_name")
+  taxRate  Float   @map("tax_rate")
+  province String?
+  country  String?
+  active   Boolean @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("tax_settings")
+}
+
+model CompanyInfo {
+  id          String  @id @default(uuid())
+  companyName String  @map("company_name")
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String? @map("zip_code")
+  phone       String?
+  email       String?
+  website     String?
+  taxId       String? @map("tax_id")
+  logoUrl     String? @map("logo_url")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("company_info")
+}
+
+model BrandingSettings {
+  id                 String  @id @default(uuid())
+  logoUrl            String? @map("logo_url")
+  primaryColor       String? @map("primary_color")
+  secondaryColor     String? @map("secondary_color")
+  companyName        String? @map("company_name")
+  companyTagline     String? @map("company_tagline")
+  faviconUrl         String? @map("favicon_url")
+  loginBackgroundUrl String? @map("login_background_url")
+  emailLogoUrl       String? @map("email_logo_url")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("branding_settings")
+}
+
+model DashboardConfig {
+  id             String @id @default(uuid())
+  userId         String @map("user_id")
+  visibleWidgets Json   @map("visible_widgets")
+  widgetPositions Json? @map("widget_positions")
+  defaultView    String? @map("default_view")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("dashboard_configs")
+}
+
+model CustomField {
+  id           String  @id @default(uuid())
+  entityType   String  @map("entity_type")
+  fieldName    String  @map("field_name")
+  fieldType    String  @map("field_type")
+  fieldOptions Json?   @map("field_options")
+  required     Boolean @default(false)
+  defaultValue String? @map("default_value")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("custom_fields")
+}
+
+model ChecklistTemplate {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  items       Json // Array of checklist items
+  category    String?
+  createdBy   String? @map("created_by")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("checklist_templates")
+}
+
+// ============================================================================
+// INTEGRATIONS
+// ============================================================================
+
+model Integration {
+  id       String          @id @default(uuid())
+  name     String
+  type     IntegrationType
+  status   String          @default("inactive")
+  config   Json?
+  lastSync DateTime?       @map("last_sync")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("integrations")
+}
+
+model IntegrationSettings {
+  id                 String    @id @default(uuid())
+  integrationType    String    @map("integration_type")
+  apiKey             String?   @map("api_key")
+  apiSecret          String?   @map("api_secret")
+  accessToken        String?   @map("access_token")
+  refreshToken       String?   @map("refresh_token")
+  organizationId     String?   @map("organization_id")
+  sage50CompanyPath  String?   @map("sage50_company_path")
+  sage50SyncMode     String?   @map("sage50_sync_mode")
+  customerFilters    Json?     @map("customer_filters")
+  itemFilters        Json?     @map("item_filters")
+  enabled            Boolean   @default(false)
+  lastSyncDate       DateTime? @map("last_sync_date")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("integration_settings")
+}
+
+model SyncLog {
+  id               String     @id @default(uuid())
+  integrationType  String     @map("integration_type")
+  operation        String
+  status           SyncStatus
+  recordsProcessed Int        @default(0) @map("records_processed")
+  recordsCreated   Int        @default(0) @map("records_created")
+  recordsUpdated   Int        @default(0) @map("records_updated")
+  recordsFailed    Int        @default(0) @map("records_failed")
+  errors           Json?
+  details          Json?
+
+  startedAt   DateTime  @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  @@index([integrationType])
+  @@index([status])
+  @@map("sync_logs")
+}
+
+model Webhook {
+  id        String  @id @default(uuid())
+  name      String
+  url       String
+  eventType String  @map("event_type")
+  headers   Json?
+  secret    String?
+  active    Boolean @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("webhooks")
+}
+
+// ============================================================================
+// TEAM & COMMUNICATION
+// ============================================================================
+
+model TeamMessage {
+  id             String   @id @default(uuid())
+  senderEmail    String   @map("sender_email")
+  recipientEmail String   @map("recipient_email")
+  message        String
+  channel        String?
+  read           Boolean  @default(false)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sender    User @relation("SentMessages", fields: [senderEmail], references: [email])
+  recipient User @relation("ReceivedMessages", fields: [recipientEmail], references: [email])
+
+  @@index([senderEmail])
+  @@index([recipientEmail])
+  @@map("team_messages")
+}
