@@ -9,6 +9,8 @@ import { UsersModule } from './users/users.module';
 import { CustomersModule } from './customers/customers.module';
 import { JobsModule } from './jobs/jobs.module';
 import { TechniciansModule } from './technicians/technicians.module';
+import { InvoicesModule } from './invoices/invoices.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { TechniciansModule } from './technicians/technicians.module';
     CustomersModule,
     JobsModule,
     TechniciansModule,
+    InvoicesModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
