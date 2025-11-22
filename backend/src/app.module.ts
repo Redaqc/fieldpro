@@ -16,6 +16,7 @@ import { MaterialsModule } from './materials/materials.module';
 import { TimeEntriesModule } from './time-entries/time-entries.module';
 import { AssetsModule } from './assets/assets.module';
 import { QuotationsModule } from './quotations/quotations.module';
+import { WorkTypesModule } from './work-types/work-types.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { QuotationsModule } from './quotations/quotations.module';
     TimeEntriesModule,
     AssetsModule,
     QuotationsModule,
+    WorkTypesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
