@@ -2,9 +2,31 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
  * Sage 50 Canada Sync Handler
- * Supports both SDK (COM API) and CSV-based sync
- * SDK mode provides direct query capabilities and real-time data exchange
- * CSV mode serves as fallback for environments without COM access
+ *
+ * IMPORTANT: This function supports two modes:
+ *
+ * 1. CSV MODE (RECOMMENDED - FULLY FUNCTIONAL)
+ *    - Export data from Sage 50 as CSV files
+ *    - Upload CSV data via the FieldPro interface
+ *    - Works on any platform (Windows, Mac, Linux, Web)
+ *    - No additional setup required
+ *
+ * 2. SDK MODE (REQUIRES WINDOWS COM BRIDGE - NOT YET IMPLEMENTED)
+ *    - Direct real-time connection to Sage 50 via COM API
+ *    - Only works on Windows with Sage 50 installed
+ *    - Requires external COM bridge service
+ *    - Status: Placeholder implementation - use CSV mode instead
+ *
+ * To use CSV mode:
+ * 1. In Sage 50, export your data (Customers, Items, Invoices) as CSV
+ * 2. Go to Integration Settings in FieldPro
+ * 3. Select "Sage 50 Canada" and choose "CSV Mode"
+ * 4. Upload your CSV files
+ *
+ * To implement SDK mode:
+ * - Set up a Windows service with Sage 50 COM API access
+ * - Implement COM bridge using FFI or external service
+ * - Configure connection string in Integration Settings
  */
 
 // SDK Helper Functions for Sage 50 COM API
@@ -45,8 +67,12 @@ const Sage50SDK = {
         filters: filters
       };
 
-      // Placeholder - actual implementation would use COM interop
-      throw new Error('SDK mode requires COM API access - use CSV mode or configure Windows service bridge');
+      // SDK mode is not yet implemented - COM API bridge required
+      throw new Error(
+        'SDK mode is not available. Please use CSV mode instead. ' +
+        'To use CSV mode: Export data from Sage 50 as CSV, then upload via Integration Settings. ' +
+        'For SDK mode implementation, contact support or configure a Windows COM bridge service.'
+      );
       
     } catch (error) {
       throw new Error(`Customer query failed: ${error.message}`);
@@ -64,7 +90,11 @@ const Sage50SDK = {
         filters: filters
       };
 
-      throw new Error('SDK mode requires COM API access - use CSV mode or configure Windows service bridge');
+      throw new Error(
+        'SDK mode is not available. Please use CSV mode instead. ' +
+        'To use CSV mode: Export data from Sage 50 as CSV, then upload via Integration Settings. ' +
+        'For SDK mode implementation, contact support or configure a Windows COM bridge service.'
+      );
       
     } catch (error) {
       throw new Error(`Item query failed: ${error.message}`);
@@ -82,7 +112,11 @@ const Sage50SDK = {
         filters: filters
       };
 
-      throw new Error('SDK mode requires COM API access - use CSV mode or configure Windows service bridge');
+      throw new Error(
+        'SDK mode is not available. Please use CSV mode instead. ' +
+        'To use CSV mode: Export data from Sage 50 as CSV, then upload via Integration Settings. ' +
+        'For SDK mode implementation, contact support or configure a Windows COM bridge service.'
+      );
       
     } catch (error) {
       throw new Error(`Invoice query failed: ${error.message}`);
@@ -95,7 +129,11 @@ const Sage50SDK = {
   async createCustomer(connection, customerData) {
     try {
       // Would execute INSERT via COM API
-      throw new Error('SDK mode requires COM API access - use CSV mode or configure Windows service bridge');
+      throw new Error(
+        'SDK mode is not available. Please use CSV mode instead. ' +
+        'To use CSV mode: Export data from Sage 50 as CSV, then upload via Integration Settings. ' +
+        'For SDK mode implementation, contact support or configure a Windows COM bridge service.'
+      );
     } catch (error) {
       throw new Error(`Customer creation failed: ${error.message}`);
     }
@@ -107,7 +145,11 @@ const Sage50SDK = {
   async updateCustomer(connection, customerId, customerData) {
     try {
       // Would execute UPDATE via COM API
-      throw new Error('SDK mode requires COM API access - use CSV mode or configure Windows service bridge');
+      throw new Error(
+        'SDK mode is not available. Please use CSV mode instead. ' +
+        'To use CSV mode: Export data from Sage 50 as CSV, then upload via Integration Settings. ' +
+        'For SDK mode implementation, contact support or configure a Windows COM bridge service.'
+      );
     } catch (error) {
       throw new Error(`Customer update failed: ${error.message}`);
     }
