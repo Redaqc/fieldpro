@@ -387,6 +387,42 @@ BEGIN
   ', schema_name, schema_name, schema_name, schema_name, schema_name);
 
   -- ============================================
+  -- CHECKLISTS TABLE
+  -- ============================================
+  EXECUTE format('
+    CREATE TABLE IF NOT EXISTS %I.checklists (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      category VARCHAR(100) NOT NULL,
+      items JSONB NOT NULL,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  ', schema_name);
+
+  -- ============================================
+  -- CHECKLIST COMPLETIONS TABLE
+  -- ============================================
+  EXECUTE format('
+    CREATE TABLE IF NOT EXISTS %I.checklist_completions (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      checklist_id UUID NOT NULL,
+      completed_by UUID NOT NULL,
+      responses JSONB NOT NULL,
+      job_id UUID,
+      service_call_id UUID,
+      passed BOOLEAN DEFAULT true,
+      notes TEXT,
+      completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (checklist_id) REFERENCES %I.checklists(id) ON DELETE CASCADE,
+      FOREIGN KEY (job_id) REFERENCES %I.jobs(id) ON DELETE SET NULL,
+      FOREIGN KEY (service_call_id) REFERENCES %I.service_calls(id) ON DELETE SET NULL
+    )
+  ', schema_name, schema_name, schema_name, schema_name);
+
+  -- ============================================
   -- INDEXES
   -- ============================================
   EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_customers_email ON %I.customers(email)', schema_name, schema_name);
@@ -412,6 +448,12 @@ BEGIN
   EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_form_submissions_job ON %I.form_submissions(job_id)', schema_name, schema_name);
   EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_form_submissions_service_call ON %I.form_submissions(service_call_id)', schema_name, schema_name);
   EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_form_submissions_customer ON %I.form_submissions(customer_id)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_checklists_category ON %I.checklists(category)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_checklists_is_active ON %I.checklists(is_active)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_checklist_completions_checklist ON %I.checklist_completions(checklist_id)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_checklist_completions_completed_by ON %I.checklist_completions(completed_by)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_checklist_completions_job ON %I.checklist_completions(job_id)', schema_name, schema_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_checklist_completions_service_call ON %I.checklist_completions(service_call_id)', schema_name, schema_name);
 
   -- Reset search path
   EXECUTE 'SET search_path TO public';
