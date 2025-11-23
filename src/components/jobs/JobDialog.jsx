@@ -182,6 +182,22 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
 
     if (job) {
       /**
+       * AUDIT FIX: MEDIUM Priority Issue #27 - Checklist Completion Validation
+       * Prevent marking job as complete if checklist items aren't done
+       */
+      if (formData.status === JOB_STATUS.COMPLETED && formData.checklist && formData.checklist.length > 0) {
+        const allItems = formData.checklist.flatMap(group => group.items || []);
+        const incompleteItems = allItems.filter(item => !item.completed);
+
+        if (incompleteItems.length > 0) {
+          toast.error('Checklist incomplète', {
+            description: `Impossible de marquer le job comme terminé. ${incompleteItems.length} élément(s) de checklist non cochés. Veuillez compléter la checklist ou retirer les éléments non nécessaires.`
+          });
+          return;
+        }
+      }
+
+      /**
        * AUDIT FIX: High Priority Issue #8 - State Machine Validation
        * Validate status transition when updating a job
        */

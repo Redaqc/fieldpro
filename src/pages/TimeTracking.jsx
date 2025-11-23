@@ -279,6 +279,18 @@ export default function TimeTracking() {
               const accuracy = position.coords.accuracy;
               const clockOut = new Date().toISOString();
               const totalMinutes = differenceInMinutes(new Date(clockOut), new Date(entry.clock_in));
+
+              /**
+               * AUDIT FIX: MEDIUM Priority Issue #25 - Minimum Time Validation
+               * Prevent clock-out if less than 1 minute has elapsed
+               */
+              if (totalMinutes < 1) {
+                reject(new Error(
+                  'Temps minimum requis: 1 minute. Veuillez attendre au moins une minute avant de pointer la sortie.'
+                ));
+                return;
+              }
+
               const totalHours = ((totalMinutes - (entry.break_minutes || 0)) / 60).toFixed(2);
 
               // Log if GPS accuracy is poor (but still allow clock-out - don't trap workers)
@@ -334,6 +346,18 @@ export default function TimeTracking() {
                */
               const clockOut = new Date().toISOString();
               const totalMinutes = differenceInMinutes(new Date(clockOut), new Date(entry.clock_in));
+
+              /**
+               * AUDIT FIX: MEDIUM Priority Issue #25 - Minimum Time Validation
+               * Prevent clock-out if less than 1 minute has elapsed
+               */
+              if (totalMinutes < 1) {
+                reject(new Error(
+                  'Temps minimum requis: 1 minute. Veuillez attendre au moins une minute avant de pointer la sortie.'
+                ));
+                return;
+              }
+
               const totalHours = ((totalMinutes - (entry.break_minutes || 0)) / 60).toFixed(2);
 
               // Log GPS bypass for audit trail
@@ -373,6 +397,18 @@ export default function TimeTracking() {
            */
           const clockOut = new Date().toISOString();
           const totalMinutes = differenceInMinutes(new Date(clockOut), new Date(entry.clock_in));
+
+          /**
+           * AUDIT FIX: MEDIUM Priority Issue #25 - Minimum Time Validation
+           * Prevent clock-out if less than 1 minute has elapsed
+           */
+          if (totalMinutes < 1) {
+            reject(new Error(
+              'Temps minimum requis: 1 minute. Veuillez attendre au moins une minute avant de pointer la sortie.'
+            ));
+            return;
+          }
+
           const totalHours = ((totalMinutes - (entry.break_minutes || 0)) / 60).toFixed(2);
 
           // Log GPS bypass for audit trail
