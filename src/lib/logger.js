@@ -246,7 +246,7 @@ class Logger {
    * Log user action
    */
   userAction(action, data = {}) {
-    this.info('User Action', {
+    return this.info('User Action', {
       action,
       ...data,
     });
@@ -256,7 +256,7 @@ class Logger {
    * Log navigation
    */
   navigation(from, to) {
-    this.debug('Navigation', { from, to });
+    return this.debug('Navigation', { from, to });
   }
 }
 
