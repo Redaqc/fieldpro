@@ -1,6 +1,6 @@
 # 🔄 Base44 → Native Migration Plan
 
-**Status:** 🚧 IN PROGRESS - 45% Complete
+**Status:** 🚧 IN PROGRESS - 56% Complete
 **Started:** 2025-11-23
 **Last Updated:** 2025-11-23
 **Goal:** Eliminate all Base44 dependencies and migrate to native Node.js/PostgreSQL stack
@@ -48,7 +48,7 @@ Backend (Node.js + Express)
 
 ## ✨ Current Progress Summary
 
-### 🎯 Overall Migration: 45% Complete
+### 🎯 Overall Migration: 56% Complete
 
 | Category | Progress | Status |
 |----------|----------|--------|
@@ -56,14 +56,14 @@ Backend (Node.js + Express)
 | **Database Schema** | 100% | ✅ Complete |
 | **Authentication** | 100% | ✅ Complete |
 | **Entity Models** | 90% (36/40) | 🚧 Near Complete |
-| **Functions** | 26% (9/34) | 🚧 In Progress |
-| **Services** | 90% (9/10) | 🚧 Near Complete |
+| **Functions** | 56% (19/34) | 🚧 In Progress |
+| **Services** | 93% (14/15) | 🚧 Near Complete |
 | **Frontend API Client** | 100% | ✅ Complete |
 | **Frontend Migration** | 0% | ⏳ Pending |
 | **File Storage** | 100% | ✅ Complete |
 | **Testing** | 0% | ⏳ Pending |
 
-### ✅ Completed (Last Commit: 125c9bd)
+### ✅ Completed (Last Commit: 5c74446)
 
 **Backend Infrastructure:**
 - ✅ Node.js/Express server setup
@@ -131,7 +131,7 @@ Backend (Node.js + Express)
 *Authentication (1):*
 - ✅ User (user management with bcrypt)
 
-**Services (9/10 Complete - 90%):**
+**Services (14/15 Complete - 93%):**
 - ✅ Sequential Number Service (auto-numbering)
 - ✅ Profitability Service (financial analytics)
 - ✅ CSV Export Service (data export)
@@ -141,8 +141,13 @@ Backend (Node.js + Express)
 - ✅ Storage Service (S3/local file storage)
 - ✅ GPS Auto-Tracking Service (zone detection, auto clock in/out)
 - ✅ Automation Engine Service (rule execution, triggers)
+- ✅ Push Notification Service (web-push, VAPID)
+- ✅ Stripe Payment Service (payment intents, webhooks)
+- ✅ Address Autocomplete Service (Google Maps API)
+- ✅ Job Automation Service (auto-complete, invoice generation)
+- ✅ Data Export/Import Service (database backup/restore)
 
-**Functions (9/34 Complete - 26%):**
+**Functions (19/34 Complete - 56%):**
 - ✅ Sequential Number Generator (INV-2025-0001 format)
 - ✅ Profitability Calculator (job/period/customer)
 - ✅ CSV Export (with custom columns)
@@ -152,6 +157,11 @@ Backend (Node.js + Express)
 - ✅ File Storage (S3/local, multi-upload)
 - ✅ GPS Auto-Tracking (zone detection, auto clock)
 - ✅ Automation Engine (triggers, conditions, actions)
+- ✅ Push Notifications (web-push, subscriptions)
+- ✅ Stripe Payments (intents, checkout, refunds, webhooks)
+- ✅ Address Autocomplete (geocoding, distance calculation)
+- ✅ Job Auto-Complete (smart completion, batch processing)
+- ✅ Database Export/Import (JSON/SQL, backups)
 
 **Frontend:**
 - ✅ API client service created (replaces @base44/sdk)
@@ -179,7 +189,7 @@ Backend (Node.js + Express)
 
 ## 📊 Migration Scope
 
-### Backend Functions to Migrate (34 functions) - 9/34 Complete (26%)
+### Backend Functions to Migrate (34 functions) - 19/34 Complete (56%)
 
 **✅ Completed Functions:**
 - [x] **calculateProfitability.ts → /api/analytics/profitability** ✅
@@ -191,21 +201,22 @@ Backend (Node.js + Express)
 - [x] **gpsAutoTimeTracking.ts → /api/gps/auto-tracking** ✅
 - [x] **automationEngine.ts → /api/automation/engine** ✅
 - [x] **fileStorage.ts → /api/storage/upload** ✅
+- [x] **sendNotification.ts → /api/notifications/push** ✅
+- [x] **savePushSubscription.ts → /api/notifications/push/subscribe** ✅
+- [x] **stripePayment.ts → /api/payments/stripe** ✅
+- [x] **stripeWebhook.ts → /api/payments/webhook** ✅
+- [x] **addressAutocomplete.ts → /api/utils/address-autocomplete** ✅
+- [x] **autoCompleteJob.ts → /api/jobs/auto-complete** ✅
+- [x] **exportFullApp.ts → /api/export/full** ✅
+- [x] **exportDatabase.ts → /api/export/database** ✅
 
 **🚧 In Progress:**
 - [ ] aiScheduleOptimizer.ts → /api/ai/schedule-optimizer
 - [ ] routeOptimizer.ts → /api/ai/route-optimizer
 
-**⏳ Remaining Functions:**
-- [ ] exportFullApp.ts → /api/export/full
-- [ ] exportDatabase.ts → /api/export/database
+**⏳ Remaining Functions (15):**
 - [ ] predictMaintenance.ts → /api/ai/predict-maintenance
-- [ ] sendNotification.ts → /api/notifications/push
-- [ ] savePushSubscription.ts → /api/notifications/subscribe
-- [ ] stripePayment.ts → /api/payments/stripe
-- [ ] stripeWebhook.ts → /api/payments/webhook
 - [ ] syncScheduler.ts → /api/sync/scheduler
-- [ ] autoCompleteJob.ts → /api/jobs/auto-complete
 - [ ] executeFormAutomations.ts → /api/forms/automations
 - [ ] zoho*.ts (5 functions) → /api/integrations/zoho/*
 - [ ] quickbooks*.ts → /api/integrations/quickbooks/*
