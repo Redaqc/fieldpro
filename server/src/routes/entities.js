@@ -19,11 +19,16 @@ import Material from '../models/Material.js';
 import Payment from '../models/Payment.js';
 import ServiceCall from '../models/ServiceCall.js';
 import Quotation from '../models/Quotation.js';
+import Asset from '../models/Asset.js';
+import GPSTracking from '../models/GPSTracking.js';
+import Notification from '../models/Notification.js';
+import Document from '../models/Document.js';
+import Automation from '../models/Automation.js';
 import { badRequest } from '../middleware/errorHandler.js';
 
 const router = express.Router();
 
-// Entity model mapping
+// Entity model mapping (14/40+ complete)
 const entityModels = {
   customers: Customer,
   jobs: Job,
@@ -34,11 +39,12 @@ const entityModels = {
   payments: Payment,
   service_calls: ServiceCall,
   quotations: Quotation,
-  // TODO: Add remaining entity models as they're implemented
-  // assets: Asset,
-  // gps_tracking: GPSTracking,
-  // notifications: Notification,
-  // etc.
+  assets: Asset,
+  gps_tracking: GPSTracking,
+  notifications: Notification,
+  documents: Document,
+  automations: Automation
+  // TODO: Add remaining 26+ entity models as they're implemented
 };
 
 /**
