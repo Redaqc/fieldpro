@@ -10,6 +10,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary, { InlineErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { ThemeProvider } from '@/components/shared/ThemeProvider';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -77,25 +78,27 @@ const AuthenticatedApp = () => {
 function App() {
   /**
    * LOW PRIORITY P4 Issue #40 - Error Boundaries
-   * Wrap entire app with ErrorBoundary to catch and gracefully handle errors
-   * Prevents full app crash when individual components fail
+   * LOW PRIORITY P4 Issue #41 - Dark Mode Support
+   * Wrap entire app with ErrorBoundary and ThemeProvider
    */
   return (
     <ErrorBoundary title="FieldPro FSM - Critical Error">
-      <AuthProvider>
-        <ErrorBoundary title="Authentication Error">
-          <QueryClientProvider client={queryClientInstance}>
-            <ErrorBoundary title="Application Error">
-              <Router>
-                <NavigationTracker />
-                <AuthenticatedApp />
-              </Router>
-              <Toaster />
-              <VisualEditAgent />
-            </ErrorBoundary>
-          </QueryClientProvider>
-        </ErrorBoundary>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <ErrorBoundary title="Authentication Error">
+            <QueryClientProvider client={queryClientInstance}>
+              <ErrorBoundary title="Application Error">
+                <Router>
+                  <NavigationTracker />
+                  <AuthenticatedApp />
+                </Router>
+                <Toaster />
+                <VisualEditAgent />
+              </ErrorBoundary>
+            </QueryClientProvider>
+          </ErrorBoundary>
+        </AuthProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   )
 }
