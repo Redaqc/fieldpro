@@ -225,8 +225,8 @@ export default function TimeTracking() {
           if (!tech.gps_punch_outside_zone) {
             reject(new Error('GPS non disponible sur cet appareil'));
           } else {
-            // Log GPS bypass for audit trail
-            await base44.entities.GPSTracking.create({
+            // Log GPS bypass for audit trail (using Promise chains)
+            base44.entities.GPSTracking.create({
               technician_id: technicianId,
               technician_name: `${tech.first_name} ${tech.last_name}`,
               latitude: null,
@@ -235,22 +235,25 @@ export default function TimeTracking() {
               timestamp: new Date().toISOString(),
               activity_type: "punch_in",
               notes: "GPS_BYPASS: Geolocation not supported by device. Permission: gps_punch_outside_zone granted."
+            }).then(() => {
+              return base44.entities.TimeEntry.create({
+                technician_id: technicianId,
+                technician_name: `${tech.first_name} ${tech.last_name}`,
+                clock_in: new Date().toISOString(),
+                status: "in_progress",
+                location_in: "GPS non disponible (bypass autorisé)",
+                activity_log: [{
+                  timestamp: new Date().toISOString(),
+                  action: "gps_bypass",
+                  details: "Clock-in sans GPS. Raison: Appareil ne supporte pas la géolocalisation. Permission accordée.",
+                  user: `${tech.first_name} ${tech.last_name}`
+                }]
+              });
+            }).then(timeEntry => {
+              resolve(timeEntry);
+            }).catch(error => {
+              reject(error);
             });
-
-            const timeEntry = await base44.entities.TimeEntry.create({
-              technician_id: technicianId,
-              technician_name: `${tech.first_name} ${tech.last_name}`,
-              clock_in: new Date().toISOString(),
-              status: "in_progress",
-              location_in: "GPS non disponible (bypass autorisé)",
-              activity_log: [{
-                timestamp: new Date().toISOString(),
-                action: "gps_bypass",
-                details: "Clock-in sans GPS. Raison: Appareil ne supporte pas la géolocalisation. Permission accordée.",
-                user: `${tech.first_name} ${tech.last_name}`
-              }]
-            });
-            resolve(timeEntry);
           }
         }
       });
@@ -411,8 +414,8 @@ export default function TimeTracking() {
 
           const totalHours = ((totalMinutes - (entry.break_minutes || 0)) / 60).toFixed(2);
 
-          // Log GPS bypass for audit trail
-          await base44.entities.GPSTracking.create({
+          // Log GPS bypass for audit trail (using Promise chains)
+          base44.entities.GPSTracking.create({
             technician_id: entry.technician_id,
             technician_name: entry.technician_name,
             latitude: null,
@@ -421,24 +424,27 @@ export default function TimeTracking() {
             timestamp: clockOut,
             activity_type: "punch_out",
             notes: "GPS_BYPASS: Clock-out without GPS. Geolocation not supported by device."
+          }).then(() => {
+            return base44.entities.TimeEntry.update(entryId, {
+              clock_out: clockOut,
+              total_hours: parseFloat(totalHours),
+              status: "completed",
+              location_out: "GPS non disponible",
+              activity_log: [
+                ...(entry.activity_log || []),
+                {
+                  timestamp: clockOut,
+                  action: "gps_bypass",
+                  details: "Clock-out sans GPS. Raison: Appareil ne supporte pas la géolocalisation.",
+                  user: entry.technician_name
+                }
+              ]
+            });
+          }).then(updated => {
+            resolve(updated);
+          }).catch(error => {
+            reject(error);
           });
-
-          const updated = await base44.entities.TimeEntry.update(entryId, {
-            clock_out: clockOut,
-            total_hours: parseFloat(totalHours),
-            status: "completed",
-            location_out: "GPS non disponible",
-            activity_log: [
-              ...(entry.activity_log || []),
-              {
-                timestamp: clockOut,
-                action: "gps_bypass",
-                details: "Clock-out sans GPS. Raison: Appareil ne supporte pas la géolocalisation.",
-                user: entry.technician_name
-              }
-            ]
-          });
-          resolve(updated);
         }
       });
     },
