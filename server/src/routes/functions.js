@@ -22,6 +22,8 @@ import * as automationEngineService from '../services/automationEngine.js';
 import * as pushNotificationService from '../services/pushNotification.js';
 import * as stripePaymentService from '../services/stripePayment.js';
 import * as addressAutocompleteService from '../services/addressAutocomplete.js';
+import * as jobAutomationService from '../services/jobAutomation.js';
+import * as dataExportService from '../services/dataExport.js';
 import { badRequest } from '../middleware/errorHandler.js';
 
 const router = express.Router();
@@ -685,12 +687,158 @@ router.post('/utils/calculate-distance', async (req, res) => {
   res.json(result);
 });
 
-// Remaining functions: 12 integration functions still to be added
-// - QuickBooks integration
-// - Zoho integration
-// - Sage50 integration
-// - Google Calendar sync
-// - AI schedule/route optimization
-// - Predictive maintenance
+/**
+ * POST /api/functions/jobs/auto-complete
+ * Auto-complete a job
+ * Body: { job_id, check_time_entries?, check_materials?, create_invoice?, force? }
+ */
+router.post('/jobs/auto-complete', async (req, res) => {
+  const { job_id, check_time_entries, check_materials, create_invoice, force } = req.body;
+
+  if (!job_id) {
+    throw badRequest('Job ID is required');
+  }
+
+  const result = await jobAutomationService.autoCompleteJob(job_id, {
+    check_time_entries,
+    check_materials,
+    create_invoice,
+    force
+  });
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/jobs/auto-complete/batch
+ * Auto-complete multiple jobs based on criteria
+ * Body: { criteria: { older_than_days?, status?, technician_id?, customer_id? }, create_invoices? }
+ */
+router.post('/jobs/auto-complete/batch', async (req, res) => {
+  const { criteria, create_invoices } = req.body;
+
+  const result = await jobAutomationService.autoCompleteJobs({
+    ...criteria,
+    create_invoices
+  });
+
+  res.json(result);
+});
+
+/**
+ * GET /api/functions/jobs/completion-eligibility/:jobId
+ * Check if job can be auto-completed
+ */
+router.get('/jobs/completion-eligibility/:jobId', async (req, res) => {
+  const { jobId } = req.params;
+
+  const result = await jobAutomationService.checkJobCompletionEligibility(jobId);
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/export/database
+ * Export database to JSON/SQL
+ * Body: { tables?, include_sensitive?, format? }
+ */
+router.post('/export/database', async (req, res) => {
+  const { tables, include_sensitive, format } = req.body;
+
+  const result = await dataExportService.exportDatabase({
+    tables,
+    include_sensitive,
+    format
+  });
+
+  if (format === 'sql') {
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Disposition', `attachment; filename="database_export_${Date.now()}.sql"`);
+    res.send(result);
+  } else {
+    res.json(result);
+  }
+});
+
+/**
+ * POST /api/functions/export/full
+ * Export full application (database + files)
+ * Body: { include_files?, include_sensitive?, output_path? }
+ */
+router.post('/export/full', async (req, res) => {
+  const { include_files, include_sensitive, output_path } = req.body;
+
+  const result = await dataExportService.exportFullApp({
+    include_files,
+    include_sensitive,
+    output_path
+  });
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/export/entity/:entityType
+ * Export specific entity data
+ * Body: { start_date?, end_date?, limit? }
+ */
+router.post('/export/entity/:entityType', async (req, res) => {
+  const { entityType } = req.params;
+  const { start_date, end_date, limit } = req.body;
+
+  const result = await dataExportService.exportEntityData(entityType, {
+    start_date,
+    end_date,
+    limit
+  });
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/import/database
+ * Import database from JSON
+ * Body: { data, skip_existing?, validate_only?, tables_to_import? }
+ */
+router.post('/import/database', async (req, res) => {
+  const { data, skip_existing, validate_only, tables_to_import } = req.body;
+
+  if (!data) {
+    throw badRequest('Import data is required');
+  }
+
+  const result = await dataExportService.importDatabase(data, {
+    skip_existing,
+    validate_only,
+    tables_to_import
+  });
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/backup/create
+ * Create database backup
+ * Body: { backup_name?, include_sensitive?, compress? }
+ */
+router.post('/backup/create', async (req, res) => {
+  const { backup_name, include_sensitive, compress } = req.body;
+
+  const result = await dataExportService.createBackup({
+    backup_name,
+    include_sensitive,
+    compress
+  });
+
+  res.json(result);
+});
+
+// Remaining functions: 10 integration functions still to be added
+// - QuickBooks integration (5 endpoints)
+// - Zoho integration (5 endpoints)
+// - Sage50 integration (3 endpoints)
+// - Google Calendar sync (3 endpoints)
+// - AI schedule/route optimization (2 endpoints)
+// - Predictive maintenance (1 endpoint)
 
 export default router;
