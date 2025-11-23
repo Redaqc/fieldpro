@@ -255,11 +255,406 @@ CREATE INDEX idx_time_entries_technician_id ON time_entries(technician_id);
 CREATE INDEX idx_gps_tracking_technician_id ON gps_tracking(technician_id);
 CREATE INDEX idx_gps_tracking_timestamp ON gps_tracking(timestamp);
 
--- TODO: Add remaining 30+ entities
--- - FormTemplate, FormSubmission, FormAutomation
--- - ChecklistTemplate, RecurringJob
--- - Automation, Notification, NotificationTemplate
--- - Document, CustomField, Webhook
--- - ProfitabilityRecord, SupplierInvoice
--- - CompanyInfo, TaxSettings, AppSettings
--- etc.
+-- ============================================
+-- ADVANCED FEATURES TABLES
+-- ============================================
+
+-- Form Templates
+CREATE TABLE IF NOT EXISTS form_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    fields JSONB NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Form Submissions
+CREATE TABLE IF NOT EXISTS form_submissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    template_id UUID REFERENCES form_templates(id),
+    job_id UUID REFERENCES jobs(id),
+    submitted_by UUID REFERENCES users(id),
+    data JSONB NOT NULL,
+    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Form Automations
+CREATE TABLE IF NOT EXISTS form_automations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    template_id UUID REFERENCES form_templates(id),
+    trigger_field VARCHAR(255),
+    trigger_value TEXT,
+    action_type VARCHAR(100),
+    action_config JSONB,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Checklist Templates
+CREATE TABLE IF NOT EXISTS checklist_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    items JSONB NOT NULL,
+    category VARCHAR(100),
+    is_required BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Recurring Jobs
+CREATE TABLE IF NOT EXISTS recurring_jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_template_id UUID REFERENCES jobs(id),
+    customer_id UUID REFERENCES customers(id),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    frequency VARCHAR(50) CHECK (frequency IN ('daily', 'weekly', 'monthly', 'yearly')),
+    interval_value INTEGER DEFAULT 1,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    next_occurrence DATE,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Automation Rules
+CREATE TABLE IF NOT EXISTS automations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    trigger_type VARCHAR(100) NOT NULL,
+    trigger_config JSONB,
+    conditions JSONB,
+    actions JSONB NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    priority INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Notifications
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    type VARCHAR(50),
+    priority VARCHAR(50),
+    is_read BOOLEAN DEFAULT false,
+    action_url TEXT,
+    metadata JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Notification Templates
+CREATE TABLE IF NOT EXISTS notification_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    subject VARCHAR(255),
+    body_template TEXT NOT NULL,
+    type VARCHAR(50) CHECK (type IN ('email', 'sms', 'push', 'in_app')),
+    variables JSONB,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Documents
+CREATE TABLE IF NOT EXISTS documents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    file_url TEXT NOT NULL,
+    file_type VARCHAR(100),
+    file_size BIGINT,
+    entity_type VARCHAR(100),
+    entity_id UUID,
+    uploaded_by UUID REFERENCES users(id),
+    uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    metadata JSONB
+);
+
+-- Custom Fields
+CREATE TABLE IF NOT EXISTS custom_fields (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    entity_type VARCHAR(100) NOT NULL,
+    field_name VARCHAR(255) NOT NULL,
+    field_type VARCHAR(50) NOT NULL CHECK (field_type IN ('text', 'number', 'date', 'boolean', 'select', 'multi_select')),
+    field_options JSONB,
+    is_required BOOLEAN DEFAULT false,
+    default_value TEXT,
+    display_order INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Custom Field Values
+CREATE TABLE IF NOT EXISTS custom_field_values (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    custom_field_id UUID REFERENCES custom_fields(id) ON DELETE CASCADE,
+    entity_id UUID NOT NULL,
+    value TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Webhooks
+CREATE TABLE IF NOT EXISTS webhooks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    url TEXT NOT NULL,
+    event_type VARCHAR(100) NOT NULL,
+    secret_key VARCHAR(255),
+    is_active BOOLEAN DEFAULT true,
+    headers JSONB,
+    retry_count INTEGER DEFAULT 3,
+    last_triggered TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Profitability Records
+CREATE TABLE IF NOT EXISTS profitability_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_id UUID REFERENCES jobs(id),
+    invoice_id UUID REFERENCES invoices(id),
+    revenue DECIMAL(12, 2) NOT NULL,
+    labor_cost DECIMAL(12, 2) DEFAULT 0,
+    material_cost DECIMAL(12, 2) DEFAULT 0,
+    equipment_cost DECIMAL(12, 2) DEFAULT 0,
+    subcontractor_cost DECIMAL(12, 2) DEFAULT 0,
+    overhead_cost DECIMAL(12, 2) DEFAULT 0,
+    total_cost DECIMAL(12, 2) NOT NULL,
+    profit DECIMAL(12, 2) NOT NULL,
+    profit_margin DECIMAL(5, 2),
+    calculated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    warnings JSONB
+);
+
+-- Supplier Invoices
+CREATE TABLE IF NOT EXISTS supplier_invoices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    supplier_name VARCHAR(255) NOT NULL,
+    invoice_number VARCHAR(100),
+    invoice_date DATE NOT NULL,
+    due_date DATE,
+    amount DECIMAL(12, 2) NOT NULL,
+    status VARCHAR(50) CHECK (status IN ('pending', 'paid', 'overdue')),
+    category VARCHAR(100),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Price Lists
+CREATE TABLE IF NOT EXISTS price_lists (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Price List Items
+CREATE TABLE IF NOT EXISTS price_list_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    price_list_id UUID REFERENCES price_lists(id) ON DELETE CASCADE,
+    item_name VARCHAR(255) NOT NULL,
+    item_type VARCHAR(50) CHECK (item_type IN ('service', 'product', 'labor')),
+    unit_price DECIMAL(10, 2) NOT NULL,
+    unit VARCHAR(50),
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Work Types
+CREATE TABLE IF NOT EXISTS work_types (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    default_rate DECIMAL(10, 2),
+    color VARCHAR(7),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Company Info
+CREATE TABLE IF NOT EXISTS company_info (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_name VARCHAR(255) NOT NULL,
+    legal_name VARCHAR(255),
+    tax_id VARCHAR(100),
+    address TEXT,
+    city VARCHAR(100),
+    state VARCHAR(100),
+    zip VARCHAR(20),
+    country VARCHAR(100),
+    phone VARCHAR(50),
+    email VARCHAR(255),
+    website VARCHAR(255),
+    logo_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tax Settings
+CREATE TABLE IF NOT EXISTS tax_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tax_name VARCHAR(100) NOT NULL,
+    tax_rate DECIMAL(5, 2) NOT NULL,
+    is_default BOOLEAN DEFAULT false,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- App Settings
+CREATE TABLE IF NOT EXISTS app_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    setting_key VARCHAR(100) UNIQUE NOT NULL,
+    setting_value TEXT,
+    setting_type VARCHAR(50) CHECK (setting_type IN ('string', 'number', 'boolean', 'json')),
+    description TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- GPS Alerts
+CREATE TABLE IF NOT EXISTS gps_alerts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    technician_id UUID REFERENCES technicians(id),
+    zone_id UUID REFERENCES gps_zones(id),
+    alert_type VARCHAR(50) CHECK (alert_type IN ('entry', 'exit', 'violation')),
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    message TEXT,
+    is_resolved BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Asset Assignments
+CREATE TABLE IF NOT EXISTS asset_assignments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    asset_id UUID REFERENCES assets(id),
+    job_id UUID REFERENCES jobs(id),
+    assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    returned_at TIMESTAMP WITH TIME ZONE,
+    hours_used DECIMAL(6, 2),
+    notes TEXT
+);
+
+-- Job Materials (Junction table)
+CREATE TABLE IF NOT EXISTS job_materials (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+    material_id UUID REFERENCES materials(id),
+    quantity DECIMAL(10, 2) NOT NULL,
+    unit_price DECIMAL(10, 2) NOT NULL,
+    total_price DECIMAL(12, 2) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Invoice Line Items
+CREATE TABLE IF NOT EXISTS invoice_line_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    invoice_id UUID REFERENCES invoices(id) ON DELETE CASCADE,
+    item_type VARCHAR(50) CHECK (item_type IN ('service', 'product', 'labor', 'other')),
+    description TEXT NOT NULL,
+    quantity DECIMAL(10, 2) NOT NULL,
+    unit_price DECIMAL(10, 2) NOT NULL,
+    total_price DECIMAL(12, 2) NOT NULL,
+    tax_rate DECIMAL(5, 2),
+    line_order INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Quotation Line Items
+CREATE TABLE IF NOT EXISTS quotation_line_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    quotation_id UUID REFERENCES quotations(id) ON DELETE CASCADE,
+    item_type VARCHAR(50) CHECK (item_type IN ('service', 'product', 'labor', 'other')),
+    description TEXT NOT NULL,
+    quantity DECIMAL(10, 2) NOT NULL,
+    unit_price DECIMAL(10, 2) NOT NULL,
+    total_price DECIMAL(12, 2) NOT NULL,
+    tax_rate DECIMAL(5, 2),
+    line_order INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Push Subscriptions (for notifications)
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    endpoint TEXT NOT NULL UNIQUE,
+    keys JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Activity Log (Audit Trail)
+CREATE TABLE IF NOT EXISTS activity_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    entity_type VARCHAR(100),
+    entity_id UUID,
+    action VARCHAR(100) NOT NULL,
+    changes JSONB,
+    ip_address VARCHAR(50),
+    user_agent TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Sequential number counters (for invoice numbers, job numbers, etc.)
+CREATE TABLE IF NOT EXISTS sequential_counters (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    counter_type VARCHAR(50) NOT NULL,
+    counter_value INTEGER NOT NULL DEFAULT 0,
+    year INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(counter_type, year)
+);
+
+-- ============================================
+-- ADDITIONAL INDEXES
+-- ============================================
+
+CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX idx_notifications_is_read ON notifications(is_read);
+CREATE INDEX idx_documents_entity ON documents(entity_type, entity_id);
+CREATE INDEX idx_custom_field_values_entity ON custom_field_values(entity_id);
+CREATE INDEX idx_form_submissions_template ON form_submissions(template_id);
+CREATE INDEX idx_form_submissions_job ON form_submissions(job_id);
+CREATE INDEX idx_recurring_jobs_customer ON recurring_jobs(customer_id);
+CREATE INDEX idx_recurring_jobs_next_occurrence ON recurring_jobs(next_occurrence);
+CREATE INDEX idx_profitability_job ON profitability_records(job_id);
+CREATE INDEX idx_activity_log_user ON activity_log(user_id);
+CREATE INDEX idx_activity_log_entity ON activity_log(entity_type, entity_id);
+CREATE INDEX idx_activity_log_created_at ON activity_log(created_at);
+
+-- ============================================
+-- TRIGGERS for updated_at
+-- ============================================
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Apply trigger to all tables with updated_at
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON customers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_technicians_updated_at BEFORE UPDATE ON technicians FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_jobs_updated_at BEFORE UPDATE ON jobs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON invoices FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_time_entries_updated_at BEFORE UPDATE ON time_entries FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_materials_updated_at BEFORE UPDATE ON materials FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_assets_updated_at BEFORE UPDATE ON assets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_gps_zones_updated_at BEFORE UPDATE ON gps_zones FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_quotations_updated_at BEFORE UPDATE ON quotations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_company_info_updated_at BEFORE UPDATE ON company_info FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

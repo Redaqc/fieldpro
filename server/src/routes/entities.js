@@ -10,10 +10,47 @@
  */
 
 import express from 'express';
+import Customer from '../models/Customer.js';
+import Job from '../models/Job.js';
+import Invoice from '../models/Invoice.js';
+import TimeEntry from '../models/TimeEntry.js';
+import Technician from '../models/Technician.js';
+import Material from '../models/Material.js';
+import Payment from '../models/Payment.js';
+import ServiceCall from '../models/ServiceCall.js';
+import Quotation from '../models/Quotation.js';
+import { badRequest } from '../middleware/errorHandler.js';
+
 const router = express.Router();
 
-// Generic CRUD operations for entities
-// These will be implemented with proper database queries
+// Entity model mapping
+const entityModels = {
+  customers: Customer,
+  jobs: Job,
+  invoices: Invoice,
+  time_entries: TimeEntry,
+  technicians: Technician,
+  materials: Material,
+  payments: Payment,
+  service_calls: ServiceCall,
+  quotations: Quotation,
+  // TODO: Add remaining entity models as they're implemented
+  // assets: Asset,
+  // gps_tracking: GPSTracking,
+  // notifications: Notification,
+  // etc.
+};
+
+/**
+ * Get model for entity type
+ */
+function getModel(entityType) {
+  const model = entityModels[entityType.toLowerCase()];
+  if (!model) {
+    throw badRequest(`Entity type '${entityType}' not implemented yet`);
+  }
+  return model;
+}
 
 /**
  * GET /api/entities/:entityType
@@ -21,13 +58,22 @@ const router = express.Router();
  */
 router.get('/:entityType', async (req, res) => {
   const { entityType } = req.params;
+  const model = getModel(entityType);
 
-  // TODO: Implement entity listing with filters
-  res.json({
-    message: `Listing ${entityType}`,
-    data: [],
-    note: 'Implementation in progress'
-  });
+  const options = {
+    limit: parseInt(req.query.limit) || 50,
+    offset: parseInt(req.query.offset) || 0,
+    sortBy: req.query.sortBy || 'created_at',
+    sortOrder: req.query.sortOrder || 'DESC'
+  };
+
+  // Add entity-specific filters
+  if (req.query.is_active !== undefined) {
+    options.is_active = req.query.is_active === 'true';
+  }
+
+  const result = await model.list(options);
+  res.json(result);
 });
 
 /**
@@ -36,12 +82,16 @@ router.get('/:entityType', async (req, res) => {
  */
 router.get('/:entityType/:id', async (req, res) => {
   const { entityType, id } = req.params;
+  const model = getModel(entityType);
 
-  // TODO: Implement entity retrieval
-  res.json({
-    message: `Getting ${entityType} with ID ${id}`,
-    note: 'Implementation in progress'
-  });
+  // Check if we should include relations
+  const withRelations = req.query.with_relations === 'true';
+
+  const entity = withRelations && model.findWithRelations
+    ? await model.findWithRelations(id)
+    : await model.findById(id);
+
+  res.json(entity);
 });
 
 /**
@@ -50,14 +100,11 @@ router.get('/:entityType/:id', async (req, res) => {
  */
 router.post('/:entityType', async (req, res) => {
   const { entityType } = req.params;
+  const model = getModel(entityType);
   const data = req.body;
 
-  // TODO: Implement entity creation
-  res.status(201).json({
-    message: `Creating ${entityType}`,
-    data,
-    note: 'Implementation in progress'
-  });
+  const entity = await model.create(data);
+  res.status(201).json(entity);
 });
 
 /**
@@ -66,14 +113,11 @@ router.post('/:entityType', async (req, res) => {
  */
 router.put('/:entityType/:id', async (req, res) => {
   const { entityType, id } = req.params;
+  const model = getModel(entityType);
   const data = req.body;
 
-  // TODO: Implement entity update
-  res.json({
-    message: `Updating ${entityType} with ID ${id}`,
-    data,
-    note: 'Implementation in progress'
-  });
+  const entity = await model.update(id, data);
+  res.json(entity);
 });
 
 /**
@@ -82,12 +126,10 @@ router.put('/:entityType/:id', async (req, res) => {
  */
 router.delete('/:entityType/:id', async (req, res) => {
   const { entityType, id } = req.params;
+  const model = getModel(entityType);
 
-  // TODO: Implement entity deletion
-  res.json({
-    message: `Deleting ${entityType} with ID ${id}`,
-    note: 'Implementation in progress'
-  });
+  await model.delete(id);
+  res.json({ message: 'Entity deleted successfully', id });
 });
 
 /**
@@ -96,15 +138,63 @@ router.delete('/:entityType/:id', async (req, res) => {
  */
 router.post('/:entityType/filter', async (req, res) => {
   const { entityType } = req.params;
+  const model = getModel(entityType);
   const filters = req.body;
 
-  // TODO: Implement entity filtering
-  res.json({
-    message: `Filtering ${entityType}`,
-    filters,
-    data: [],
-    note: 'Implementation in progress'
-  });
+  const entities = await model.filter(filters);
+  res.json(entities);
+});
+
+/**
+ * GET /api/entities/:entityType/search
+ * Search entities by text
+ */
+router.get('/:entityType/search', async (req, res) => {
+  const { entityType } = req.params;
+  const model = getModel(entityType);
+  const { q } = req.query;
+
+  if (!q) {
+    throw badRequest('Search query parameter "q" is required');
+  }
+
+  const entities = model.search
+    ? await model.search(q)
+    : await model.filter({ search: q });
+
+  res.json(entities);
+});
+
+/**
+ * POST /api/entities/:entityType/:id/archive
+ * Archive entity (soft delete)
+ */
+router.post('/:entityType/:id/archive', async (req, res) => {
+  const { entityType, id } = req.params;
+  const model = getModel(entityType);
+
+  if (!model.archive) {
+    throw badRequest(`Archive not supported for ${entityType}`);
+  }
+
+  const entity = await model.archive(id);
+  res.json(entity);
+});
+
+/**
+ * POST /api/entities/:entityType/:id/restore
+ * Restore archived entity
+ */
+router.post('/:entityType/:id/restore', async (req, res) => {
+  const { entityType, id } = req.params;
+  const model = getModel(entityType);
+
+  if (!model.restore) {
+    throw badRequest(`Restore not supported for ${entityType}`);
+  }
+
+  const entity = await model.restore(id);
+  res.json(entity);
 });
 
 export default router;
