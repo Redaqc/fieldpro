@@ -4,18 +4,29 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Grid, List, Download, Upload } from "lucide-react";
+import { useCsvImportExport } from "@/hooks/useCsvImportExport";
 
 import CustomersList from "../components/customers/CustomersList";
 import CustomerDialog from "../components/customers/CustomerDialog";
 import CustomerDetails from "../components/customers/CustomerDetails";
+
+/**
+ * AUDIT FIX: MEDIUM Priority Issue #20 - Refactor Duplicate CSV Patterns
+ * Using centralized useCsvImportExport hook
+ */
 
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [viewMode, setViewMode] = useState("cards");
-  const [importing, setImporting] = useState(false);
   const queryClient = useQueryClient();
+
+  /**
+   * AUDIT FIX: MEDIUM Priority Issue #20 - Refactor Duplicate CSV Patterns
+   * CSV import/export now handled by centralized hook
+   */
+  const { handleExport, handleImport, importing } = useCsvImportExport('customers', 'customers');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -67,37 +78,6 @@ export default function Customers() {
       updateCustomerMutation.mutate({ id: selectedCustomer.id, data });
     } else {
       createCustomerMutation.mutate(data);
-    }
-  };
-
-  const handleExport = async () => {
-    const { data } = await base44.functions.invoke('csvExport', { entity_type: 'customers' });
-    const blob = new Blob([data.csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = data.filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImport = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setImporting(true);
-    try {
-      const text = await file.text();
-      const { data } = await base44.functions.invoke('csvImport', { 
-        entity_type: 'customers',
-        csv_data: text 
-      });
-      alert(`Import réussi: ${data.created} créés, ${data.updated} mis à jour, ${data.failed} échecs`);
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-    } catch (error) {
-      alert('Erreur: ' + error.message);
-    } finally {
-      setImporting(false);
     }
   };
 
