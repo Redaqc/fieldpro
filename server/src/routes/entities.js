@@ -46,11 +46,15 @@ import User from '../models/User.js';
 import FormAutomation from '../models/FormAutomation.js';
 import ProfitabilityRecord from '../models/ProfitabilityRecord.js';
 import SupplierInvoice from '../models/SupplierInvoice.js';
+import Schedule from '../models/Schedule.js';
+import Territory from '../models/Territory.js';
+import Contract from '../models/Contract.js';
+import Expense from '../models/Expense.js';
 import { badRequest } from '../middleware/errorHandler.js';
 
 const router = express.Router();
 
-// Entity model mapping (36/40+ complete)
+// Entity model mapping (40/40 complete - 100%)
 const entityModels = {
   customers: Customer,
   jobs: Job,
@@ -87,7 +91,11 @@ const entityModels = {
   users: User,
   form_automations: FormAutomation,
   profitability_records: ProfitabilityRecord,
-  supplier_invoices: SupplierInvoice
+  supplier_invoices: SupplierInvoice,
+  schedules: Schedule,
+  territories: Territory,
+  contracts: Contract,
+  expenses: Expense
 };
 
 /**

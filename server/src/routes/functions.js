@@ -24,6 +24,8 @@ import * as stripePaymentService from '../services/stripePayment.js';
 import * as addressAutocompleteService from '../services/addressAutocomplete.js';
 import * as jobAutomationService from '../services/jobAutomation.js';
 import * as dataExportService from '../services/dataExport.js';
+import * as aiScheduleOptimizerService from '../services/aiScheduleOptimizer.js';
+import * as aiRouteOptimizerService from '../services/aiRouteOptimizer.js';
 import { badRequest } from '../middleware/errorHandler.js';
 
 const router = express.Router();
@@ -31,25 +33,126 @@ const router = express.Router();
 /**
  * POST /api/functions/ai/schedule-optimizer
  * AI-powered schedule optimization
+ * Body: { start_date, end_date, technician_ids?, prioritize?, max_jobs_per_day?, max_hours_per_day?, consider_travel_time?, balance_workload? }
  */
 router.post('/ai/schedule-optimizer', async (req, res) => {
-  // TODO: Implement AI schedule optimizer
-  res.json({
-    message: 'AI Schedule Optimizer',
-    note: 'Implementation in progress'
+  const {
+    start_date,
+    end_date,
+    technician_ids,
+    prioritize,
+    max_jobs_per_day,
+    max_hours_per_day,
+    consider_travel_time,
+    balance_workload
+  } = req.body;
+
+  if (!start_date || !end_date) {
+    throw badRequest('Start date and end date are required');
+  }
+
+  const result = await aiScheduleOptimizerService.optimizeSchedule({
+    start_date,
+    end_date,
+    technician_ids,
+    prioritize,
+    max_jobs_per_day,
+    max_hours_per_day,
+    consider_travel_time,
+    balance_workload
   });
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/ai/schedule-optimizer/apply
+ * Apply optimized schedule
+ * Body: { assignments } (from optimizeSchedule result)
+ */
+router.post('/ai/schedule-optimizer/apply', async (req, res) => {
+  const { assignments } = req.body;
+
+  if (!assignments || !Array.isArray(assignments)) {
+    throw badRequest('Assignments array is required');
+  }
+
+  const result = await aiScheduleOptimizerService.applyOptimizedSchedule(assignments);
+
+  res.json(result);
 });
 
 /**
  * POST /api/functions/ai/route-optimizer
- * Route optimization
+ * Route optimization for a technician
+ * Body: { technician_id, date, start_location?, end_location?, algorithm?, include_breaks?, break_duration_minutes?, max_jobs_before_break? }
  */
 router.post('/ai/route-optimizer', async (req, res) => {
-  // TODO: Implement route optimizer
-  res.json({
-    message: 'Route Optimizer',
-    note: 'Implementation in progress'
+  const {
+    technician_id,
+    date,
+    start_location,
+    end_location,
+    algorithm,
+    include_breaks,
+    break_duration_minutes,
+    max_jobs_before_break
+  } = req.body;
+
+  if (!technician_id || !date) {
+    throw badRequest('Technician ID and date are required');
+  }
+
+  const result = await aiRouteOptimizerService.optimizeRoute({
+    technician_id,
+    date,
+    start_location,
+    end_location,
+    algorithm,
+    include_breaks,
+    break_duration_minutes,
+    max_jobs_before_break
   });
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/ai/route-optimizer/apply
+ * Apply optimized route
+ * Body: route data from optimizeRoute
+ */
+router.post('/ai/route-optimizer/apply', async (req, res) => {
+  const routeData = req.body;
+
+  if (!routeData.optimized_route || !routeData.technician_id || !routeData.date) {
+    throw badRequest('Route data with optimized_route, technician_id, and date is required');
+  }
+
+  const result = await aiRouteOptimizerService.applyOptimizedRoute(routeData);
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/ai/route-optimizer/multiple
+ * Optimize routes for multiple technicians
+ * Body: { date, technician_ids?, algorithm? }
+ */
+router.post('/ai/route-optimizer/multiple', async (req, res) => {
+  const { date, technician_ids, algorithm } = req.body;
+
+  if (!date) {
+    throw badRequest('Date is required');
+  }
+
+  const result = await aiRouteOptimizerService.optimizeMultipleRoutes({
+    date,
+    technician_ids,
+    algorithm
+  });
+
+  res.json(result);
 });
 
 /**
@@ -833,12 +936,11 @@ router.post('/backup/create', async (req, res) => {
   res.json(result);
 });
 
-// Remaining functions: 10 integration functions still to be added
-// - QuickBooks integration (5 endpoints)
-// - Zoho integration (5 endpoints)
-// - Sage50 integration (3 endpoints)
-// - Google Calendar sync (3 endpoints)
-// - AI schedule/route optimization (2 endpoints)
-// - Predictive maintenance (1 endpoint)
+// Optional integration functions (require API credentials):
+// - QuickBooks integration (sync invoices, customers, payments)
+// - Zoho integration (sync invoices, customers, time entries)
+// - Sage50 integration (sync accounting data)
+// - Google Calendar sync (sync jobs to calendar)
+// - Other integrations as needed
 
 export default router;
