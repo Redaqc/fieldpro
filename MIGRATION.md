@@ -1,6 +1,6 @@
 # 🔄 Base44 → Native Migration Plan
 
-**Status:** 🚧 IN PROGRESS - 15% Complete
+**Status:** 🚧 IN PROGRESS - 45% Complete
 **Started:** 2025-11-23
 **Last Updated:** 2025-11-23
 **Goal:** Eliminate all Base44 dependencies and migrate to native Node.js/PostgreSQL stack
@@ -48,21 +48,22 @@ Backend (Node.js + Express)
 
 ## ✨ Current Progress Summary
 
-### 🎯 Overall Migration: 15% Complete
+### 🎯 Overall Migration: 45% Complete
 
 | Category | Progress | Status |
 |----------|----------|--------|
 | **Infrastructure** | 100% | ✅ Complete |
-| **Database Schema** | 75% | 🚧 In Progress |
+| **Database Schema** | 100% | ✅ Complete |
 | **Authentication** | 100% | ✅ Complete |
-| **Entity Models** | 23% (9/40) | 🚧 In Progress |
-| **Functions** | 6% (2/34) | 🚧 In Progress |
+| **Entity Models** | 90% (36/40) | 🚧 Near Complete |
+| **Functions** | 26% (9/34) | 🚧 In Progress |
+| **Services** | 90% (9/10) | 🚧 Near Complete |
 | **Frontend API Client** | 100% | ✅ Complete |
 | **Frontend Migration** | 0% | ⏳ Pending |
-| **File Storage** | 0% | ⏳ Pending |
+| **File Storage** | 100% | ✅ Complete |
 | **Testing** | 0% | ⏳ Pending |
 
-### ✅ Completed (Last Commit: c857c78)
+### ✅ Completed (Last Commit: 125c9bd)
 
 **Backend Infrastructure:**
 - ✅ Node.js/Express server setup
@@ -74,7 +75,9 @@ Backend (Node.js + Express)
 - ✅ Database migration script
 - ✅ Database seed script with demo data
 
-**Entity Models (9 Complete):**
+**Entity Models (36/40 Complete - 90%):**
+
+*Core Entities (9):*
 - ✅ Customer (full CRUD, search, filter, archive, relations)
 - ✅ Job (complex relationships, status tracking, materials)
 - ✅ Invoice (line items, payment tracking, totals)
@@ -85,12 +88,75 @@ Backend (Node.js + Express)
 - ✅ ServiceCall (priority/status management)
 - ✅ Quotation (line items, invoice conversion)
 
-**Functions (2 Complete):**
+*Extended Entities (5):*
+- ✅ Asset (equipment tracking, assignments)
+- ✅ GPSTracking (location tracking)
+- ✅ Notification (user notifications)
+- ✅ Document (file attachments)
+- ✅ Automation (workflow automation)
+
+*Forms & Templates (5):*
+- ✅ RecurringJob (scheduled recurring jobs)
+- ✅ FormTemplate (custom form templates)
+- ✅ FormSubmission (form submission data)
+- ✅ FormAutomation (form automation rules)
+- ✅ ChecklistTemplate (checklist templates)
+
+*Settings & Configuration (7):*
+- ✅ CompanyInfo (company settings)
+- ✅ TaxSettings (tax configuration)
+- ✅ AppSettings (application-wide settings)
+- ✅ PriceList (pricing tiers with items)
+- ✅ WorkType (work categorization)
+- ✅ CustomField (custom field definitions)
+- ✅ CustomFieldValue (custom field values)
+
+*GPS & Geofencing (3):*
+- ✅ GPSZone (geofencing zones - circle/polygon)
+- ✅ GPSAlert (geofencing alerts)
+- ✅ AssetAssignment (track asset assignments)
+
+*Webhooks & Logging (2):*
+- ✅ Webhook (webhook endpoints with retry)
+- ✅ ActivityLog (audit trail for entity changes)
+
+*Notifications (2):*
+- ✅ NotificationTemplate (notification templates)
+- ✅ PushSubscription (web push subscriptions)
+
+*Analytics & Finance (2):*
+- ✅ ProfitabilityRecord (calculated profitability)
+- ✅ SupplierInvoice (supplier invoices)
+
+*Authentication (1):*
+- ✅ User (user management with bcrypt)
+
+**Services (9/10 Complete - 90%):**
+- ✅ Sequential Number Service (auto-numbering)
+- ✅ Profitability Service (financial analytics)
+- ✅ CSV Export Service (data export)
+- ✅ CSV Import Service (data import)
+- ✅ Email Service (Nodemailer integration)
+- ✅ SMS Service (Twilio integration)
+- ✅ Storage Service (S3/local file storage)
+- ✅ GPS Auto-Tracking Service (zone detection, auto clock in/out)
+- ✅ Automation Engine Service (rule execution, triggers)
+
+**Functions (9/34 Complete - 26%):**
 - ✅ Sequential Number Generator (INV-2025-0001 format)
-- ✅ Profitability Calculator (job/period/customer metrics)
+- ✅ Profitability Calculator (job/period/customer)
+- ✅ CSV Export (with custom columns)
+- ✅ CSV Import (with validation)
+- ✅ Email Notifications (templates, attachments)
+- ✅ SMS Notifications (bulk SMS)
+- ✅ File Storage (S3/local, multi-upload)
+- ✅ GPS Auto-Tracking (zone detection, auto clock)
+- ✅ Automation Engine (triggers, conditions, actions)
 
 **Frontend:**
 - ✅ API client service created (replaces @base44/sdk)
+- ✅ All entity operations supported
+- ✅ All function calls mapped
 
 **Database:**
 - ✅ Complete schema (40+ tables)
@@ -99,39 +165,41 @@ Backend (Node.js + Express)
 - ✅ Migration and seed scripts
 
 ### 🚧 In Progress
-- Entity models (31+ remaining)
-- Functions (32 remaining)
-- Frontend SDK replacement (~500+ calls)
+- Remaining 4 entity models
+- Integration functions (Stripe, Zoho, QuickBooks, Google Calendar)
+- AI functions (Schedule optimizer, Route optimizer)
 
 ### ⏳ Pending
-- Remaining entity models
-- CSV export/import functions
-- Email/SMS notifications
-- GPS auto-tracking
+- Frontend base44.* call replacement (~500+ calls)
 - AI schedule/route optimization
 - Integration functions (Stripe, Zoho, QuickBooks, etc.)
-- File storage implementation
-- Frontend base44.* call replacement
 - End-to-end testing
 
 ---
 
 ## 📊 Migration Scope
 
-### Backend Functions to Migrate (34 functions) - 2/34 Complete
-- [ ] exportFullApp.ts → /api/export/full
-- [ ] exportDatabase.ts → /api/export/database
-- [ ] automationEngine.ts → /api/automation/engine
+### Backend Functions to Migrate (34 functions) - 9/34 Complete (26%)
+
+**✅ Completed Functions:**
+- [x] **calculateProfitability.ts → /api/analytics/profitability** ✅
+- [x] **generateSequentialNumber.ts → /api/utils/sequential-number** ✅
+- [x] **csvExport.ts → /api/csv/export** ✅
+- [x] **csvImport.ts → /api/csv/import** ✅
+- [x] **sendEmail.ts → /api/notifications/email** ✅
+- [x] **sendSMS.ts → /api/notifications/sms** ✅
+- [x] **gpsAutoTimeTracking.ts → /api/gps/auto-tracking** ✅
+- [x] **automationEngine.ts → /api/automation/engine** ✅
+- [x] **fileStorage.ts → /api/storage/upload** ✅
+
+**🚧 In Progress:**
 - [ ] aiScheduleOptimizer.ts → /api/ai/schedule-optimizer
 - [ ] routeOptimizer.ts → /api/ai/route-optimizer
-- [ ] gpsAutoTimeTracking.ts → /api/gps/auto-tracking
-- [x] **calculateProfitability.ts → /api/analytics/profitability** ✅
+
+**⏳ Remaining Functions:**
+- [ ] exportFullApp.ts → /api/export/full
+- [ ] exportDatabase.ts → /api/export/database
 - [ ] predictMaintenance.ts → /api/ai/predict-maintenance
-- [x] **generateSequentialNumber.ts → /api/utils/sequential-number** ✅
-- [ ] csvExport.ts → /api/csv/export
-- [ ] csvImport.ts → /api/csv/import
-- [ ] sendEmail.ts → /api/notifications/email
-- [ ] sendSMS.ts → /api/notifications/sms
 - [ ] sendNotification.ts → /api/notifications/push
 - [ ] savePushSubscription.ts → /api/notifications/subscribe
 - [ ] stripePayment.ts → /api/payments/stripe
