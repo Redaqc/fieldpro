@@ -24,11 +24,33 @@ import GPSTracking from '../models/GPSTracking.js';
 import Notification from '../models/Notification.js';
 import Document from '../models/Document.js';
 import Automation from '../models/Automation.js';
+import RecurringJob from '../models/RecurringJob.js';
+import FormTemplate from '../models/FormTemplate.js';
+import FormSubmission from '../models/FormSubmission.js';
+import ChecklistTemplate from '../models/ChecklistTemplate.js';
+import CompanyInfo from '../models/CompanyInfo.js';
+import TaxSettings from '../models/TaxSettings.js';
+import AppSettings from '../models/AppSettings.js';
+import PriceList from '../models/PriceList.js';
+import WorkType from '../models/WorkType.js';
+import CustomField from '../models/CustomField.js';
+import CustomFieldValue from '../models/CustomFieldValue.js';
+import Webhook from '../models/Webhook.js';
+import ActivityLog from '../models/ActivityLog.js';
+import GPSZone from '../models/GPSZone.js';
+import GPSAlert from '../models/GPSAlert.js';
+import AssetAssignment from '../models/AssetAssignment.js';
+import NotificationTemplate from '../models/NotificationTemplate.js';
+import PushSubscription from '../models/PushSubscription.js';
+import User from '../models/User.js';
+import FormAutomation from '../models/FormAutomation.js';
+import ProfitabilityRecord from '../models/ProfitabilityRecord.js';
+import SupplierInvoice from '../models/SupplierInvoice.js';
 import { badRequest } from '../middleware/errorHandler.js';
 
 const router = express.Router();
 
-// Entity model mapping (14/40+ complete)
+// Entity model mapping (36/40+ complete)
 const entityModels = {
   customers: Customer,
   jobs: Job,
@@ -43,8 +65,29 @@ const entityModels = {
   gps_tracking: GPSTracking,
   notifications: Notification,
   documents: Document,
-  automations: Automation
-  // TODO: Add remaining 26+ entity models as they're implemented
+  automations: Automation,
+  recurring_jobs: RecurringJob,
+  form_templates: FormTemplate,
+  form_submissions: FormSubmission,
+  checklist_templates: ChecklistTemplate,
+  company_info: CompanyInfo,
+  tax_settings: TaxSettings,
+  app_settings: AppSettings,
+  price_lists: PriceList,
+  work_types: WorkType,
+  custom_fields: CustomField,
+  custom_field_values: CustomFieldValue,
+  webhooks: Webhook,
+  activity_logs: ActivityLog,
+  gps_zones: GPSZone,
+  gps_alerts: GPSAlert,
+  asset_assignments: AssetAssignment,
+  notification_templates: NotificationTemplate,
+  push_subscriptions: PushSubscription,
+  users: User,
+  form_automations: FormAutomation,
+  profitability_records: ProfitabilityRecord,
+  supplier_invoices: SupplierInvoice
 };
 
 /**
