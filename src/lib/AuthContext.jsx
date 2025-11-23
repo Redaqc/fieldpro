@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
+import logger from '@/lib/logger';
 
 const AuthContext = createContext();
 
@@ -95,11 +96,27 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
+
+      // Set user context for logging
+      logger.setContext({
+        userId: currentUser.id,
+        userEmail: currentUser.email,
+        userName: currentUser.name,
+      });
+
+      logger.info('User authenticated successfully', {
+        userId: currentUser.id,
+        email: currentUser.email,
+      });
     } catch (error) {
-      console.error('User auth check failed:', error);
+      logger.error('User auth check failed', {
+        status: error.status,
+        message: error.message,
+      }, error);
+
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
-      
+
       // If user auth fails, it might be an expired token
       if (error.status === 401 || error.status === 403) {
         setAuthError({
@@ -111,9 +128,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = (shouldRedirect = true) => {
+    logger.info('User logging out', {
+      userId: user?.id,
+      shouldRedirect,
+    });
+
     setUser(null);
     setIsAuthenticated(false);
-    
+
+    // Clear user context from logger
+    logger.clearContext(['userId', 'userEmail', 'userName']);
+
     if (shouldRedirect) {
       // Use the SDK's logout method which handles token cleanup and redirect
       base44.auth.logout(window.location.href);

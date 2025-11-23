@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import logger from '@/lib/logger';
 
 /**
  * LOW PRIORITY P4 Issue #40 - Error Boundaries
@@ -31,9 +32,6 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log error details for debugging
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-
     // Update state with error details
     this.setState(prevState => ({
       error,
@@ -41,11 +39,16 @@ class ErrorBoundary extends React.Component {
       errorCount: prevState.errorCount + 1
     }));
 
-    // In production, you might want to log this to an error reporting service
-    if (process.env.NODE_ENV === 'production') {
-      // TODO: Send to error tracking service (e.g., Sentry, LogRocket)
-      // logErrorToService(error, errorInfo);
-    }
+    // Log with structured logger
+    logger.error(
+      'ErrorBoundary caught an error',
+      {
+        component: this.props.title || 'Unknown',
+        errorCount: this.state.errorCount + 1,
+        componentStack: errorInfo.componentStack,
+      },
+      error
+    );
   }
 
   handleReset = () => {
@@ -170,7 +173,14 @@ export class InlineErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('InlineErrorBoundary caught an error:', error, errorInfo);
+    logger.error(
+      'InlineErrorBoundary caught an error',
+      {
+        component: this.props.title || 'Inline Component',
+        componentStack: errorInfo.componentStack,
+      },
+      error
+    );
   }
 
   render() {
