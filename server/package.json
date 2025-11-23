@@ -1,0 +1,48 @@
+{
+  "name": "fieldpro-server",
+  "version": "1.0.0",
+  "description": "FieldPro FSM Native Backend - Node.js/Express/PostgreSQL",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "db:migrate": "node src/database/migrate.js",
+    "db:seed": "node src/database/seed.js",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix"
+  },
+  "keywords": ["fsm", "field-service", "backend", "api"],
+  "author": "FieldPro Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "zod": "^3.24.2",
+    "express-rate-limit": "^7.1.5",
+    "express-async-errors": "^3.1.1",
+    "compression": "^1.7.4",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "aws-sdk": "^2.1502.0",
+    "nodemailer": "^6.9.7",
+    "twilio": "^4.19.3",
+    "stripe": "^14.8.0",
+    "axios": "^1.6.2",
+    "date-fns": "^3.6.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "eslint": "^8.56.0",
+    "vitest": "^1.0.4"
+  }
+}
