@@ -16,6 +16,7 @@ import authRoutes from './routes/auth.js';
 import entityRoutes from './routes/entities.js';
 import functionRoutes from './routes/functions.js';
 import integrationRoutes from './routes/integrations.js';
+import storageRoutes from './routes/storage.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
@@ -65,6 +66,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/entities', authenticate, entityRoutes);
 app.use('/api/functions', authenticate, functionRoutes);
 app.use('/api/integrations', authenticate, integrationRoutes);
+app.use('/api/storage', authenticate, storageRoutes);
 
 // 404 handler
 app.use((req, res) => {

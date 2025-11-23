@@ -14,6 +14,9 @@ import * as sequentialNumberService from '../services/sequentialNumber.js';
 import * as profitabilityService from '../services/profitability.js';
 import * as csvExportService from '../services/csvExport.js';
 import * as csvImportService from '../services/csvImport.js';
+import * as emailService from '../services/email.js';
+import * as smsService from '../services/sms.js';
+import * as storageService from '../services/storage.js';
 import { badRequest } from '../middleware/errorHandler.js';
 
 const router = express.Router();
@@ -272,25 +275,44 @@ router.post('/csv/import', async (req, res) => {
 /**
  * POST /api/functions/notifications/email
  * Send email
+ * Body: { to, subject, text, html, attachments }
  */
 router.post('/notifications/email', async (req, res) => {
-  // TODO: Implement email sending
-  res.json({
-    message: 'Email Sender',
-    note: 'Implementation in progress'
+  const { to, subject, text, html, cc, bcc, attachments, replyTo } = req.body;
+
+  if (!to || !subject) {
+    throw badRequest('Recipient and subject are required');
+  }
+
+  const result = await emailService.sendEmail({
+    to,
+    subject,
+    text,
+    html,
+    cc,
+    bcc,
+    attachments,
+    replyTo
   });
+
+  res.json(result);
 });
 
 /**
  * POST /api/functions/notifications/sms
  * Send SMS
+ * Body: { to, message }
  */
 router.post('/notifications/sms', async (req, res) => {
-  // TODO: Implement SMS sending
-  res.json({
-    message: 'SMS Sender',
-    note: 'Implementation in progress'
-  });
+  const { to, message } = req.body;
+
+  if (!to || !message) {
+    throw badRequest('Recipient and message are required');
+  }
+
+  const result = await smsService.sendSMS({ to, message });
+
+  res.json(result);
 });
 
 /**
