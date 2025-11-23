@@ -12,6 +12,8 @@
 import express from 'express';
 import * as sequentialNumberService from '../services/sequentialNumber.js';
 import * as profitabilityService from '../services/profitability.js';
+import * as csvExportService from '../services/csvExport.js';
+import * as csvImportService from '../services/csvImport.js';
 import { badRequest } from '../middleware/errorHandler.js';
 
 const router = express.Router();
@@ -209,25 +211,62 @@ router.post('/utils/sequential-number/:type/set', async (req, res) => {
 /**
  * POST /api/functions/csv/export
  * Export data to CSV
+ * Body: { entity_type, filters, columns }
  */
 router.post('/csv/export', async (req, res) => {
-  // TODO: Implement CSV export
-  res.json({
-    message: 'CSV Export',
-    note: 'Implementation in progress'
-  });
+  const { entity_type, filters = {}, columns = null } = req.body;
+
+  if (!entity_type) {
+    throw badRequest('Entity type is required');
+  }
+
+  const csv = await csvExportService.exportEntityToCSV(entity_type, filters, columns);
+
+  // Set headers for file download
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${entity_type}_export_${Date.now()}.csv"`);
+
+  res.send(csv);
+});
+
+/**
+ * GET /api/functions/csv/template/:entityType
+ * Get CSV template for import
+ */
+router.get('/csv/template/:entityType', (req, res) => {
+  const { entityType } = req.params;
+
+  const template = csvImportService.generateCSVTemplate(entityType);
+
+  if (!template) {
+    throw badRequest(`No template available for entity type: ${entityType}`);
+  }
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${entityType}_template.csv"`);
+
+  res.send(template);
 });
 
 /**
  * POST /api/functions/csv/import
  * Import data from CSV
+ * Body: { entity_type, csv_content, options: { update_existing, validate_only, mappings } }
  */
 router.post('/csv/import', async (req, res) => {
-  // TODO: Implement CSV import
-  res.json({
-    message: 'CSV Import',
-    note: 'Implementation in progress'
-  });
+  const { entity_type, csv_content, options = {} } = req.body;
+
+  if (!entity_type) {
+    throw badRequest('Entity type is required');
+  }
+
+  if (!csv_content) {
+    throw badRequest('CSV content is required');
+  }
+
+  const result = await csvImportService.importEntityFromCSV(entity_type, csv_content, options);
+
+  res.json(result);
 });
 
 /**
