@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useSequentialNumber } from "@/hooks/useSequentialNumber";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,8 @@ import { toast } from "sonner";
 /**
  * AUDIT FIX: High Priority Issue #7 - Standardize Status Values
  * AUDIT FIX: High Priority Issue #8 - Implement State Machine Validation
+ * AUDIT FIX: MEDIUM Priority Issue #23 - Invoice Number Generation
+ * Using sequential numbering instead of timestamps for job/call numbers
  */
 
 export default function ServiceCallDialog({ open, onClose, call, technicians, currentUser, workTypes = [], customers = [] }) {
@@ -75,6 +78,7 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
   ];
 
   const queryClient = useQueryClient();
+  const generateNumber = useSequentialNumber();
 
   const currentTech = technicians.find(t => t.email === currentUser?.email);
   const isAdminOrManager = currentUser?.role === 'admin' || currentTech?.role === 'admin' || currentTech?.role === 'manager';
@@ -167,10 +171,11 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
     },
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const call_number = formData.call_number || await generateNumber('service_call');
     const dataToSave = {
       ...formData,
-      call_number: formData.call_number || `CALL-${Date.now()}`,
+      call_number,
     };
 
     if (call) {

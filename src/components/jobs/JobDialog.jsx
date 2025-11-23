@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useSequentialNumber } from "@/hooks/useSequentialNumber";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,8 @@ import { toast } from "sonner";
 /**
  * AUDIT FIX: High Priority Issue #7 - Standardize Status Values
  * AUDIT FIX: High Priority Issue #8 - Implement State Machine Validation
+ * AUDIT FIX: MEDIUM Priority Issue #23 - Invoice Number Generation
+ * Using sequential numbering instead of timestamps for job/call numbers
  */
 
 export default function JobDialog({ open, onClose, job, technicians, currentUser, workTypes = [], customers = [] }) {
@@ -77,6 +80,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
   ];
 
   const queryClient = useQueryClient();
+  const generateNumber = useSequentialNumber();
 
   const currentTech = technicians.find(t => t.email === currentUser?.email);
   const isAdminOrManager = currentUser?.role === 'admin' || currentTech?.role === 'admin' || currentTech?.role === 'manager';
@@ -169,10 +173,11 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
     },
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const job_number = formData.job_number || await generateNumber('job');
     const dataToSave = {
       ...formData,
-      job_number: formData.job_number || `JOB-${Date.now()}`,
+      job_number,
     };
 
     if (job) {

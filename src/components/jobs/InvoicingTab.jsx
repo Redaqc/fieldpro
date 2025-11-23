@@ -11,6 +11,12 @@ import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { JOB_STATUS, INVOICE_STATUS, MATERIAL_STATUS } from "@/constants/statuses";
+import { useSequentialNumber } from "@/hooks/useSequentialNumber";
+
+/**
+ * AUDIT FIX: MEDIUM Priority Issue #23 - Invoice Number Generation
+ * Using sequential numbering instead of timestamps
+ */
 
 export default function InvoicingTab({ job, formData, setFormData }) {
   const [lineItems, setLineItems] = useState(formData.invoice_items || []);
@@ -22,6 +28,7 @@ export default function InvoicingTab({ job, formData, setFormData }) {
     day: 1,
   });
   const queryClient = useQueryClient();
+  const generateNumber = useSequentialNumber();
 
   const { data: bundles = [] } = useQuery({
     queryKey: ['bundles'],
@@ -87,9 +94,15 @@ export default function InvoicingTab({ job, formData, setFormData }) {
     if (!job) return;
 
     const customer = customers.find(c => c.id === job.customer_id);
-    
+
+    /**
+     * AUDIT FIX: MEDIUM Priority Issue #23 - Invoice Number Generation
+     * Generate sequential invoice number instead of timestamp
+     */
+    const invoiceNumber = await generateNumber('invoice');
+
     const invoiceData = {
-      invoice_number: `INV-${Date.now()}`,
+      invoice_number: invoiceNumber,
       job_id: job.id,
       customer_id: job.customer_id,
       customer_name: job.customer_name || customer?.first_name + ' ' + customer?.last_name,
