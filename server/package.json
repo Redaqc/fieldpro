@@ -36,6 +36,7 @@
     "nodemailer": "^6.9.7",
     "twilio": "^4.19.3",
     "stripe": "^14.8.0",
+    "web-push": "^3.6.7",
     "axios": "^1.6.2",
     "date-fns": "^3.6.0",
     "uuid": "^9.0.1"

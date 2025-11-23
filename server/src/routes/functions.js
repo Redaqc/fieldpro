@@ -19,6 +19,9 @@ import * as smsService from '../services/sms.js';
 import * as storageService from '../services/storage.js';
 import * as gpsAutoTrackingService from '../services/gpsAutoTracking.js';
 import * as automationEngineService from '../services/automationEngine.js';
+import * as pushNotificationService from '../services/pushNotification.js';
+import * as stripePaymentService from '../services/stripePayment.js';
+import * as addressAutocompleteService from '../services/addressAutocomplete.js';
 import { badRequest } from '../middleware/errorHandler.js';
 
 const router = express.Router();
@@ -435,6 +438,259 @@ router.post('/automation/trigger/invoice-paid', async (req, res) => {
   res.json(result);
 });
 
-// Remaining functions: 15 integration functions still to be added
+/**
+ * POST /api/functions/notifications/push
+ * Send push notification
+ * Body: { user_id, title, body, icon?, badge?, data?, actions? }
+ */
+router.post('/notifications/push', async (req, res) => {
+  const { user_id, title, body, icon, badge, data, actions, tag, require_interaction } = req.body;
+
+  if (!user_id || !title || !body) {
+    throw badRequest('User ID, title, and body are required');
+  }
+
+  const result = await pushNotificationService.sendPushNotification({
+    user_id,
+    title,
+    body,
+    icon,
+    badge,
+    data,
+    actions,
+    tag,
+    require_interaction
+  });
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/notifications/push/subscribe
+ * Subscribe to push notifications
+ * Body: { user_id, endpoint, keys, device_type?, user_agent? }
+ */
+router.post('/notifications/push/subscribe', async (req, res) => {
+  const { user_id, endpoint, keys, device_type, user_agent } = req.body;
+
+  const subscription = await pushNotificationService.subscribeToPush({
+    user_id,
+    endpoint,
+    keys,
+    device_type,
+    user_agent
+  });
+
+  res.json(subscription);
+});
+
+/**
+ * POST /api/functions/notifications/push/unsubscribe
+ * Unsubscribe from push notifications
+ * Body: { endpoint }
+ */
+router.post('/notifications/push/unsubscribe', async (req, res) => {
+  const { endpoint } = req.body;
+
+  const result = await pushNotificationService.unsubscribeFromPush(endpoint);
+
+  res.json(result);
+});
+
+/**
+ * GET /api/functions/notifications/push/vapid-key
+ * Get VAPID public key for push subscriptions
+ */
+router.get('/notifications/push/vapid-key', (req, res) => {
+  const publicKey = pushNotificationService.getVapidPublicKey();
+
+  res.json({ public_key: publicKey });
+});
+
+/**
+ * POST /api/functions/payments/stripe/payment-intent
+ * Create Stripe payment intent
+ * Body: { invoice_id?, amount, currency?, customer_email?, metadata? }
+ */
+router.post('/payments/stripe/payment-intent', async (req, res) => {
+  const { invoice_id, amount, currency, customer_email, metadata } = req.body;
+
+  const paymentIntent = await stripePaymentService.createPaymentIntent({
+    invoice_id,
+    amount,
+    currency,
+    customer_email,
+    metadata
+  });
+
+  res.json(paymentIntent);
+});
+
+/**
+ * POST /api/functions/payments/stripe/checkout-session
+ * Create Stripe checkout session
+ * Body: { invoice_id, success_url, cancel_url, customer_email?, mode? }
+ */
+router.post('/payments/stripe/checkout-session', async (req, res) => {
+  const { invoice_id, success_url, cancel_url, customer_email, mode } = req.body;
+
+  const session = await stripePaymentService.createCheckoutSession({
+    invoice_id,
+    success_url,
+    cancel_url,
+    customer_email,
+    mode
+  });
+
+  res.json(session);
+});
+
+/**
+ * POST /api/functions/payments/stripe/customer
+ * Create Stripe customer
+ * Body: { customer_id?, email, name?, phone?, metadata? }
+ */
+router.post('/payments/stripe/customer', async (req, res) => {
+  const { customer_id, email, name, phone, metadata } = req.body;
+
+  const customer = await stripePaymentService.createStripeCustomer({
+    customer_id,
+    email,
+    name,
+    phone,
+    metadata
+  });
+
+  res.json(customer);
+});
+
+/**
+ * POST /api/functions/payments/stripe/refund
+ * Create Stripe refund
+ * Body: { payment_intent_id, amount?, reason? }
+ */
+router.post('/payments/stripe/refund', async (req, res) => {
+  const { payment_intent_id, amount, reason } = req.body;
+
+  const refund = await stripePaymentService.createRefund({
+    payment_intent_id,
+    amount,
+    reason
+  });
+
+  res.json(refund);
+});
+
+/**
+ * POST /api/functions/payments/stripe/webhook
+ * Handle Stripe webhook events
+ */
+router.post('/payments/stripe/webhook', async (req, res) => {
+  const signature = req.headers['stripe-signature'];
+  const rawBody = req.body; // Need raw body for signature verification
+
+  try {
+    const event = stripePaymentService.verifyWebhookSignature(rawBody, signature);
+    const result = await stripePaymentService.handleWebhookEvent(event);
+
+    res.json(result);
+  } catch (error) {
+    console.error('Stripe webhook error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/functions/utils/address-autocomplete
+ * Autocomplete address
+ * Query: input, types?, components?, location?, radius?
+ */
+router.get('/utils/address-autocomplete', async (req, res) => {
+  const { input, types, components, location, radius } = req.query;
+
+  if (!input) {
+    throw badRequest('Input is required');
+  }
+
+  const suggestions = await addressAutocompleteService.autocompleteAddress(input, {
+    types,
+    components,
+    location,
+    radius
+  });
+
+  res.json(suggestions);
+});
+
+/**
+ * GET /api/functions/utils/place-details/:placeId
+ * Get place details by place ID
+ */
+router.get('/utils/place-details/:placeId', async (req, res) => {
+  const { placeId } = req.params;
+
+  const details = await addressAutocompleteService.getPlaceDetails(placeId);
+
+  res.json(details);
+});
+
+/**
+ * POST /api/functions/utils/geocode
+ * Geocode an address
+ * Body: { address }
+ */
+router.post('/utils/geocode', async (req, res) => {
+  const { address } = req.body;
+
+  if (!address) {
+    throw badRequest('Address is required');
+  }
+
+  const result = await addressAutocompleteService.geocodeAddress(address);
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/utils/reverse-geocode
+ * Reverse geocode coordinates
+ * Body: { lat, lng }
+ */
+router.post('/utils/reverse-geocode', async (req, res) => {
+  const { lat, lng } = req.body;
+
+  if (!lat || !lng) {
+    throw badRequest('Latitude and longitude are required');
+  }
+
+  const result = await addressAutocompleteService.reverseGeocode(lat, lng);
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/utils/calculate-distance
+ * Calculate distance between two addresses
+ * Body: { origin, destination }
+ */
+router.post('/utils/calculate-distance', async (req, res) => {
+  const { origin, destination } = req.body;
+
+  if (!origin || !destination) {
+    throw badRequest('Origin and destination are required');
+  }
+
+  const result = await addressAutocompleteService.calculateDistance(origin, destination);
+
+  res.json(result);
+});
+
+// Remaining functions: 12 integration functions still to be added
+// - QuickBooks integration
+// - Zoho integration
+// - Sage50 integration
+// - Google Calendar sync
+// - AI schedule/route optimization
+// - Predictive maintenance
 
 export default router;
