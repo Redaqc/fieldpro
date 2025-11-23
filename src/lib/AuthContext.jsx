@@ -1,101 +1,39 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
-import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
+import api from '@/services/api';
 import logger from '@/lib/logger';
 
 const AuthContext = createContext();
+
+const TOKEN_KEY = 'fieldpro_auth_token';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
-  const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
 
+  // Check authentication on mount
   useEffect(() => {
-    checkAppState();
+    checkAuth();
   }, []);
 
-  const checkAppState = async () => {
+  const checkAuth = async () => {
     try {
-      setIsLoadingPublicSettings(true);
-      setAuthError(null);
-      
-      // First, check app public settings (with token if available)
-      // This will tell us if auth is required, user not registered, etc.
-      const appClient = createAxiosClient({
-        baseURL: `${appParams.serverUrl}/api/apps/public`,
-        headers: {
-          'X-App-Id': appParams.appId
-        },
-        token: appParams.token, // Include token if available
-        interceptResponses: true
-      });
-      
-      try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
-        setAppPublicSettings(publicSettings);
-        
-        // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
-          await checkUserAuth();
-        } else {
-          setIsLoadingAuth(false);
-          setIsAuthenticated(false);
-        }
-        setIsLoadingPublicSettings(false);
-      } catch (appError) {
-        console.error('App state check failed:', appError);
-        
-        // Handle app-level errors
-        if (appError.status === 403 && appError.data?.extra_data?.reason) {
-          const reason = appError.data.extra_data.reason;
-          if (reason === 'auth_required') {
-            setAuthError({
-              type: 'auth_required',
-              message: 'Authentication required'
-            });
-          } else if (reason === 'user_not_registered') {
-            setAuthError({
-              type: 'user_not_registered',
-              message: 'User not registered for this app'
-            });
-          } else {
-            setAuthError({
-              type: reason,
-              message: appError.message
-            });
-          }
-        } else {
-          setAuthError({
-            type: 'unknown',
-            message: appError.message || 'Failed to load app'
-          });
-        }
-        setIsLoadingPublicSettings(false);
-        setIsLoadingAuth(false);
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setAuthError({
-        type: 'unknown',
-        message: error.message || 'An unexpected error occurred'
-      });
-      setIsLoadingPublicSettings(false);
-      setIsLoadingAuth(false);
-    }
-  };
-
-  const checkUserAuth = async () => {
-    try {
-      // Now check if the user is authenticated
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      setAuthError(null);
+
+      // Check if token exists
+      const token = getToken();
+      if (!token) {
+        setIsLoadingAuth(false);
+        setIsAuthenticated(false);
+        return;
+      }
+
+      // Verify token with backend
+      const currentUser = await api.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
-      setIsLoadingAuth(false);
 
       // Set user context for logging
       logger.setContext({
@@ -109,62 +47,158 @@ export const AuthProvider = ({ children }) => {
         email: currentUser.email,
       });
     } catch (error) {
-      logger.error('User auth check failed', {
+      logger.error('Authentication check failed', {
         status: error.status,
         message: error.message,
       }, error);
 
-      setIsLoadingAuth(false);
+      // Clear invalid token
+      removeToken();
+      setUser(null);
       setIsAuthenticated(false);
 
-      // If user auth fails, it might be an expired token
       if (error.status === 401 || error.status === 403) {
         setAuthError({
           type: 'auth_required',
-          message: 'Authentication required'
+          message: 'Authentication required. Please log in.',
+        });
+      } else {
+        setAuthError({
+          type: 'error',
+          message: error.message || 'Authentication failed',
         });
       }
+    } finally {
+      setIsLoadingAuth(false);
     }
   };
 
-  const logout = (shouldRedirect = true) => {
+  const login = async (email, password) => {
+    try {
+      setAuthError(null);
+
+      const response = await api.auth.login(email, password);
+      const { token, user: userData } = response;
+
+      // Store token
+      setToken(token);
+
+      // Set user state
+      setUser(userData);
+      setIsAuthenticated(true);
+
+      // Set user context for logging
+      logger.setContext({
+        userId: userData.id,
+        userEmail: userData.email,
+        userName: userData.name,
+      });
+
+      logger.info('User logged in successfully', {
+        userId: userData.id,
+        email: userData.email,
+      });
+
+      return { success: true, user: userData };
+    } catch (error) {
+      logger.error('Login failed', {
+        email,
+        status: error.status,
+        message: error.message,
+      }, error);
+
+      setAuthError({
+        type: 'login_failed',
+        message: error.message || 'Login failed. Please check your credentials.',
+      });
+
+      return { success: false, error: error.message };
+    }
+  };
+
+  const register = async (userData) => {
+    try {
+      setAuthError(null);
+
+      const response = await api.auth.register(userData);
+      const { token, user: newUser } = response;
+
+      // Store token
+      setToken(token);
+
+      // Set user state
+      setUser(newUser);
+      setIsAuthenticated(true);
+
+      // Set user context for logging
+      logger.setContext({
+        userId: newUser.id,
+        userEmail: newUser.email,
+        userName: newUser.name,
+      });
+
+      logger.info('User registered successfully', {
+        userId: newUser.id,
+        email: newUser.email,
+      });
+
+      return { success: true, user: newUser };
+    } catch (error) {
+      logger.error('Registration failed', {
+        email: userData.email,
+        status: error.status,
+        message: error.message,
+      }, error);
+
+      setAuthError({
+        type: 'registration_failed',
+        message: error.message || 'Registration failed. Please try again.',
+      });
+
+      return { success: false, error: error.message };
+    }
+  };
+
+  const logout = () => {
     logger.info('User logging out', {
       userId: user?.id,
-      shouldRedirect,
     });
 
+    // Clear token
+    removeToken();
+
+    // Clear state
     setUser(null);
     setIsAuthenticated(false);
+    setAuthError(null);
 
     // Clear user context from logger
     logger.clearContext(['userId', 'userEmail', 'userName']);
-
-    if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
-    } else {
-      // Just remove the token without redirect
-      base44.auth.logout();
-    }
   };
 
-  const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+    logger.setContext({
+      userId: updatedUser.id,
+      userEmail: updatedUser.email,
+      userName: updatedUser.name,
+    });
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
-      isLoadingAuth,
-      isLoadingPublicSettings,
-      authError,
-      appPublicSettings,
-      logout,
-      navigateToLogin,
-      checkAppState
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated,
+        isLoadingAuth,
+        authError,
+        login,
+        register,
+        logout,
+        updateUser,
+        checkAuth,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -176,4 +210,20 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+};
+
+// Token management utilities
+export const getToken = () => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(TOKEN_KEY);
+};
+
+export const setToken = (token) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(TOKEN_KEY, token);
+};
+
+export const removeToken = () => {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(TOKEN_KEY);
 };

@@ -5,12 +5,14 @@ import { queryClientInstance } from '@/lib/query-client'
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary, { InlineErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { ThemeProvider } from '@/components/shared/ThemeProvider';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -21,10 +23,10 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin } = useAuth();
+  const { isLoadingAuth, authError, isAuthenticated } = useAuth();
 
-  // Show loading spinner while checking app public settings or auth
-  if (isLoadingPublicSettings || isLoadingAuth) {
+  // Show loading spinner while checking auth
+  if (isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
@@ -32,43 +34,48 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Handle authentication errors
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
-    }
-  }
-
-  // Render the main app
-  // LOW P4 #40: Wrap routes with ErrorBoundary to catch component errors
+  // Render the main app with both public and private routes
   return (
     <ErrorBoundary title="Application Error">
       <Routes>
-        <Route path="/" element={
-          <LayoutWrapper currentPageName={mainPageKey}>
-            <InlineErrorBoundary title="Page Error" message="The main page encountered an error.">
-              <MainPage />
-            </InlineErrorBoundary>
-          </LayoutWrapper>
+        {/* Public Routes */}
+        <Route path="/login" element={
+          isAuthenticated ? <Navigate to="/" replace /> : <Login />
         } />
-        {Object.entries(Pages).map(([path, Page]) => (
-          <Route
-            key={path}
-            path={`/${path}`}
-            element={
-              <LayoutWrapper currentPageName={path}>
-                <InlineErrorBoundary title="Page Error" message={`The ${path} page encountered an error.`}>
-                  <Page />
+        <Route path="/register" element={
+          isAuthenticated ? <Navigate to="/" replace /> : <Register />
+        } />
+
+        {/* Private Routes - Require Authentication */}
+        {!isAuthenticated ? (
+          // If not authenticated, redirect all routes to login
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        ) : (
+          // If authenticated, render app routes
+          <>
+            <Route path="/" element={
+              <LayoutWrapper currentPageName={mainPageKey}>
+                <InlineErrorBoundary title="Page Error" message="The main page encountered an error.">
+                  <MainPage />
                 </InlineErrorBoundary>
               </LayoutWrapper>
-            }
-          />
-        ))}
-        <Route path="*" element={<PageNotFound />} />
+            } />
+            {Object.entries(Pages).map(([path, Page]) => (
+              <Route
+                key={path}
+                path={`/${path}`}
+                element={
+                  <LayoutWrapper currentPageName={path}>
+                    <InlineErrorBoundary title="Page Error" message={`The ${path} page encountered an error.`}>
+                      <Page />
+                    </InlineErrorBoundary>
+                  </LayoutWrapper>
+                }
+              />
+            ))}
+            <Route path="*" element={<PageNotFound />} />
+          </>
+        )}
       </Routes>
     </ErrorBoundary>
   );

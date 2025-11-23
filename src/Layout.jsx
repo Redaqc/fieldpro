@@ -670,10 +670,6 @@ export default function Layout({ children, currentPageName }) {
                     </DropdownMenuItem>
                     {user?.role === 'admin' && (
                       <>
-                        <DropdownMenuItem onClick={() => window.open('https://base44.app/dashboard', '_blank')} className="cursor-pointer">
-                          <Shield className="w-4 h-4 mr-2" />
-                          Admin Backend
-                        </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={async () => {
                             try {
