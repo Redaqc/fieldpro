@@ -9,6 +9,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import ErrorBoundary, { InlineErrorBoundary } from '@/components/shared/ErrorBoundary';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -42,43 +43,60 @@ const AuthenticatedApp = () => {
   }
 
   // Render the main app
+  // LOW P4 #40: Wrap routes with ErrorBoundary to catch component errors
   return (
-    <Routes>
-      <Route path="/" element={
-        <LayoutWrapper currentPageName={mainPageKey}>
-          <MainPage />
-        </LayoutWrapper>
-      } />
-      {Object.entries(Pages).map(([path, Page]) => (
-        <Route
-          key={path}
-          path={`/${path}`}
-          element={
-            <LayoutWrapper currentPageName={path}>
-              <Page />
-            </LayoutWrapper>
-          }
-        />
-      ))}
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
+    <ErrorBoundary title="Application Error">
+      <Routes>
+        <Route path="/" element={
+          <LayoutWrapper currentPageName={mainPageKey}>
+            <InlineErrorBoundary title="Page Error" message="The main page encountered an error.">
+              <MainPage />
+            </InlineErrorBoundary>
+          </LayoutWrapper>
+        } />
+        {Object.entries(Pages).map(([path, Page]) => (
+          <Route
+            key={path}
+            path={`/${path}`}
+            element={
+              <LayoutWrapper currentPageName={path}>
+                <InlineErrorBoundary title="Page Error" message={`The ${path} page encountered an error.`}>
+                  <Page />
+                </InlineErrorBoundary>
+              </LayoutWrapper>
+            }
+          />
+        ))}
+        <Route path="*" element={<PageNotFound />} />
+      </Routes>
+    </ErrorBoundary>
   );
 };
 
 
 function App() {
-
+  /**
+   * LOW PRIORITY P4 Issue #40 - Error Boundaries
+   * Wrap entire app with ErrorBoundary to catch and gracefully handle errors
+   * Prevents full app crash when individual components fail
+   */
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <NavigationTracker />
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-        <VisualEditAgent />
-      </QueryClientProvider>
-    </AuthProvider>
+    <ErrorBoundary title="FieldPro FSM - Critical Error">
+      <AuthProvider>
+        <ErrorBoundary title="Authentication Error">
+          <QueryClientProvider client={queryClientInstance}>
+            <ErrorBoundary title="Application Error">
+              <Router>
+                <NavigationTracker />
+                <AuthenticatedApp />
+              </Router>
+              <Toaster />
+              <VisualEditAgent />
+            </ErrorBoundary>
+          </QueryClientProvider>
+        </ErrorBoundary>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
 
