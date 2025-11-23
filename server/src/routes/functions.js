@@ -17,6 +17,8 @@ import * as csvImportService from '../services/csvImport.js';
 import * as emailService from '../services/email.js';
 import * as smsService from '../services/sms.js';
 import * as storageService from '../services/storage.js';
+import * as gpsAutoTrackingService from '../services/gpsAutoTracking.js';
+import * as automationEngineService from '../services/automationEngine.js';
 import { badRequest } from '../middleware/errorHandler.js';
 
 const router = express.Router();
@@ -318,27 +320,121 @@ router.post('/notifications/sms', async (req, res) => {
 /**
  * POST /api/functions/gps/auto-tracking
  * GPS auto time tracking
+ * Body: { technician_id, lat, lng, job_id?, timestamp? }
  */
 router.post('/gps/auto-tracking', async (req, res) => {
-  // TODO: Implement GPS auto tracking
-  res.json({
-    message: 'GPS Auto Tracking',
-    note: 'Implementation in progress'
+  const { technician_id, lat, lng, job_id, timestamp } = req.body;
+
+  if (!technician_id) {
+    throw badRequest('Technician ID is required');
+  }
+  if (!lat || !lng) {
+    throw badRequest('Coordinates are required');
+  }
+
+  const result = await gpsAutoTrackingService.processGPSAutoTracking({
+    technician_id,
+    lat,
+    lng,
+    job_id,
+    timestamp
   });
+
+  res.json(result);
+});
+
+/**
+ * GET /api/functions/gps/auto-tracking/:technicianId
+ * Get current location and tracking status
+ */
+router.get('/gps/auto-tracking/:technicianId', async (req, res) => {
+  const { technicianId } = req.params;
+
+  const result = await gpsAutoTrackingService.getCurrentLocationTracking(technicianId);
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/gps/auto-tracking/:technicianId/enable
+ * Enable auto-tracking for technician
+ */
+router.post('/gps/auto-tracking/:technicianId/enable', async (req, res) => {
+  const { technicianId } = req.params;
+
+  const result = await gpsAutoTrackingService.enableAutoTracking(technicianId);
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/gps/auto-tracking/:technicianId/disable
+ * Disable auto-tracking for technician
+ */
+router.post('/gps/auto-tracking/:technicianId/disable', async (req, res) => {
+  const { technicianId } = req.params;
+
+  const result = await gpsAutoTrackingService.disableAutoTracking(technicianId);
+
+  res.json(result);
 });
 
 /**
  * POST /api/functions/automation/engine
  * Execute automation rules
+ * Body: { trigger_type, trigger_data }
  */
 router.post('/automation/engine', async (req, res) => {
-  // TODO: Implement automation engine
-  res.json({
-    message: 'Automation Engine',
-    note: 'Implementation in progress'
-  });
+  const { trigger_type, trigger_data } = req.body;
+
+  if (!trigger_type) {
+    throw badRequest('Trigger type is required');
+  }
+
+  const result = await automationEngineService.executeAutomations(trigger_type, trigger_data);
+
+  res.json(result);
 });
 
-// TODO: Add remaining 24 functions
+/**
+ * POST /api/functions/automation/trigger/job-created
+ * Trigger job created automations
+ * Body: job data
+ */
+router.post('/automation/trigger/job-created', async (req, res) => {
+  const job = req.body;
+
+  const result = await automationEngineService.triggerJobCreated(job);
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/automation/trigger/job-status-changed
+ * Trigger job status changed automations
+ * Body: { job, old_status }
+ */
+router.post('/automation/trigger/job-status-changed', async (req, res) => {
+  const { job, old_status } = req.body;
+
+  const result = await automationEngineService.triggerJobStatusChanged(job, old_status);
+
+  res.json(result);
+});
+
+/**
+ * POST /api/functions/automation/trigger/invoice-paid
+ * Trigger invoice paid automations
+ * Body: invoice data
+ */
+router.post('/automation/trigger/invoice-paid', async (req, res) => {
+  const invoice = req.body;
+
+  const result = await automationEngineService.triggerInvoicePaid(invoice);
+
+  res.json(result);
+});
+
+// Remaining functions: 15 integration functions still to be added
 
 export default router;
