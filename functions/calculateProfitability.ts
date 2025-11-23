@@ -33,13 +33,54 @@ Deno.serve(async (req) => {
       invoice = invoices[0];
     }
 
-    // Calculate costs
-    const laborCost = (job.total_time_spent || 0) * 75; // Default hourly rate
-    const materialCost = (job.material_usages || []).reduce((sum, u) => sum + (u.total_cost || 0), 0);
-    const equipmentCost = (job.asset_assignments || []).length * 50; // Flat rate per asset
-    const overheadCost = laborCost * 0.15; // 15% overhead allocation
+    /**
+     * AUDIT FIX: MEDIUM Priority Issue #34 - Complete Profitability Calculation
+     * Enhanced cost calculation with equipment hourly rates, subcontractor costs, and detailed overhead
+     */
 
-    const totalCost = laborCost + materialCost + equipmentCost + overheadCost;
+    // 1. LABOR COST: Calculate based on technician rates or default
+    const laborCost = (job.total_time_spent || 0) * 75; // Default hourly rate (could be enhanced with actual tech rates)
+
+    // 2. MATERIAL COST: Sum all material usages
+    const materialCost = (job.material_usages || []).reduce((sum, u) => sum + (u.total_cost || 0), 0);
+
+    // 3. EQUIPMENT COST: Calculate based on actual asset hourly rates
+    let equipmentCost = 0;
+    if (job.asset_assignments && job.asset_assignments.length > 0) {
+      // Fetch actual asset details for proper hourly rates
+      const assetIds = job.asset_assignments.map(a => a.asset_id).filter(id => id);
+      if (assetIds.length > 0) {
+        const assets = await base44.asServiceRole.entities.Asset.filter({
+          id: { $in: assetIds }
+        });
+
+        // Calculate equipment cost based on actual hourly rates and usage time
+        equipmentCost = job.asset_assignments.reduce((sum, assignment) => {
+          const asset = assets.find(a => a.id === assignment.asset_id);
+          const hourlyRate = asset?.hourly_rate || 50; // Default $50/hr if not specified
+          const hoursUsed = assignment.hours_used || job.total_time_spent || 0;
+          return sum + (hourlyRate * hoursUsed);
+        }, 0);
+      } else {
+        // Fallback to flat rate if no asset IDs
+        equipmentCost = job.asset_assignments.length * 50;
+      }
+    }
+
+    // 4. SUBCONTRACTOR COST: Include if job used subcontractors
+    const subcontractorCost = (job.subcontractor_costs || []).reduce((sum, s) => sum + (s.amount || 0), 0);
+
+    // 5. OVERHEAD COST: More detailed allocation
+    const overhead = {
+      admin: laborCost * 0.10,        // 10% administrative overhead
+      insurance: laborCost * 0.03,     // 3% insurance
+      facility: laborCost * 0.02,      // 2% facility costs
+      vehicle: equipmentCost * 0.05,   // 5% vehicle/equipment maintenance
+      marketing: (laborCost + materialCost) * 0.01, // 1% marketing allocation
+    };
+    const overheadCost = Object.values(overhead).reduce((sum, cost) => sum + cost, 0);
+
+    const totalCost = laborCost + materialCost + equipmentCost + subcontractorCost + overheadCost;
 
     // Calculate revenue
     const actualRevenue = invoice?.total || 0;
@@ -49,9 +90,39 @@ Deno.serve(async (req) => {
     const grossProfit = actualRevenue - totalCost;
     const profitMarginPercent = actualRevenue > 0 ? (grossProfit / actualRevenue) * 100 : 0;
 
+    // AUDIT FIX #34: Profit margin warnings
+    const warnings = [];
+    const recommendations = [];
+
+    if (profitMarginPercent < 0) {
+      warnings.push('LOSS: This job is operating at a loss');
+      recommendations.push('Review pricing strategy and cost control measures');
+    } else if (profitMarginPercent < 10) {
+      warnings.push('LOW MARGIN: Profit margin below 10% minimum threshold');
+      recommendations.push('Consider increasing prices or reducing costs');
+    } else if (profitMarginPercent < 20) {
+      warnings.push('MODERATE MARGIN: Profit margin below industry standard (20%)');
+      recommendations.push('Look for opportunities to improve efficiency');
+    }
+
+    if (actualRevenue < quotedRevenue * 0.9) {
+      warnings.push('REVENUE SHORTFALL: Actual revenue is significantly below quote');
+      recommendations.push('Review scope changes and ensure all work is invoiced');
+    }
+
+    if (laborCost > actualRevenue * 0.5) {
+      warnings.push('HIGH LABOR COST: Labor exceeds 50% of revenue');
+      recommendations.push('Analyze time tracking and consider productivity improvements');
+    }
+
+    if (subcontractorCost > actualRevenue * 0.3) {
+      warnings.push('HIGH SUBCONTRACTOR COST: Subcontractor costs exceed 30% of revenue');
+      recommendations.push('Evaluate subcontractor rates and consider in-house alternatives');
+    }
+
     // Create or update profitability record
-    const existingRecords = await base44.asServiceRole.entities.ProfitabilityRecord.filter({ 
-      job_id: job.id 
+    const existingRecords = await base44.asServiceRole.entities.ProfitabilityRecord.filter({
+      job_id: job.id
     });
 
     const profitData = {
@@ -62,10 +133,14 @@ Deno.serve(async (req) => {
       labor_cost: laborCost,
       material_cost: materialCost,
       equipment_cost: equipmentCost,
+      subcontractor_cost: subcontractorCost,
       overhead_cost: overheadCost,
+      overhead_breakdown: overhead,
       total_cost: totalCost,
       gross_profit: grossProfit,
       profit_margin_percent: profitMarginPercent,
+      warnings: warnings,
+      recommendations: recommendations,
       calculated_at: new Date().toISOString(),
       invoice_id: invoice?.id || null
     };
@@ -91,17 +166,38 @@ Deno.serve(async (req) => {
       success: true,
       profitability: profitData,
       breakdown: {
-        revenue: actualRevenue,
+        revenue: {
+          quoted: quotedRevenue,
+          actual: actualRevenue,
+          variance: actualRevenue - quotedRevenue,
+          variance_percent: quotedRevenue > 0 ? ((actualRevenue - quotedRevenue) / quotedRevenue) * 100 : 0
+        },
         costs: {
           labor: laborCost,
           materials: materialCost,
           equipment: equipmentCost,
+          subcontractors: subcontractorCost,
           overhead: overheadCost,
+          overhead_breakdown: overhead,
           total: totalCost
         },
         profit: {
           gross: grossProfit,
-          margin_percent: profitMarginPercent
+          margin_percent: profitMarginPercent,
+          status: profitMarginPercent < 0 ? 'LOSS' :
+                  profitMarginPercent < 10 ? 'LOW' :
+                  profitMarginPercent < 20 ? 'MODERATE' : 'GOOD'
+        },
+        analysis: {
+          warnings: warnings,
+          recommendations: recommendations,
+          cost_breakdown_percent: {
+            labor: actualRevenue > 0 ? (laborCost / actualRevenue) * 100 : 0,
+            materials: actualRevenue > 0 ? (materialCost / actualRevenue) * 100 : 0,
+            equipment: actualRevenue > 0 ? (equipmentCost / actualRevenue) * 100 : 0,
+            subcontractors: actualRevenue > 0 ? (subcontractorCost / actualRevenue) * 100 : 0,
+            overhead: actualRevenue > 0 ? (overheadCost / actualRevenue) * 100 : 0
+          }
         }
       }
     });
