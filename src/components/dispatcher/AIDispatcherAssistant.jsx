@@ -96,7 +96,12 @@ export default function AIDispatcherAssistant({ jobs, serviceCalls, technicians,
         };
       });
 
-      // AI-powered assignment logic
+      /**
+       * AUDIT FIX: MEDIUM Priority Issue #28 - Technician Skill Matching
+       * Enhanced AI prompt to explicitly match technician skills with job requirements
+       */
+
+      // AI-powered assignment logic with skill matching
       const aiPrompt = `
 Analyze this field service dispatch scenario and provide optimal technician assignments:
 
@@ -107,6 +112,8 @@ ${allUnassigned.map(w => `
   Location: ${w.location || w.project_addresses?.[0] || 'No location'}
   ${w.due_date ? `Due: ${format(new Date(w.due_date), 'PPP')}` : ''}
   ${w.call_type ? `Type: ${w.call_type}` : ''}
+  Required Skills: ${w.required_skills?.join(', ') || w.job_type || w.call_type || 'General'}
+  Complexity: ${w.complexity || 'Standard'}
 `).join('\n')}
 
 Available Technicians (${techWorkload.length}):
@@ -115,28 +122,34 @@ ${techWorkload.filter(t => t.status === 'available').map(t => `
   Current Workload: ${t.currentWorkload} jobs
   Skills: ${t.skills.join(', ') || 'General'}
   Status: ${t.status}
+  Experience Level: ${t.experience_level || 'Standard'}
   ${t.lastLocation ? `Last Location: ${t.lastLocation.address || `${t.lastLocation.latitude},${t.lastLocation.longitude}`}` : ''}
 `).join('\n')}
 
-Rules:
-1. Balance workload across technicians
-2. Match skills with job requirements when possible
-3. Prioritize urgent/high priority work
-4. Consider travel distance from last known location
-5. Suggest optimal scheduling times
+Rules (STRICTLY ENFORCE):
+1. **SKILL MATCHING (HIGHEST PRIORITY)**: Only assign technicians who have the required skills for the job. If a job requires specific skills, the technician MUST have those skills. Never assign unqualified technicians.
+2. **EXPERIENCE MATCHING**: Match job complexity with technician experience level when possible
+3. **WORKLOAD BALANCING**: Balance workload across qualified technicians (prefer technicians with fewer active jobs)
+4. **PRIORITY HANDLING**: Prioritize urgent/high priority work, assign best available qualified tech
+5. **LOCATION OPTIMIZATION**: Consider travel distance from last known location for efficiency
+6. **SCHEDULING**: Suggest optimal scheduling times based on current workload and priority
 
 Provide assignments as JSON array with this structure:
 [{
   "work_item_id": "string",
-  "work_item_title": "string", 
+  "work_item_title": "string",
   "technician_id": "string",
   "technician_name": "string",
-  "reason": "string (why this assignment)",
+  "reason": "string (why this assignment, MUST mention skill matching)",
+  "skills_matched": ["array of matched skills"],
+  "skill_match_score": number (0-100, how well skills align),
   "priority_score": number (0-100),
   "suggested_time": "ISO datetime",
   "estimated_travel_minutes": number,
   "confidence": number (0-100)
 }]
+
+IMPORTANT: Always explain skill matching in the "reason" field. If no perfect skill match, explain why the chosen technician is still the best option.
       `;
 
       const { data } = await base44.integrations.Core.InvokeLLM({
@@ -154,6 +167,11 @@ Provide assignments as JSON array with this structure:
                   technician_id: { type: "string" },
                   technician_name: { type: "string" },
                   reason: { type: "string" },
+                  skills_matched: {
+                    type: "array",
+                    items: { type: "string" }
+                  },
+                  skill_match_score: { type: "number" },
                   priority_score: { type: "number" },
                   suggested_time: { type: "string" },
                   estimated_travel_minutes: { type: "number" },
@@ -415,6 +433,25 @@ Provide assignments as JSON array with this structure:
                           <span>Score: {assignment.priority_score}/100</span>
                         </div>
                       </div>
+
+                      {/* AUDIT FIX #28: Display skill matching information */}
+                      {assignment.skills_matched && assignment.skills_matched.length > 0 && (
+                        <div className="mb-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-xs font-semibold text-slate-600">
+                              Skills Match: {assignment.skill_match_score || 0}%
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {assignment.skills_matched.map((skill, idx) => (
+                              <Badge key={idx} variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                                ✓ {skill}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="bg-slate-50 rounded p-3 mb-3">
                         <p className="text-sm text-slate-700">
