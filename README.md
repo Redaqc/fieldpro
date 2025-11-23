@@ -1,6 +1,6 @@
 # FieldPro FSM - Field Service Management Platform
 
-A comprehensive, enterprise-grade field service management (FSM) platform built on Base44 (Backend-as-a-Service) with React and modern web technologies.
+A comprehensive, enterprise-grade field service management (FSM) platform built with Node.js, Express, PostgreSQL, and React with modern web technologies.
 
 ## 📋 Table of Contents
 
@@ -149,12 +149,13 @@ FieldPro FSM is a complete field service management solution designed for busine
 - **Rich Text:** React Quill
 
 ### Backend
-- **Platform:** Base44 BaaS
-- **Runtime:** Deno (serverless functions)
-- **SDK:** @base44/sdk (v0.8.3)
-- **Database:** Managed by Base44 (PostgreSQL)
-- **Authentication:** Base44 Auth
-- **Storage:** Base44 Storage
+- **Runtime:** Node.js 20+
+- **Framework:** Express.js 4
+- **Database:** PostgreSQL 15+
+- **Authentication:** JWT with bcrypt
+- **Storage:** Local filesystem + S3-compatible (optional)
+- **API:** RESTful with centralized error handling
+- **Security:** Helmet, CORS, rate limiting
 
 ### Development Tools
 - **Package Manager:** npm
@@ -168,20 +169,44 @@ FieldPro FSM is a complete field service management solution designed for busine
 
 ```
 fieldpro/
-├── functions/              # Backend serverless functions (Deno)
-│   ├── exportFullApp.ts    # Complete app export functionality
-│   ├── exportDatabase.ts   # Database-only export
-│   ├── automationEngine.ts # Automation rules engine
-│   ├── aiScheduleOptimizer.ts
-│   ├── routeOptimizer.ts
-│   ├── gpsAutoTimeTracking.ts
-│   ├── calculateProfitability.ts
-│   ├── predictMaintenance.ts
-│   ├── zoho*.ts            # Zoho integrations
-│   ├── stripe*.ts          # Stripe payment processing
-│   ├── sendEmail.ts
-│   ├── sendSMS.ts
-│   └── ...                 # 30+ additional functions
+├── server/                 # Node.js backend server
+│   ├── src/
+│   │   ├── models/         # Database models (40 entities)
+│   │   │   ├── Customer.js
+│   │   │   ├── Job.js
+│   │   │   ├── Invoice.js
+│   │   │   └── ...
+│   │   │
+│   │   ├── routes/         # API routes
+│   │   │   ├── auth.js
+│   │   │   ├── entities.js
+│   │   │   ├── functions.js
+│   │   │   ├── integrations.js
+│   │   │   └── storage.js
+│   │   │
+│   │   ├── services/       # Business logic services
+│   │   │   ├── aiScheduleOptimizer.js
+│   │   │   ├── aiRouteOptimizer.js
+│   │   │   ├── automation.js
+│   │   │   ├── email.js
+│   │   │   ├── sms.js
+│   │   │   ├── storage.js
+│   │   │   ├── integrations.js
+│   │   │   └── ...
+│   │   │
+│   │   ├── middleware/     # Express middleware
+│   │   │   ├── auth.js
+│   │   │   ├── errorHandler.js
+│   │   │   └── rateLimiter.js
+│   │   │
+│   │   ├── database/       # Database configuration
+│   │   │   ├── config.js
+│   │   │   └── schema.sql
+│   │   │
+│   │   └── index.js        # Server entry point
+│   │
+│   ├── package.json
+│   └── .env.example
 │
 ├── src/
 │   ├── pages/              # 41 main application pages
@@ -237,8 +262,8 @@ fieldpro/
 
 ### Prerequisites
 
-- **Node.js** 18+ (with npm)
-- **Base44 Account** - Sign up at [base44.app](https://base44.app)
+- **Node.js** 20+ (with npm)
+- **PostgreSQL** 15+
 - Modern web browser (Chrome, Firefox, Safari, Edge)
 
 ### Installation
@@ -249,24 +274,91 @@ fieldpro/
    cd fieldpro
    ```
 
-2. **Install dependencies**
+2. **Install frontend dependencies**
    ```bash
    npm install
    ```
 
-3. **Configure Base44**
-   - Create a Base44 app
-   - Configure environment variables in Base44 dashboard
-   - Set up required integrations (Stripe, Zoho, etc.)
-
-4. **Run development server**
+3. **Install backend dependencies**
    ```bash
-   npm run dev
+   cd server
+   npm install
+   cd ..
    ```
 
-5. **Build for production**
+4. **Set up PostgreSQL database**
    ```bash
+   # Create database
+   createdb fieldpro
+
+   # Run schema (from server directory)
+   cd server
+   psql fieldpro < src/database/schema.sql
+   ```
+
+5. **Configure environment variables**
+
+   Create `server/.env` file:
+   ```env
+   # Database
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_NAME=fieldpro
+   DB_USER=your_db_user
+   DB_PASSWORD=your_db_password
+
+   # Server
+   PORT=3001
+   NODE_ENV=development
+   FRONTEND_URL=http://localhost:5173
+
+   # JWT
+   JWT_SECRET=your-super-secret-jwt-key-change-in-production
+   JWT_EXPIRES_IN=7d
+
+   # Email (optional)
+   EMAIL_HOST=smtp.gmail.com
+   EMAIL_PORT=587
+   EMAIL_USER=your-email@gmail.com
+   EMAIL_PASSWORD=your-app-password
+
+   # SMS (optional)
+   SMS_API_KEY=your-sms-api-key
+
+   # Storage
+   STORAGE_TYPE=local
+   STORAGE_PATH=./uploads
+
+   # Integrations (optional)
+   QUICKBOOKS_CLIENT_ID=
+   QUICKBOOKS_CLIENT_SECRET=
+   ZOHO_CLIENT_ID=
+   ZOHO_CLIENT_SECRET=
+   GOOGLE_CLIENT_ID=
+   GOOGLE_CLIENT_SECRET=
+   ```
+
+6. **Start the backend server**
+   ```bash
+   cd server
+   npm start
+   # Server runs on http://localhost:3001
+   ```
+
+7. **Start the frontend development server** (in new terminal)
+   ```bash
+   npm run dev
+   # Frontend runs on http://localhost:5173
+   ```
+
+8. **Build for production**
+   ```bash
+   # Frontend
    npm run build
+
+   # Backend runs with NODE_ENV=production
+   cd server
+   NODE_ENV=production npm start
    ```
 
 ## 💻 Development
@@ -305,39 +397,85 @@ npm run build
 
 ### Environment Variables
 
-Configure in Base44 Dashboard > Settings > Environment:
+Backend environment variables are configured in `server/.env`. See the Installation section above for the complete list of required and optional variables.
+
+Frontend environment variables (if needed) can be configured in `.env`:
 
 ```env
-BASE44_APP_ID=your_app_id
-STRIPE_SECRET_KEY=sk_test_...
-ZOHO_CLIENT_ID=...
-ZOHO_CLIENT_SECRET=...
-# ... other integration keys
+VITE_API_URL=http://localhost:3001/api
 ```
 
 ## 📦 Deployment
 
-### Deploy to Base44
+### Production Deployment
 
-1. **Push code to repository**
+1. **Prepare the environment**
+   - Set up PostgreSQL database on production server
+   - Configure production environment variables in `server/.env`
+   - Set `NODE_ENV=production`
+
+2. **Build frontend**
    ```bash
-   git add .
-   git commit -m "Your changes"
-   git push
+   npm run build
    ```
 
-2. **Deploy via Base44 Dashboard**
-   - Navigate to Deploy section
-   - Select branch
-   - Deploy to production
+3. **Deploy backend**
+   ```bash
+   cd server
+   npm install --production
+   NODE_ENV=production npm start
+   ```
 
-### Manual Build
+4. **Serve frontend**
+   - Use Nginx, Apache, or any static file server to serve the `dist/` folder
+   - Configure reverse proxy to backend API at `/api`
 
-```bash
-npm run build
+### Docker Deployment (Recommended)
+
+Create `docker-compose.yml`:
+```yaml
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: fieldpro
+      POSTGRES_USER: fieldpro
+      POSTGRES_PASSWORD: your_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./server
+    ports:
+      - "3001:3001"
+    environment:
+      DB_HOST: postgres
+      DB_NAME: fieldpro
+      NODE_ENV: production
+    depends_on:
+      - postgres
+
+  frontend:
+    build: .
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
 ```
 
-The `dist/` folder contains the production-ready application.
+Run with: `docker-compose up -d`
+
+### Cloud Deployment Options
+
+- **AWS:** EC2 + RDS PostgreSQL
+- **Azure:** App Service + Azure Database for PostgreSQL
+- **Google Cloud:** Cloud Run + Cloud SQL
+- **DigitalOcean:** Droplet + Managed PostgreSQL
+- **Heroku:** Web dyno + Heroku Postgres
 
 ## 📘 Core Modules
 
@@ -523,34 +661,42 @@ The application uses 40+ entities managed by Base44:
 
 ## 📊 Export & Backup
 
-### Full Application Export
+### Database Backup
 
-The application includes a comprehensive export feature:
+Regular PostgreSQL backups:
 
-```javascript
-// Access via Layout menu: "Export Complet (App)"
-// Or invoke directly:
-const response = await base44.functions.invoke('exportFullApp');
+```bash
+# Full database backup
+pg_dump fieldpro > backup_$(date +%Y%m%d).sql
+
+# Backup with compression
+pg_dump fieldpro | gzip > backup_$(date +%Y%m%d).sql.gz
+
+# Restore from backup
+psql fieldpro < backup_20231201.sql
 ```
 
-**Export Includes:**
-- All database records (69+ entities)
-- Entity schemas
-- Backend function catalog
-- Frontend page/component structure
-- Configuration and settings
-- Integration details
-- Comprehensive README
+### Automated Backups
 
-**Export Format:** JSON with embedded documentation
+Set up cron job for daily backups:
 
-### Database-Only Export
+```bash
+# Edit crontab
+crontab -e
 
-```javascript
-const response = await base44.functions.invoke('exportDatabase');
+# Add daily backup at 2 AM
+0 2 * * * pg_dump fieldpro | gzip > /backups/fieldpro_$(date +\%Y\%m\%d).sql.gz
+
+# Keep last 30 days
+0 3 * * * find /backups -name "fieldpro_*.sql.gz" -mtime +30 -delete
 ```
 
-Exports just the database records for data backup.
+### Application Export
+
+The application includes CSV export functionality for all major entities through the web interface:
+- Navigate to any entity list page
+- Click "Export" button
+- Download CSV file with all records
 
 ## 🤝 Contributing
 
@@ -584,9 +730,20 @@ npm run build
 
 ### Common Issues
 
-1. **"React is not defined"** - Fixed in latest version (React 17+ auto-import)
-2. **Vite build errors** - Clear cache: `rm -rf dist node_modules/.vite`
-3. **Base44 connection issues** - Check environment variables
+1. **Database connection errors**
+   - Check PostgreSQL is running: `systemctl status postgresql`
+   - Verify credentials in `server/.env`
+   - Test connection: `psql -h localhost -U your_user fieldpro`
+
+2. **Port already in use**
+   - Backend (3001): Change `PORT` in `server/.env`
+   - Frontend (5173): Vite will auto-increment to 5174
+
+3. **"React is not defined"** - Fixed in latest version (React 17+ auto-import)
+
+4. **Vite build errors** - Clear cache: `rm -rf dist node_modules/.vite`
+
+5. **CORS errors** - Update `FRONTEND_URL` in `server/.env` to match your frontend URL
 
 ## 📄 License
 
@@ -594,18 +751,21 @@ npm run build
 
 ## 📞 Support
 
-- **Documentation:** [Base44 Docs](https://docs.base44.app)
 - **Issues:** [GitHub Issues](https://github.com/your-repo/issues)
 - **Email:** support@yourcompany.com
+- **Documentation:** See this README and inline code documentation
 
 ## 🙏 Acknowledgments
 
-- Built with [Base44](https://base44.app) - Backend-as-a-Service platform
+- Built with [Node.js](https://nodejs.org), [Express](https://expressjs.com), and [PostgreSQL](https://www.postgresql.org)
+- Frontend powered by [React](https://react.dev) and [Vite](https://vitejs.dev)
 - UI components from [shadcn/ui](https://ui.shadcn.com)
 - Icons by [Lucide](https://lucide.dev)
+- Originally migrated from Base44 to native architecture (see MIGRATION.md)
 
 ---
 
-**Version:** 2.0
+**Version:** 3.0 (Native Architecture)
 **Last Updated:** November 2025
 **Status:** Production Ready ✅
+**Migration Status:** 100% Complete - All Base44 dependencies removed
