@@ -1,7 +1,7 @@
 {
-  "name": "base44-app",
+  "name": "fieldpro-app",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,8 +16,6 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@base44/sdk": "^0.8.3",
-    "@base44/vite-plugin": "^0.2.5",
     "@hello-pangea/dnd": "^17.0.0",
     "axios": "^1.6.5",
     "@hookform/resolvers": "^4.1.2",

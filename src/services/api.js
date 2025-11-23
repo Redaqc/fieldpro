@@ -463,6 +463,148 @@ export const functions = {
       end_location: endLocation
     });
     return response.data;
+  },
+
+  /**
+   * Generic invoke method for backwards compatibility with Base44 SDK
+   * Replaces: base44.functions.invoke('functionName', params)
+   *
+   * This method maps Base44 function names to our native API endpoints
+   */
+  async invoke(functionName, params = {}) {
+    // Map function names to endpoint calls
+    const functionMap = {
+      // Analytics
+      'calculateProfitability': async (p) => {
+        if (p.job_id) {
+          return await this.calculateProfitability(p.job_id);
+        } else if (p.start_date && p.end_date) {
+          return await this.calculatePeriodProfitability(p.start_date, p.end_date);
+        } else if (p.customer_id) {
+          return await this.calculateCustomerProfitability(p.customer_id, p.start_date, p.end_date);
+        }
+      },
+
+      // Sequential numbers
+      'generateSequentialNumber': async (p) => {
+        return await this.generateSequentialNumber(p.type, p.format, p.options);
+      },
+
+      // CSV operations
+      'csvExport': async (p) => {
+        return await this.exportCSV(p.entity_type, p.filters);
+      },
+      'csvImport': async (p) => {
+        return await this.importCSV(p.entity_type, p.file);
+      },
+
+      // Notifications
+      'sendEmail': async (p) => {
+        return await this.sendEmail(p.to, p.subject, p.body, p.attachments);
+      },
+      'sendSMS': async (p) => {
+        return await this.sendSMS(p.to, p.message);
+      },
+      'sendNotification': async (p) => {
+        const response = await apiClient.post('/functions/notifications/push', p);
+        return response.data;
+      },
+      'sendSecurityNotification': async (p) => {
+        const response = await apiClient.post('/functions/notifications/push', {
+          ...p,
+          title: p.title || 'Security Alert',
+          icon: 'security'
+        });
+        return response.data;
+      },
+      'savePushSubscription': async (p) => {
+        const response = await apiClient.post('/functions/notifications/push/subscribe', p);
+        return response.data;
+      },
+
+      // GPS & Automation
+      'gpsAutoTimeTracking': async (p) => {
+        return await this.gpsAutoTracking(p.technician_id, p.location);
+      },
+      'executeAutomation': async (p) => {
+        return await this.executeAutomation(p.trigger, p.data);
+      },
+      'executeFormAutomations': async (p) => {
+        const response = await apiClient.post('/functions/automation/engine', {
+          trigger_type: 'form_submitted',
+          trigger_data: p
+        });
+        return response.data;
+      },
+
+      // AI & Optimization
+      'aiScheduleOptimizer': async (p) => {
+        return await this.optimizeSchedule(p.jobs, p.technicians, p.constraints);
+      },
+      'routeOptimizer': async (p) => {
+        return await this.optimizeRoute(p.jobs, p.start_location, p.end_location);
+      },
+      'predictMaintenance': async (p) => {
+        const response = await apiClient.post('/functions/ai/predict-maintenance', p);
+        return response.data;
+      },
+
+      // Data Export/Import
+      'exportDatabase': async (p) => {
+        const response = await apiClient.post('/functions/export/database', p);
+        return response.data;
+      },
+      'exportFullApp': async (p) => {
+        const response = await apiClient.post('/functions/export/full', p);
+        return response.data;
+      },
+      'importDatabase': async (p) => {
+        const response = await apiClient.post('/functions/import/database', p);
+        return response.data;
+      },
+
+      // Job Automation
+      'autoCompleteJob': async (p) => {
+        const response = await apiClient.post('/functions/jobs/auto-complete', p);
+        return response.data;
+      },
+
+      // Integrations (placeholders - will error until backend routes are implemented)
+      'zohoSyncCustomers': async (p) => {
+        const response = await apiClient.post('/integrations/zoho/sync-customers', p);
+        return response.data;
+      },
+      'zohoSyncInvoices': async (p) => {
+        const response = await apiClient.post('/integrations/zoho/sync-invoices', p);
+        return response.data;
+      },
+      'quickbooksSync': async (p) => {
+        const response = await apiClient.post('/integrations/quickbooks/sync', p);
+        return response.data;
+      },
+      'sage50Sync': async (p) => {
+        const response = await apiClient.post('/integrations/sage50/sync', p);
+        return response.data;
+      },
+      'googleCalendarSync': async (p) => {
+        const response = await apiClient.post('/integrations/google-calendar/sync', p);
+        return response.data;
+      }
+    };
+
+    // Check if function exists in map
+    if (functionMap[functionName]) {
+      return await functionMap[functionName](params);
+    }
+
+    // Fallback: try to call generic endpoint
+    console.warn(`Function "${functionName}" not found in function map, attempting generic call`);
+    try {
+      const response = await apiClient.post(`/functions/${functionName}`, params);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Function "${functionName}" not implemented in native API: ${error.message}`);
+    }
   }
 };
 
