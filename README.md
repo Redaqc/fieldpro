@@ -1,6 +1,8 @@
 # FieldPro FSM - Field Service Management Platform
 
-A comprehensive, enterprise-grade field service management (FSM) platform built with Node.js, Express, PostgreSQL, and React with modern web technologies.
+A comprehensive, enterprise-grade field service management (FSM) platform built with **100% Native Architecture** using Node.js, Express, PostgreSQL, and React.
+
+> **🎉 Native Architecture**: This application uses a fully native tech stack with zero external SaaS dependencies. All data is stored in your PostgreSQL database, all business logic runs on your Express server, and you maintain complete control over your infrastructure.
 
 ## 📋 Table of Contents
 
@@ -19,7 +21,16 @@ A comprehensive, enterprise-grade field service management (FSM) platform built 
 
 ## 🎯 Overview
 
-FieldPro FSM is a complete field service management solution designed for businesses that need to manage technicians, jobs, scheduling, invoicing, GPS tracking, and more. Built with a mobile-first approach, it provides real-time collaboration, offline capabilities, and powerful automation features.
+FieldPro FSM is a complete field service management solution designed for businesses that need to manage technicians, jobs, scheduling, invoicing, GPS tracking, and more. Built with a **100% native stack** (no external SaaS platforms), it provides real-time collaboration, offline capabilities, and powerful automation features.
+
+### Architecture Highlights
+
+- **Database**: PostgreSQL 15+ with 49 native models
+- **Backend**: Express.js with RESTful API (34 business functions)
+- **Authentication**: JWT tokens with bcrypt password hashing
+- **Storage**: Local filesystem or S3-compatible storage
+- **No Lock-in**: Complete control over your data and infrastructure
+- **Self-Hosted**: Deploy anywhere - AWS, Azure, GCP, DigitalOcean, or on-premises
 
 ### Key Capabilities
 
@@ -171,7 +182,7 @@ FieldPro FSM is a complete field service management solution designed for busine
 fieldpro/
 ├── server/                 # Node.js backend server
 │   ├── src/
-│   │   ├── models/         # Database models (40 entities)
+│   │   ├── models/         # Database models (49 entities)
 │   │   │   ├── Customer.js
 │   │   │   ├── Job.js
 │   │   │   ├── Invoice.js
@@ -209,7 +220,7 @@ fieldpro/
 │   └── .env.example
 │
 ├── src/
-│   ├── pages/              # 41 main application pages
+│   ├── pages/              # 42 main application pages
 │   │   ├── Dashboard.jsx
 │   │   ├── Jobs.jsx
 │   │   ├── Schedule.jsx
@@ -236,7 +247,7 @@ fieldpro/
 │   │   └── VisualEditAgent.jsx
 │   │
 │   ├── api/                # API clients
-│   │   ├── base44Client.js
+│   │   ├── base44Client.js # Native API wrapper for backward compatibility
 │   │   ├── entities.js
 │   │   └── integrations.js
 │   │
@@ -481,7 +492,7 @@ Run with: `docker-compose up -d`
 
 ### Entity Schema (Database)
 
-The application uses 40+ entities managed by Base44:
+The application uses 49+ entities managed by PostgreSQL with native Express.js models:
 
 **Core Entities:**
 - Customer, Technician, Job, ServiceCall
@@ -497,6 +508,11 @@ The application uses 40+ entities managed by Base44:
 - Document, CustomField, Webhook
 - ProfitabilityRecord, SupplierInvoice
 - CompanyInfo, TaxSettings, AppSettings
+
+**System Management:**
+- Role, IntegrationSettings, Alert
+- DashboardConfig, LanguageSettings
+- MaintenanceSchedule, SyncLog, TeamMessage
 
 ### Backend Functions (34 total)
 
@@ -524,8 +540,8 @@ The application uses 40+ entities managed by Base44:
 - **Google Calendar** - Bi-directional event sync
 
 ### Communication
-- **Email** - Transactional emails via Base44
-- **SMS** - Text notifications
+- **Email** - Transactional emails via SMTP/SendGrid/AWS SES
+- **SMS** - Text notifications via Twilio
 
 ### Location Services
 - **Address Autocomplete** - Smart address lookup
