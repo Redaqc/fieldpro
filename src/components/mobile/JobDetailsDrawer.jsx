@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,17 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   MapPin,
-  Clock,
   User,
-  FileText,
-  Camera,
   CheckSquare,
-  MessageSquare,
-  Navigation
+  MessageSquare
 } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslation } from "@/components/shared/translations";
-import TouchOptimizedSelect from "./TouchOptimizedSelect";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 

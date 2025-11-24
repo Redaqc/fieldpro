@@ -1,4 +1,3 @@
-import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Clock } from "lucide-react";
@@ -11,12 +10,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TIME_ENTRY_STATUS } from '@/constants/statuses';
 
 const statusColors = {
-  in_progress: "bg-green-100 text-green-800",
-  completed: "bg-blue-100 text-blue-800",
-  pending_approval: "bg-yellow-100 text-yellow-800",
-  approved: "bg-purple-100 text-purple-800"
+  [TIME_ENTRY_STATUS.IN_PROGRESS]: "bg-green-100 text-green-800",
+  [TIME_ENTRY_STATUS.COMPLETED]: "bg-blue-100 text-blue-800",
+  [TIME_ENTRY_STATUS.PENDING_APPROVAL]: "bg-yellow-100 text-yellow-800",
+  [TIME_ENTRY_STATUS.APPROVED]: "bg-purple-100 text-purple-800"
 };
 
 export default function TimeEntriesList({ entries, onEdit, onDelete, lang = 'fr' }) {
@@ -72,11 +72,11 @@ export default function TimeEntriesList({ entries, onEdit, onDelete, lang = 'fr'
                 {entry.total_hours ? `${entry.total_hours.toFixed(2)}h` : '-'}
               </TableCell>
               <TableCell>
-                <Badge className={statusColors[entry.status || 'completed']}>
-                  {entry.status === 'in_progress' && 'En cours'}
-                  {entry.status === 'completed' && 'Complété'}
-                  {entry.status === 'pending_approval' && 'En attente'}
-                  {entry.status === 'approved' && 'Approuvé'}
+                <Badge className={statusColors[entry.status || TIME_ENTRY_STATUS.COMPLETED]}>
+                  {entry.status === TIME_ENTRY_STATUS.IN_PROGRESS && 'En cours'}
+                  {entry.status === TIME_ENTRY_STATUS.COMPLETED && 'Complété'}
+                  {entry.status === TIME_ENTRY_STATUS.PENDING_APPROVAL && 'En attente'}
+                  {entry.status === TIME_ENTRY_STATUS.APPROVED && 'Approuvé'}
                 </Badge>
               </TableCell>
               <TableCell>

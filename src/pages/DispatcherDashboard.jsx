@@ -1,22 +1,21 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { 
-  MapPin, 
-  Clock, 
-  User, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  MapPin,
+  Clock,
+  User,
+  AlertTriangle,
+  CheckCircle,
   Calendar,
-  Navigation,
-  Zap,
-  Search
+  Zap
 } from "lucide-react";
 import { format } from "date-fns";
+import { JOB_STATUS, SERVICE_CALL_STATUS, TECHNICIAN_STATUS } from "@/constants/statuses";
 import AIDispatcherAssistant from "../components/dispatcher/AIDispatcherAssistant";
 
 export default function DispatcherDashboard() {
@@ -56,17 +55,17 @@ export default function DispatcherDashboard() {
 
   // Unassigned work items
   const unassignedWork = useMemo(() => {
-    const unassignedJobs = jobs.filter(j => 
-      !j.technicians?.length && 
-      j.status !== 'completed' && 
-      j.status !== 'cancelled'
+    const unassignedJobs = jobs.filter(j =>
+      !j.technicians?.length &&
+      j.status !== JOB_STATUS.COMPLETED &&
+      j.status !== JOB_STATUS.CANCELLED
     ).map(j => ({ ...j, type: 'job' }));
 
-    const unassignedCalls = serviceCalls.filter(c => 
-      !c.technicians?.length && 
-      c.status !== 'completed' && 
-      c.status !== 'cancelled' &&
-      c.status !== 'converted'
+    const unassignedCalls = serviceCalls.filter(c =>
+      !c.technicians?.length &&
+      c.status !== SERVICE_CALL_STATUS.COMPLETED &&
+      c.status !== SERVICE_CALL_STATUS.CANCELLED &&
+      c.status !== SERVICE_CALL_STATUS.CONVERTED
     ).map(c => ({ ...c, type: 'service_call' }));
 
     return [...unassignedJobs, ...unassignedCalls].sort((a, b) => {
@@ -78,16 +77,16 @@ export default function DispatcherDashboard() {
   // Today's scheduled work
   const todayWork = useMemo(() => {
     const today = format(selectedDate, 'yyyy-MM-dd');
-    
-    const todayJobs = jobs.filter(j => 
-      j.start_date && 
+
+    const todayJobs = jobs.filter(j =>
+      j.start_date &&
       j.start_date.startsWith(today)
     ).map(j => ({ ...j, type: 'job' }));
 
-    const todayCalls = serviceCalls.filter(c => 
-      c.start_date && 
+    const todayCalls = serviceCalls.filter(c =>
+      c.start_date &&
       c.start_date.startsWith(today) &&
-      c.status !== 'converted'
+      c.status !== SERVICE_CALL_STATUS.CONVERTED
     ).map(c => ({ ...c, type: 'service_call' }));
 
     return [...todayJobs, ...todayCalls];
@@ -96,22 +95,22 @@ export default function DispatcherDashboard() {
   // Technician status with live GPS
   const technicianStatus = useMemo(() => {
     return technicians.map(tech => {
-      const assignedWork = todayWork.filter(w => 
+      const assignedWork = todayWork.filter(w =>
         w.technicians?.some(t => t.id === tech.id)
       );
-      
+
       const latestGPS = gpsData
         .filter(g => g.technician_id === tech.id)
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
 
-      const activeWork = assignedWork.find(w => w.status === 'in_progress');
+      const activeWork = assignedWork.find(w => w.status === JOB_STATUS.IN_PROGRESS || w.status === SERVICE_CALL_STATUS.IN_PROGRESS);
 
       return {
         ...tech,
         assignedCount: assignedWork.length,
         activeWork,
         lastLocation: latestGPS,
-        status: activeWork ? 'busy' : tech.status || 'available'
+        status: activeWork ? TECHNICIAN_STATUS.BUSY : tech.status || TECHNICIAN_STATUS.AVAILABLE
       };
     });
   }, [technicians, todayWork, gpsData]);
@@ -132,7 +131,7 @@ export default function DispatcherDashboard() {
 
       const updateData = {
         technicians: updatedTechs,
-        status: 'scheduled'
+        status: JOB_STATUS.SCHEDULED
       };
 
       if (workItem.type === 'job') {
@@ -242,7 +241,7 @@ export default function DispatcherDashboard() {
                 )}
                 
                 <div className="flex gap-1 flex-wrap mt-2">
-                  {technicianStatus.filter(t => t.status === 'available').slice(0, 3).map(tech => (
+                  {technicianStatus.filter(t => t.status === TECHNICIAN_STATUS.AVAILABLE).slice(0, 3).map(tech => (
                     <Button
                       key={tech.id}
                       size="sm"
@@ -283,8 +282,8 @@ export default function DispatcherDashboard() {
                     {item.type === 'job' ? 'Job' : 'Call'}
                   </Badge>
                   <Badge className={
-                    item.status === 'completed' ? 'bg-green-500' :
-                    item.status === 'in_progress' ? 'bg-orange-500' : 'bg-slate-400'
+                    item.status === JOB_STATUS.COMPLETED || item.status === SERVICE_CALL_STATUS.COMPLETED ? 'bg-green-500' :
+                    item.status === JOB_STATUS.IN_PROGRESS || item.status === SERVICE_CALL_STATUS.IN_PROGRESS ? 'bg-orange-500' : 'bg-slate-400'
                   }>
                     {item.status}
                   </Badge>
@@ -349,8 +348,8 @@ export default function DispatcherDashboard() {
                     </div>
                   </div>
                   <Badge className={
-                    tech.status === 'busy' ? 'bg-orange-500' :
-                    tech.status === 'available' ? 'bg-green-500' : 'bg-slate-400'
+                    tech.status === TECHNICIAN_STATUS.BUSY ? 'bg-orange-500' :
+                    tech.status === TECHNICIAN_STATUS.AVAILABLE ? 'bg-green-500' : 'bg-slate-400'
                   }>
                     {tech.status}
                   </Badge>
@@ -397,7 +396,7 @@ export default function DispatcherDashboard() {
               <div>
                 <p className="text-sm text-slate-600">In Progress</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {todayWork.filter(w => w.status === 'in_progress').length}
+                  {todayWork.filter(w => w.status === JOB_STATUS.IN_PROGRESS || w.status === SERVICE_CALL_STATUS.IN_PROGRESS).length}
                 </p>
               </div>
               <Zap className="w-8 h-8 text-orange-500" />
@@ -411,7 +410,7 @@ export default function DispatcherDashboard() {
               <div>
                 <p className="text-sm text-slate-600">Completed Today</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {todayWork.filter(w => w.status === 'completed').length}
+                  {todayWork.filter(w => w.status === JOB_STATUS.COMPLETED || w.status === SERVICE_CALL_STATUS.COMPLETED).length}
                 </p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-500" />
@@ -425,7 +424,7 @@ export default function DispatcherDashboard() {
               <div>
                 <p className="text-sm text-slate-600">Available Techs</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {technicianStatus.filter(t => t.status === 'available').length}
+                  {technicianStatus.filter(t => t.status === TECHNICIAN_STATUS.AVAILABLE).length}
                 </p>
               </div>
               <User className="w-8 h-8 text-blue-500" />

@@ -1,4 +1,3 @@
-import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Users } from "lucide-react";
 import { differenceInDays, format } from "date-fns";

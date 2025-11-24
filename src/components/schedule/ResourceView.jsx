@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { format, startOfWeek, addDays } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle } from "lucide-react";

@@ -1,15 +1,13 @@
-import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Calendar, 
-  Clock, 
-  User, 
-  MapPin, 
-  Edit, 
+import {
+  Calendar,
+  Clock,
+  User,
+  MapPin,
+  Edit,
   Trash2,
-  DollarSign,
   Phone,
   Mail,
   CheckCircle2
@@ -18,12 +16,13 @@ import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import QuickInvoiceButton from "./QuickInvoiceButton";
 import JobProfitabilityPanel from "../profitability/JobProfitabilityPanel";
+import { JOB_STATUS } from "@/constants/statuses";
 
 const statusColors = {
   scheduled: "bg-blue-100 text-blue-800",
-  in_progress: "bg-yellow-100 text-yellow-800",
-  completed: "bg-green-100 text-green-800",
-  cancelled: "bg-red-100 text-red-800",
+  [JOB_STATUS.IN_PROGRESS]: "bg-yellow-100 text-yellow-800",
+  [JOB_STATUS.COMPLETED]: "bg-green-100 text-green-800",
+  [JOB_STATUS.CANCELLED]: "bg-red-100 text-red-800",
   on_hold: "bg-gray-100 text-gray-800"
 };
 
@@ -77,10 +76,10 @@ export default function JobDetails({ job, onClose, onEdit, onUpdate, onDelete, c
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value={JOB_STATUS.IN_PROGRESS}>In Progress</SelectItem>
+                <SelectItem value={JOB_STATUS.COMPLETED}>Completed</SelectItem>
                 <SelectItem value="on_hold">On Hold</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value={JOB_STATUS.CANCELLED}>Cancelled</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -224,7 +223,7 @@ export default function JobDetails({ job, onClose, onEdit, onUpdate, onDelete, c
           )}
 
           {/* Profitability */}
-          {(job.status === 'completed' || job.status === 'invoiced') && (
+          {(job.status === JOB_STATUS.COMPLETED || job.status === 'invoiced') && (
             <JobProfitabilityPanel job={job} />
           )}
         </div>

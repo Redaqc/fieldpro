@@ -1,14 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { base44 } from '@/api/base44Client';
 import { pagesConfig } from '@/pages.config';
+import logger from '@/lib/logger';
 
 export default function NavigationTracker() {
     const location = useLocation();
     const { isAuthenticated } = useAuth();
     const { Pages, mainPage } = pagesConfig;
     const mainPageKey = mainPage ?? Object.keys(Pages)[0];
+    const previousPathRef = useRef(location.pathname);
 
     // Post navigation changes to parent window
     useEffect(() => {
@@ -16,6 +18,12 @@ export default function NavigationTracker() {
             type: "app_changed_url",
             url: window.location.href
         }, '*');
+
+        // Log navigation
+        if (previousPathRef.current !== location.pathname) {
+            logger.navigation(previousPathRef.current, location.pathname);
+            previousPathRef.current = location.pathname;
+        }
     }, [location]);
 
     // Log user activity when navigating to a page

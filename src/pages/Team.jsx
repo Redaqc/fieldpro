@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,12 @@ import { Card } from "@/components/ui/card";
 import TeamList from "../components/team/TeamList";
 import TechnicianDialog from "../components/team/TechnicianDialog";
 import TechnicianDetails from "../components/team/TechnicianDetails";
+import { useCsvImportExport } from "@/hooks/useCsvImportExport";
+
+/**
+ * AUDIT FIX: MEDIUM Priority Issue #20 - Refactor Duplicate CSV Patterns
+ * Using centralized useCsvImportExport hook
+ */
 
 export default function Team() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -16,8 +22,8 @@ export default function Team() {
   const [showDetails, setShowDetails] = useState(false);
   const [selectedTechnician, setSelectedTechnician] = useState(null);
   const [viewMode, setViewMode] = useState("cards");
-  const [importing, setImporting] = useState(false);
   const queryClient = useQueryClient();
+  const { handleExport, handleImport, importing } = useCsvImportExport('technicians', 'technicians');
 
   const { data: technicians = [], isLoading } = useQuery({
     queryKey: ['technicians'],
@@ -110,37 +116,6 @@ export default function Team() {
       tech.phone?.includes(search)
     );
   }, [technicians, searchTerm]);
-
-  const handleExport = async () => {
-    const { data } = await base44.functions.invoke('csvExport', { entity_type: 'technicians' });
-    const blob = new Blob([data.csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = data.filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImport = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setImporting(true);
-    try {
-      const text = await file.text();
-      const { data } = await base44.functions.invoke('csvImport', { 
-        entity_type: 'technicians',
-        csv_data: text 
-      });
-      alert(`Import réussi: ${data.created} créés, ${data.updated} mis à jour, ${data.failed} échecs`);
-      queryClient.invalidateQueries({ queryKey: ['technicians'] });
-    } catch (error) {
-      alert('Erreur: ' + error.message);
-    } finally {
-      setImporting(false);
-    }
-  };
 
   const stats = useMemo(() => {
     const available = technicians.filter(t => t.status === 'available').length;

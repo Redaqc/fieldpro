@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Search, Briefcase, Phone, Users, Package, FileText, TrendingUp } from "lucide-react";
+import { Search, Briefcase, Phone, Users, Package, FileText } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { useNavigate } from "react-router-dom";
+import { JOB_STATUS, INVOICE_STATUS } from "@/constants/statuses";
 
 export default function GlobalSearch({ open, onClose }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -202,9 +203,9 @@ export default function GlobalSearch({ open, onClose }) {
               {result.status && (
                 <div className={`
                   px-2 py-1 rounded text-xs font-medium
-                  ${result.status === 'completed' ? 'bg-green-100 text-green-700' :
-                    result.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                    result.status === 'paid' ? 'bg-green-100 text-green-700' :
+                  ${result.status === JOB_STATUS.COMPLETED ? 'bg-green-100 text-green-700' :
+                    result.status === JOB_STATUS.IN_PROGRESS ? 'bg-blue-100 text-blue-700' :
+                    result.status === INVOICE_STATUS.PAID ? 'bg-green-100 text-green-700' :
                     'bg-slate-100 text-slate-700'}
                 `}>
                   {result.status}

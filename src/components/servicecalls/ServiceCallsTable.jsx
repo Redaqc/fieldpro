@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, ArrowUp, ArrowDown, Eye, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { SERVICE_CALL_STATUS, PRIORITY } from "@/constants/statuses";
 
 export default function ServiceCallsTable({ calls = [], onEditCall, technicians = [], customers = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -50,34 +51,34 @@ export default function ServiceCallsTable({ calls = [], onEditCall, technicians 
 
   const getStatusBadge = (status) => {
     const colors = {
-      todo: 'bg-slate-100 text-slate-800',
-      in_progress: 'bg-blue-100 text-blue-800',
-      review: 'bg-purple-100 text-purple-800',
-      completed: 'bg-green-100 text-green-800',
-      archived: 'bg-slate-200 text-slate-700',
+      [SERVICE_CALL_STATUS.TODO]: 'bg-slate-100 text-slate-800',
+      [SERVICE_CALL_STATUS.IN_PROGRESS]: 'bg-blue-100 text-blue-800',
+      [SERVICE_CALL_STATUS.REVIEW]: 'bg-purple-100 text-purple-800',
+      [SERVICE_CALL_STATUS.COMPLETED]: 'bg-green-100 text-green-800',
+      [SERVICE_CALL_STATUS.ARCHIVED]: 'bg-slate-200 text-slate-700',
     };
     const labels = {
-      todo: '⚪ À faire',
-      in_progress: '🔵 En cours',
-      review: '🟣 Révision',
-      completed: '🟢 Terminé',
-      archived: '⚫ Archivé',
+      [SERVICE_CALL_STATUS.TODO]: '⚪ À faire',
+      [SERVICE_CALL_STATUS.IN_PROGRESS]: '🔵 En cours',
+      [SERVICE_CALL_STATUS.REVIEW]: '🟣 Révision',
+      [SERVICE_CALL_STATUS.COMPLETED]: '🟢 Terminé',
+      [SERVICE_CALL_STATUS.ARCHIVED]: '⚫ Archivé',
     };
     return <Badge className={`${colors[status]} font-medium shadow-sm`}>{labels[status]}</Badge>;
   };
 
   const getPriorityBadge = (priority) => {
     const colors = {
-      low: 'bg-blue-100 text-blue-800',
-      medium: 'bg-yellow-100 text-yellow-800',
-      high: 'bg-orange-100 text-orange-800',
-      urgent: 'bg-red-500 text-white',
+      [PRIORITY.LOW]: 'bg-blue-100 text-blue-800',
+      [PRIORITY.MEDIUM]: 'bg-yellow-100 text-yellow-800',
+      [PRIORITY.HIGH]: 'bg-orange-100 text-orange-800',
+      [PRIORITY.URGENT]: 'bg-red-500 text-white',
     };
     const labels = {
-      low: '🔵 Basse',
-      medium: '🟡 Moyenne',
-      high: '🟠 Haute',
-      urgent: '🔴 Urgente',
+      [PRIORITY.LOW]: '🔵 Basse',
+      [PRIORITY.MEDIUM]: '🟡 Moyenne',
+      [PRIORITY.HIGH]: '🟠 Haute',
+      [PRIORITY.URGENT]: '🔴 Urgente',
     };
     return <Badge className={`${colors[priority]} font-medium shadow-sm`}>{labels[priority]}</Badge>;
   };
@@ -108,11 +109,11 @@ export default function ServiceCallsTable({ calls = [], onEditCall, technicians 
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">📋 Tous statuts</SelectItem>
-            <SelectItem value="todo">⚪ À faire</SelectItem>
-            <SelectItem value="in_progress">🔵 En cours</SelectItem>
-            <SelectItem value="review">🟣 Révision</SelectItem>
-            <SelectItem value="completed">🟢 Terminé</SelectItem>
-            <SelectItem value="archived">⚫ Archivé</SelectItem>
+            <SelectItem value={SERVICE_CALL_STATUS.TODO}>⚪ À faire</SelectItem>
+            <SelectItem value={SERVICE_CALL_STATUS.IN_PROGRESS}>🔵 En cours</SelectItem>
+            <SelectItem value={SERVICE_CALL_STATUS.REVIEW}>🟣 Révision</SelectItem>
+            <SelectItem value={SERVICE_CALL_STATUS.COMPLETED}>🟢 Terminé</SelectItem>
+            <SelectItem value={SERVICE_CALL_STATUS.ARCHIVED}>⚫ Archivé</SelectItem>
           </SelectContent>
         </Select>
 
@@ -122,10 +123,10 @@ export default function ServiceCallsTable({ calls = [], onEditCall, technicians 
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">🎯 Toutes priorités</SelectItem>
-            <SelectItem value="low">🔵 Basse</SelectItem>
-            <SelectItem value="medium">🟡 Moyenne</SelectItem>
-            <SelectItem value="high">🟠 Haute</SelectItem>
-            <SelectItem value="urgent">🔴 Urgente</SelectItem>
+            <SelectItem value={PRIORITY.LOW}>🔵 Basse</SelectItem>
+            <SelectItem value={PRIORITY.MEDIUM}>🟡 Moyenne</SelectItem>
+            <SelectItem value={PRIORITY.HIGH}>🟠 Haute</SelectItem>
+            <SelectItem value={PRIORITY.URGENT}>🔴 Urgente</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -220,7 +221,7 @@ export default function ServiceCallsTable({ calls = [], onEditCall, technicians 
                 <TableCell>{getPriorityBadge(call.priority)}</TableCell>
                 <TableCell>
                   {call.due_date ? (
-                    <span className={new Date(call.due_date) < new Date() && call.status !== 'completed' ? 'text-red-600 font-medium' : ''}>
+                    <span className={new Date(call.due_date) < new Date() && call.status !== SERVICE_CALL_STATUS.COMPLETED ? 'text-red-600 font-medium' : ''}>
                       {format(new Date(call.due_date), 'dd MMM yyyy', { locale: fr })}
                     </span>
                   ) : '-'}

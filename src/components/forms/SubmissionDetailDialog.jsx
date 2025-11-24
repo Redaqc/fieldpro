@@ -1,4 +1,3 @@
-import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Download, User, Calendar, FileText, Image as ImageIcon, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+// Note: Form submission statuses (draft, submitted, reviewed, approved) are not in the centralized statuses constant
+// These are specific to form submissions and maintained locally
 
 export default function SubmissionDetailDialog({ open, onClose, submission, formTemplates }) {
   if (!submission) return null;

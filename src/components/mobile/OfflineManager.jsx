@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Check, Clock, Camera, FileSignature } from "lucide-react";
+import { RefreshCw, Check, Clock } from "lucide-react";
 import { useTranslation } from "@/components/shared/translations";
 
 export default function OfflineManager({ isOnline, onSync, lang = 'fr' }) {

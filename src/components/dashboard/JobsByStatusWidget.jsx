@@ -1,17 +1,15 @@
-import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Briefcase } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { useTranslation } from "@/components/shared/translations";
+import { JOB_STATUS } from '@/constants/statuses';
 
 export default function JobsByStatusWidget({ jobs, lang = 'fr' }) {
   const t = useTranslation(lang);
   const statusCounts = {
-    new: jobs.filter(j => j.status === 'new').length,
-    scheduled: jobs.filter(j => j.status === 'scheduled').length,
-    in_progress: jobs.filter(j => j.status === 'in_progress').length,
-    completed: jobs.filter(j => j.status === 'completed').length,
+    new: jobs.filter(j => j.status === JOB_STATUS.NEW).length,
+    scheduled: jobs.filter(j => j.status === JOB_STATUS.SCHEDULED).length,
+    in_progress: jobs.filter(j => j.status === JOB_STATUS.IN_PROGRESS).length,
+    completed: jobs.filter(j => j.status === JOB_STATUS.COMPLETED).length,
   };
 
   const chartData = [

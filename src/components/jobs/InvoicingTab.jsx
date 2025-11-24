@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Minus, GripVertical, Type, FileText, Package, CircleDot, EyeOff, Receipt, RefreshCw, CheckCircle } from "lucide-react";
+import { Plus, Minus, GripVertical, Type, FileText, EyeOff, Receipt, RefreshCw, CheckCircle } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +10,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { JOB_STATUS, INVOICE_STATUS, MATERIAL_STATUS } from "@/constants/statuses";
+import { useSequentialNumber } from "@/hooks/useSequentialNumber";
+
+/**
+ * AUDIT FIX: MEDIUM Priority Issue #23 - Invoice Number Generation
+ * Using sequential numbering instead of timestamps
+ */
 
 export default function InvoicingTab({ job, formData, setFormData }) {
   const [lineItems, setLineItems] = useState(formData.invoice_items || []);
@@ -21,6 +28,7 @@ export default function InvoicingTab({ job, formData, setFormData }) {
     day: 1,
   });
   const queryClient = useQueryClient();
+  const generateNumber = useSequentialNumber();
 
   const { data: bundles = [] } = useQuery({
     queryKey: ['bundles'],
@@ -75,9 +83,9 @@ export default function InvoicingTab({ job, formData, setFormData }) {
   });
 
   // Check if job is completed and has invoice items
-  const shouldShowInvoicePrompt = job && 
-    formData.status === 'completed' && 
-    lineItems.length > 0 && 
+  const shouldShowInvoicePrompt = job &&
+    formData.status === JOB_STATUS.COMPLETED &&
+    lineItems.length > 0 &&
     lineItems.some(item => item.type === 'item' && item.total > 0) &&
     !job.invoice_generated &&
     isAdminOrManager;
@@ -86,16 +94,22 @@ export default function InvoicingTab({ job, formData, setFormData }) {
     if (!job) return;
 
     const customer = customers.find(c => c.id === job.customer_id);
-    
+
+    /**
+     * AUDIT FIX: MEDIUM Priority Issue #23 - Invoice Number Generation
+     * Generate sequential invoice number instead of timestamp
+     */
+    const invoiceNumber = await generateNumber('invoice');
+
     const invoiceData = {
-      invoice_number: `INV-${Date.now()}`,
+      invoice_number: invoiceNumber,
       job_id: job.id,
       customer_id: job.customer_id,
       customer_name: job.customer_name || customer?.first_name + ' ' + customer?.last_name,
       issue_date: new Date().toISOString().split('T')[0],
       due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       work_start_date: job.created_date?.split('T')[0] || new Date().toISOString().split('T')[0],
-      status: 'draft',
+      status: INVOICE_STATUS.DRAFT,
       line_items: lineItems,
       subtotal: formData.invoice_subtotal,
       tax_rate: 5,
@@ -393,7 +407,7 @@ export default function InvoicingTab({ job, formData, setFormData }) {
               <SelectValue placeholder="Bundle" />
             </SelectTrigger>
             <SelectContent>
-              {bundles.filter(b => b.status === 'active').map(bundle => (
+              {bundles.filter(b => b.status === MATERIAL_STATUS.ACTIVE).map(bundle => (
                 <SelectItem key={bundle.id} value={bundle.id}>
                   {bundle.name}
                 </SelectItem>
@@ -405,7 +419,7 @@ export default function InvoicingTab({ job, formData, setFormData }) {
               <SelectValue placeholder="Matériaux" />
             </SelectTrigger>
             <SelectContent>
-              {materials.filter(m => m.status === 'active').map(material => (
+              {materials.filter(m => m.status === MATERIAL_STATUS.ACTIVE).map(material => (
                 <SelectItem key={material.id} value={material.id}>
                   {material.name}
                 </SelectItem>

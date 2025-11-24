@@ -1,25 +1,22 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { 
-  MapPin, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
-  PlayCircle, 
-  StopCircle,
+import {
+  Clock,
+  CheckCircle,
+  PlayCircle,
   WifiOff,
   Wifi,
   Battery,
   RefreshCw
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import MobileJobCard from "@/components/mobile/MobileJobCard";
 import QuickPunchCard from "@/components/mobile/QuickPunchCard";
 import OfflineManager from "@/components/mobile/OfflineManager";
 import { useTranslation } from "@/components/shared/translations";
+import { JOB_STATUS, TIME_ENTRY_STATUS } from "@/constants/statuses";
 
 export default function TechnicianMobile() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -57,13 +54,13 @@ export default function TechnicianMobile() {
     queryFn: async () => {
       if (!technician?.id) return [];
       const allJobs = await base44.entities.Job.list();
-      return allJobs.filter(job => 
+      return allJobs.filter(job =>
         job.technicians?.some(t => t.id === technician.id) &&
-        job.status !== 'completed' &&
-        job.status !== 'cancelled'
+        job.status !== JOB_STATUS.COMPLETED &&
+        job.status !== JOB_STATUS.CANCELLED
       ).sort((a, b) => {
-        if (a.status === 'in_progress') return -1;
-        if (b.status === 'in_progress') return 1;
+        if (a.status === JOB_STATUS.IN_PROGRESS) return -1;
+        if (b.status === JOB_STATUS.IN_PROGRESS) return 1;
         return new Date(a.due_date || a.created_date) - new Date(b.due_date || b.created_date);
       });
     },
@@ -77,7 +74,7 @@ export default function TechnicianMobile() {
       if (!technician?.id) return null;
       const entries = await base44.entities.TimeEntry.filter({
         technician_id: technician.id,
-        status: 'in_progress'
+        status: TIME_ENTRY_STATUS.ACTIVE
       });
       return entries[0] || null;
     },
@@ -145,9 +142,9 @@ export default function TechnicianMobile() {
     return 'text-red-600';
   };
 
-  const inProgressJobs = myJobs.filter(j => j.status === 'in_progress');
-  const scheduledJobs = myJobs.filter(j => j.status === 'scheduled');
-  const otherJobs = myJobs.filter(j => j.status !== 'in_progress' && j.status !== 'scheduled');
+  const inProgressJobs = myJobs.filter(j => j.status === JOB_STATUS.IN_PROGRESS);
+  const scheduledJobs = myJobs.filter(j => j.status === JOB_STATUS.SCHEDULED);
+  const otherJobs = myJobs.filter(j => j.status !== JOB_STATUS.IN_PROGRESS && j.status !== JOB_STATUS.SCHEDULED);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-20">

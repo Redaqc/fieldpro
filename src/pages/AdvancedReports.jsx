@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Download, Filter, TrendingUp, DollarSign, Clock, Users } from "lucide-react";
+import { JOB_STATUS, INVOICE_STATUS } from "@/constants/statuses";
 
 export default function AdvancedReports() {
   const [dateRange, setDateRange] = useState({
@@ -53,7 +54,7 @@ export default function AdvancedReports() {
   const revenueData = useMemo(() => {
     const byMonth = {};
     filteredData.invoices.forEach(inv => {
-      if (inv.status === 'paid') {
+      if (inv.status === INVOICE_STATUS.PAID) {
         const month = new Date(inv.paid_date || inv.invoice_date).toLocaleString('default', { month: 'short' });
         byMonth[month] = (byMonth[month] || 0) + (inv.total || 0);
       }
@@ -63,10 +64,10 @@ export default function AdvancedReports() {
 
   const techPerformance = useMemo(() => {
     return technicians.map(tech => {
-      const techJobs = filteredData.jobs.filter(j => 
+      const techJobs = filteredData.jobs.filter(j =>
         j.technicians?.some(t => t.id === tech.id)
       );
-      const completed = techJobs.filter(j => j.status === 'completed').length;
+      const completed = techJobs.filter(j => j.status === JOB_STATUS.COMPLETED).length;
       const hours = techJobs.reduce((sum, j) => sum + (j.total_time_spent || 0), 0);
       
       return {
@@ -83,12 +84,12 @@ export default function AdvancedReports() {
       acc[job.status] = (acc[job.status] || 0) + 1;
       return acc;
     }, {});
-    
+
     const colors = {
-      todo: '#94a3b8',
-      in_progress: '#3b82f6',
-      completed: '#10b981',
-      review: '#8b5cf6'
+      [JOB_STATUS.TODO]: '#94a3b8',
+      [JOB_STATUS.IN_PROGRESS]: '#3b82f6',
+      [JOB_STATUS.COMPLETED]: '#10b981',
+      [JOB_STATUS.REVIEW]: '#8b5cf6'
     };
 
     return Object.entries(dist).map(([status, count]) => ({
@@ -100,15 +101,15 @@ export default function AdvancedReports() {
 
   const kpis = useMemo(() => {
     const totalRevenue = filteredData.invoices
-      .filter(i => i.status === 'paid')
+      .filter(i => i.status === INVOICE_STATUS.PAID)
       .reduce((sum, i) => sum + (i.total || 0), 0);
-    
+
     const avgJobTime = filteredData.jobs.length > 0
       ? filteredData.jobs.reduce((sum, j) => sum + (j.total_time_spent || 0), 0) / filteredData.jobs.length
       : 0;
 
     const completionRate = filteredData.jobs.length > 0
-      ? (filteredData.jobs.filter(j => j.status === 'completed').length / filteredData.jobs.length * 100)
+      ? (filteredData.jobs.filter(j => j.status === JOB_STATUS.COMPLETED).length / filteredData.jobs.length * 100)
       : 0;
 
     return {

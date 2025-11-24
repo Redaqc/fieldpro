@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SERVICE_CALL_STATUS, PRIORITY } from "@/constants/statuses";
 
 export default function ServiceCallsCalendar({ calls = [], onEditCall, technicians = [] }) {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -34,23 +35,23 @@ export default function ServiceCallsCalendar({ calls = [], onEditCall, technicia
 
   const getPriorityColor = (priority) => {
     const colors = {
-      low: 'bg-blue-100 text-blue-700',
-      medium: 'bg-yellow-100 text-yellow-700',
-      high: 'bg-orange-100 text-orange-700',
-      urgent: 'bg-red-100 text-red-700',
+      [PRIORITY.LOW]: 'bg-blue-100 text-blue-700',
+      [PRIORITY.MEDIUM]: 'bg-yellow-100 text-yellow-700',
+      [PRIORITY.HIGH]: 'bg-orange-100 text-orange-700',
+      [PRIORITY.URGENT]: 'bg-red-100 text-red-700',
     };
-    return colors[priority] || colors.medium;
+    return colors[priority] || colors[PRIORITY.MEDIUM];
   };
 
   const getStatusColor = (status) => {
     const colors = {
-      todo: 'bg-gray-100 text-gray-700',
-      in_progress: 'bg-blue-100 text-blue-700',
-      review: 'bg-purple-100 text-purple-700',
-      completed: 'bg-green-100 text-green-700',
-      archived: 'bg-slate-100 text-slate-700',
+      [SERVICE_CALL_STATUS.TODO]: 'bg-gray-100 text-gray-700',
+      [SERVICE_CALL_STATUS.IN_PROGRESS]: 'bg-blue-100 text-blue-700',
+      [SERVICE_CALL_STATUS.REVIEW]: 'bg-purple-100 text-purple-700',
+      [SERVICE_CALL_STATUS.COMPLETED]: 'bg-green-100 text-green-700',
+      [SERVICE_CALL_STATUS.ARCHIVED]: 'bg-slate-100 text-slate-700',
     };
-    return colors[status] || colors.todo;
+    return colors[status] || colors[SERVICE_CALL_STATUS.TODO];
   };
 
   return (
@@ -92,10 +93,10 @@ export default function ServiceCallsCalendar({ calls = [], onEditCall, technicia
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous statuts</SelectItem>
-              <SelectItem value="todo">À faire</SelectItem>
-              <SelectItem value="in_progress">En cours</SelectItem>
-              <SelectItem value="review">En révision</SelectItem>
-              <SelectItem value="completed">Terminé</SelectItem>
+              <SelectItem value={SERVICE_CALL_STATUS.TODO}>À faire</SelectItem>
+              <SelectItem value={SERVICE_CALL_STATUS.IN_PROGRESS}>En cours</SelectItem>
+              <SelectItem value={SERVICE_CALL_STATUS.REVIEW}>En révision</SelectItem>
+              <SelectItem value={SERVICE_CALL_STATUS.COMPLETED}>Terminé</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -132,13 +133,13 @@ export default function ServiceCallsCalendar({ calls = [], onEditCall, technicia
                       <p className="text-xs font-medium truncate">{call.title}</p>
                       <div className="flex gap-1 mt-1">
                         <Badge className={`${getStatusColor(call.status)} text-xs`}>
-                          {call.status === 'todo' ? 'À faire' :
-                           call.status === 'in_progress' ? 'En cours' :
-                           call.status === 'review' ? 'Révision' :
-                           call.status === 'completed' ? 'Terminé' : call.status}
+                          {call.status === SERVICE_CALL_STATUS.TODO ? 'À faire' :
+                           call.status === SERVICE_CALL_STATUS.IN_PROGRESS ? 'En cours' :
+                           call.status === SERVICE_CALL_STATUS.REVIEW ? 'Révision' :
+                           call.status === SERVICE_CALL_STATUS.COMPLETED ? 'Terminé' : call.status}
                         </Badge>
                         <Badge className={`${getPriorityColor(call.priority)} text-xs`}>
-                          {call.priority === 'urgent' ? '🔥' : call.priority === 'high' ? '⬆️' : ''}
+                          {call.priority === PRIORITY.URGENT ? '🔥' : call.priority === PRIORITY.HIGH ? '⬆️' : ''}
                         </Badge>
                       </div>
                     </CardContent>

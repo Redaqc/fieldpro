@@ -1,21 +1,28 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Package } from "lucide-react";
+import { Plus, Trash2, Package, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function MaterialUsageTab({ job }) {
   const [adding, setAdding] = useState(false);
+  const [error, setError] = useState(null);
   const [newUsage, setNewUsage] = useState({
     material_id: '',
     quantity: 1,
     notes: ''
   });
   const queryClient = useQueryClient();
+
+  /**
+   * AUDIT FIX: High Priority Issue #14 - Lock Material Costs on Invoice
+   * Prevent modification of materials after job is invoiced
+   */
+  const isJobInvoiced = job.invoice_generated || job.invoice_id;
 
   const { data: materials = [] } = useQuery({
     queryKey: ['materials'],
@@ -27,9 +34,31 @@ export default function MaterialUsageTab({ job }) {
 
   const addUsageMutation = useMutation({
     mutationFn: async (usage) => {
+      /**
+       * AUDIT FIX: High Priority Issue #14 - Lock Material Costs on Invoice
+       * Prevent adding materials after job is invoiced
+       */
+      if (isJobInvoiced) {
+        throw new Error(
+          'Cannot add materials: This job has already been invoiced. Material costs are locked to preserve invoice accuracy.'
+        );
+      }
+
+      /**
+       * AUDIT FIX: Critical Issue #4 - Inventory Quantity Validation
+       * Prevent negative inventory by checking stock before assignment
+       */
       const material = materials.find(m => m.id === usage.material_id);
+
+      // VALIDATION: Check if sufficient inventory is available
+      if (material.quantity < usage.quantity) {
+        throw new Error(
+          `Insufficient inventory: ${material.name} has only ${material.quantity} units available, but ${usage.quantity} units were requested.`
+        );
+      }
+
       const cost = material.unit_cost * usage.quantity;
-      
+
       const updatedUsages = [
         ...materialUsages,
         {
@@ -59,7 +88,7 @@ export default function MaterialUsageTab({ job }) {
         ]
       });
 
-      // Decrement material inventory
+      // Decrement material inventory (now safe after validation)
       await base44.entities.Material.update(material.id, {
         quantity: material.quantity - usage.quantity
       });
@@ -68,17 +97,45 @@ export default function MaterialUsageTab({ job }) {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['materials'] });
       setAdding(false);
+      setError(null);
       setNewUsage({ material_id: '', quantity: 1, notes: '' });
+    },
+    onError: (error) => {
+      setError(error.message);
     },
   });
 
   const removeUsageMutation = useMutation({
     mutationFn: async (usageId) => {
+      /**
+       * AUDIT FIX: High Priority Issue #14 - Lock Material Costs on Invoice
+       * Prevent removing materials after job is invoiced
+       */
+      if (isJobInvoiced) {
+        throw new Error(
+          'Cannot remove materials: This job has already been invoiced. Material costs are locked to preserve invoice accuracy.'
+        );
+      }
+
       const usage = materialUsages.find(u => u.id === usageId);
       const updatedUsages = materialUsages.filter(u => u.id !== usageId);
 
+      /**
+       * AUDIT FIX: High Priority Issue #13 - Comprehensive Audit Logging
+       * Add activity log when removing materials
+       */
+      const user = await base44.auth.me();
       await base44.entities.Job.update(job.id, {
-        material_usages: updatedUsages
+        material_usages: updatedUsages,
+        activity_log: [
+          ...(job.activity_log || []),
+          {
+            timestamp: new Date().toISOString(),
+            user: user.email,
+            action: 'material_removed',
+            details: `Removed ${usage.quantity}x ${usage.material_name} (returned to inventory)`
+          }
+        ]
       });
 
       // Return materials to inventory
@@ -109,6 +166,16 @@ export default function MaterialUsageTab({ job }) {
           <p className="text-2xl font-bold text-slate-900">${totalMaterialCost.toFixed(2)}</p>
         </div>
       </div>
+
+      {/* AUDIT FIX: High Priority Issue #14 - Material Lock Warning */}
+      {isJobInvoiced && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded-lg flex items-start gap-2">
+          <Lock className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <strong>Material Costs Locked:</strong> This job has been invoiced. Material costs are locked to preserve invoice accuracy and prevent accounting errors.
+          </div>
+        </div>
+      )}
 
       {/* Add Material Form */}
       {adding && (
@@ -153,9 +220,19 @@ export default function MaterialUsageTab({ job }) {
               />
             </div>
 
+            {/* Error Message Display */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">
+                <strong>Error:</strong> {error}
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Button
-                onClick={() => addUsageMutation.mutate(newUsage)}
+                onClick={() => {
+                  setError(null);
+                  addUsageMutation.mutate(newUsage);
+                }}
                 disabled={!newUsage.material_id || addUsageMutation.isPending}
                 className="flex-1"
               >
@@ -165,6 +242,7 @@ export default function MaterialUsageTab({ job }) {
                 variant="outline"
                 onClick={() => {
                   setAdding(false);
+                  setError(null);
                   setNewUsage({ material_id: '', quantity: 1, notes: '' });
                 }}
               >
@@ -176,9 +254,14 @@ export default function MaterialUsageTab({ job }) {
       )}
 
       {!adding && (
-        <Button onClick={() => setAdding(true)} variant="outline" className="w-full">
+        <Button
+          onClick={() => setAdding(true)}
+          variant="outline"
+          className="w-full"
+          disabled={isJobInvoiced}
+        >
           <Plus className="w-4 h-4 mr-2" />
-          Add Material Usage
+          {isJobInvoiced ? 'Materials Locked (Job Invoiced)' : 'Add Material Usage'}
         </Button>
       )}
 
@@ -217,8 +300,10 @@ export default function MaterialUsageTab({ job }) {
                         removeUsageMutation.mutate(usage.id);
                       }
                     }}
+                    disabled={isJobInvoiced}
+                    title={isJobInvoiced ? 'Cannot remove - job is invoiced' : 'Remove material'}
                   >
-                    <Trash2 className="w-4 h-4 text-red-600" />
+                    <Trash2 className={`w-4 h-4 ${isJobInvoiced ? 'text-slate-300' : 'text-red-600'}`} />
                   </Button>
                 </div>
               </CardContent>

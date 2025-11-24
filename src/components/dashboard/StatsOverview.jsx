@@ -1,24 +1,25 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Briefcase, Users, Clock, DollarSign, TrendingUp, CheckCircle } from "lucide-react";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { JOB_STATUS, INVOICE_STATUS, TIME_ENTRY_STATUS, TECHNICIAN_STATUS } from "@/constants/statuses";
 
 export default function StatsOverview({ jobs, technicians, timeEntries, invoices }) {
   const stats = useMemo(() => {
     const totalJobs = jobs.length;
-    const completedJobs = jobs.filter(j => j.status === 'completed').length;
-    const inProgressJobs = jobs.filter(j => j.status === 'in_progress').length;
-    const scheduledJobs = jobs.filter(j => j.status === 'scheduled').length;
-    
+    const completedJobs = jobs.filter(j => j.status === JOB_STATUS.COMPLETED).length;
+    const inProgressJobs = jobs.filter(j => j.status === JOB_STATUS.IN_PROGRESS).length;
+    const scheduledJobs = jobs.filter(j => j.status === JOB_STATUS.SCHEDULED).length;
+
     const totalRevenue = invoices
-      .filter(i => i.status === 'paid')
+      .filter(i => i.status === INVOICE_STATUS.PAID)
       .reduce((sum, i) => sum + (i.total_amount || 0), 0);
-    
+
     const totalHours = timeEntries
-      .filter(e => e.status === 'completed')
+      .filter(e => e.status === TIME_ENTRY_STATUS.COMPLETED)
       .reduce((sum, e) => sum + (e.total_hours || 0), 0);
-    
-    const activeTechs = technicians.filter(t => t.status !== 'off_duty').length;
+
+    const activeTechs = technicians.filter(t => t.status !== TECHNICIAN_STATUS.OFF_DUTY).length;
 
     return {
       totalJobs,
@@ -42,7 +43,7 @@ export default function StatsOverview({ jobs, technicians, timeEntries, invoices
     return last7Days.map(date => {
       const dayJobs = jobs.filter(j => j.scheduled_date === date);
       const dayRevenue = invoices
-        .filter(i => i.issue_date === date && i.status === 'paid')
+        .filter(i => i.issue_date === date && i.status === INVOICE_STATUS.PAID)
         .reduce((sum, i) => sum + (i.total_amount || 0), 0);
 
       return {

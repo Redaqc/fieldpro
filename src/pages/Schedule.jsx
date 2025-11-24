@@ -1,12 +1,11 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Search, Plus, Filter, AlertTriangle, Sparkles } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Search, Plus, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 
 import DayView from "@/components/schedule/DayView";

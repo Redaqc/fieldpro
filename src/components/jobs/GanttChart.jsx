@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { format, parseISO, differenceInDays, addDays, startOfWeek, endOfWeek } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar, AlertCircle, Flag } from "lucide-react";

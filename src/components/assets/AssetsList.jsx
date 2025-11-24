@@ -1,7 +1,6 @@
-import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Trash2, Edit, Bell, AlertTriangle, Brain } from "lucide-react";
-import { format, differenceInDays, isPast } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
   Table,

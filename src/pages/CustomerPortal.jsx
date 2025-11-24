@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Briefcase, FileText, MapPin, Clock, DollarSign, Download, Eye } from "lucide-react";
 import { format } from "date-fns";
+import { JOB_STATUS, INVOICE_STATUS, JOB_STATUS_COLORS, INVOICE_STATUS_COLORS } from "@/constants/statuses";
 
 export default function CustomerPortal() {
   const [selectedJob, setSelectedJob] = useState(null);
@@ -51,14 +52,8 @@ export default function CustomerPortal() {
   }
 
   const statusColors = {
-    todo: 'bg-slate-100 text-slate-700',
-    in_progress: 'bg-blue-100 text-blue-700',
-    review: 'bg-purple-100 text-purple-700',
-    completed: 'bg-green-100 text-green-700',
-    draft: 'bg-slate-100 text-slate-700',
-    sent: 'bg-blue-100 text-blue-700',
-    paid: 'bg-green-100 text-green-700',
-    overdue: 'bg-red-100 text-red-700'
+    ...JOB_STATUS_COLORS,
+    ...INVOICE_STATUS_COLORS
   };
 
   return (
@@ -80,7 +75,7 @@ export default function CustomerPortal() {
                 <div>
                   <p className="text-sm text-slate-600">Active Jobs</p>
                   <p className="text-3xl font-bold">
-                    {customerJobs.filter(j => j.status === 'in_progress').length}
+                    {customerJobs.filter(j => j.status === JOB_STATUS.IN_PROGRESS).length}
                   </p>
                 </div>
                 <Briefcase className="w-10 h-10 text-blue-600" />
@@ -94,7 +89,7 @@ export default function CustomerPortal() {
                 <div>
                   <p className="text-sm text-slate-600">Completed</p>
                   <p className="text-3xl font-bold">
-                    {customerJobs.filter(j => j.status === 'completed').length}
+                    {customerJobs.filter(j => j.status === JOB_STATUS.COMPLETED).length}
                   </p>
                 </div>
                 <Clock className="w-10 h-10 text-green-600" />
@@ -108,7 +103,7 @@ export default function CustomerPortal() {
                 <div>
                   <p className="text-sm text-slate-600">Unpaid Invoices</p>
                   <p className="text-3xl font-bold">
-                    {customerInvoices.filter(i => i.status !== 'paid').length}
+                    {customerInvoices.filter(i => i.status !== INVOICE_STATUS.PAID).length}
                   </p>
                 </div>
                 <FileText className="w-10 h-10 text-orange-600" />
@@ -122,7 +117,7 @@ export default function CustomerPortal() {
                 <div>
                   <p className="text-sm text-slate-600">Total Spent</p>
                   <p className="text-3xl font-bold">
-                    ${customerInvoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + (i.total || 0), 0).toFixed(0)}
+                    ${customerInvoices.filter(i => i.status === INVOICE_STATUS.PAID).reduce((sum, i) => sum + (i.total || 0), 0).toFixed(0)}
                   </p>
                 </div>
                 <DollarSign className="w-10 h-10 text-green-600" />

@@ -1,10 +1,10 @@
-import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { useTranslation } from "@/components/shared/translations";
+import { INVOICE_STATUS, QUOTATION_STATUS } from "@/constants/statuses";
 
 export default function RecentActivitiesWidget({ invoices, quotations, expenses = [], lang = 'fr' }) {
   const t = useTranslation(lang);
@@ -49,14 +49,14 @@ export default function RecentActivitiesWidget({ invoices, quotations, expenses 
                     <TableCell>{invoice.customer_name}</TableCell>
                     <TableCell>${invoice.subtotal?.toFixed(2) || '0.00'}</TableCell>
                     <TableCell>${invoice.total?.toFixed(2) || '0.00'}</TableCell>
-                    <TableCell>${invoice.status === 'paid' ? '0.00' : invoice.total?.toFixed(2) || '0.00'}</TableCell>
+                    <TableCell>${invoice.status === INVOICE_STATUS.PAID ? '0.00' : invoice.total?.toFixed(2) || '0.00'}</TableCell>
                     <TableCell>
                       <Badge className={
-                        invoice.status === 'paid' ? 'bg-green-600' :
-                        invoice.status === 'sent' ? 'bg-blue-600' :
-                        invoice.status === 'overdue' ? 'bg-red-600' : 'bg-slate-600'
+                        invoice.status === INVOICE_STATUS.PAID ? 'bg-green-600' :
+                        invoice.status === INVOICE_STATUS.SENT ? 'bg-blue-600' :
+                        invoice.status === INVOICE_STATUS.OVERDUE ? 'bg-red-600' : 'bg-slate-600'
                       }>
-                        {invoice.status === 'paid' ? 'Active' : invoice.status}
+                        {invoice.status === INVOICE_STATUS.PAID ? 'Active' : invoice.status}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -89,9 +89,9 @@ export default function RecentActivitiesWidget({ invoices, quotations, expenses 
                     <TableCell>${quote.total?.toFixed(2) || '0.00'}</TableCell>
                     <TableCell>
                       <Badge className={
-                        quote.status === 'approved' ? 'bg-green-600' :
-                        quote.status === 'sent' ? 'bg-blue-600' :
-                        quote.status === 'rejected' ? 'bg-red-600' : 'bg-slate-600'
+                        quote.status === QUOTATION_STATUS.ACCEPTED ? 'bg-green-600' :
+                        quote.status === QUOTATION_STATUS.SENT ? 'bg-blue-600' :
+                        quote.status === QUOTATION_STATUS.REJECTED ? 'bg-red-600' : 'bg-slate-600'
                       }>
                         {quote.status}
                       </Badge>

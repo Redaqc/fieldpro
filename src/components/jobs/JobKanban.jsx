@@ -1,22 +1,28 @@
-import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, User, Paperclip, CheckSquare, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { JOB_STATUS, JOB_STATUS_LABELS, PRIORITY } from '@/constants/statuses';
+
+/**
+ * AUDIT FIX: High Priority Issue #7 - Standardize Status Values
+ * Fixed: 'to_do' → 'todo' (removed underscore)
+ * Now using JOB_STATUS and PRIORITY constants for consistency
+ */
 
 const columns = [
-  { id: 'to_do', title: 'To Do', color: 'bg-slate-100' },
-  { id: 'in_progress', title: 'In Progress', color: 'bg-blue-100' },
-  { id: 'review', title: 'Review', color: 'bg-yellow-100' },
-  { id: 'completed', title: 'Completed', color: 'bg-green-100' },
+  { id: JOB_STATUS.TODO, title: JOB_STATUS_LABELS[JOB_STATUS.TODO], color: 'bg-slate-100' },
+  { id: JOB_STATUS.IN_PROGRESS, title: JOB_STATUS_LABELS[JOB_STATUS.IN_PROGRESS], color: 'bg-blue-100' },
+  { id: JOB_STATUS.REVIEW, title: JOB_STATUS_LABELS[JOB_STATUS.REVIEW], color: 'bg-yellow-100' },
+  { id: JOB_STATUS.COMPLETED, title: JOB_STATUS_LABELS[JOB_STATUS.COMPLETED], color: 'bg-green-100' },
 ];
 
 const priorityColors = {
-  low: 'bg-slate-500',
-  medium: 'bg-blue-500',
-  high: 'bg-orange-500',
-  urgent: 'bg-red-500',
+  [PRIORITY.LOW]: 'bg-slate-500',
+  [PRIORITY.MEDIUM]: 'bg-blue-500',
+  [PRIORITY.HIGH]: 'bg-orange-500',
+  [PRIORITY.URGENT]: 'bg-red-500',
 };
 
 export default function JobKanban({ jobs, isLoading, onJobClick, onUpdate }) {
@@ -44,8 +50,8 @@ export default function JobKanban({ jobs, isLoading, onJobClick, onUpdate }) {
           }
         ]
       };
-      
-      if (newStatus === 'completed' && !job.completed_at) {
+
+      if (newStatus === JOB_STATUS.COMPLETED && !job.completed_at) {
         updates.completed_at = new Date().toISOString();
       }
       

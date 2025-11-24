@@ -1,14 +1,14 @@
-import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { JOB_STATUS } from '@/constants/statuses';
 
 export default function WidgetJobsByStatus({ jobs = [] }) {
   const statusCounts = {
-    todo: jobs.filter(j => j.status === 'todo').length,
-    in_progress: jobs.filter(j => j.status === 'in_progress').length,
-    review: jobs.filter(j => j.status === 'review').length,
-    completed: jobs.filter(j => j.status === 'completed').length,
-    archived: jobs.filter(j => j.status === 'archived').length,
+    todo: jobs.filter(j => j.status === JOB_STATUS.TODO).length,
+    in_progress: jobs.filter(j => j.status === JOB_STATUS.IN_PROGRESS).length,
+    review: jobs.filter(j => j.status === JOB_STATUS.REVIEW).length,
+    completed: jobs.filter(j => j.status === JOB_STATUS.COMPLETED).length,
+    archived: jobs.filter(j => j.status === JOB_STATUS.ARCHIVED).length,
   };
 
   const data = [

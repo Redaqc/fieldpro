@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,19 @@ import { Plus, Search, Download, Upload } from "lucide-react";
 import AssetsList from "../components/assets/AssetsList";
 import AssetDialog from "../components/assets/AssetDialog";
 import AIMaintenancePanel from "../components/assets/AIMaintenancePanel";
+import { useCsvImportExport } from "@/hooks/useCsvImportExport";
+
+/**
+ * AUDIT FIX: MEDIUM Priority Issue #20 - Refactor Duplicate CSV Patterns
+ * Using centralized useCsvImportExport hook
+ */
 
 export default function Assets() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
-  const [importing, setImporting] = useState(false);
   const queryClient = useQueryClient();
+  const { handleExport, handleImport, importing } = useCsvImportExport('assets', 'assets');
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['assets'],
@@ -58,37 +64,6 @@ export default function Assets() {
       updateAssetMutation.mutate({ id: selectedAsset.id, data });
     } else {
       createAssetMutation.mutate(data);
-    }
-  };
-
-  const handleExport = async () => {
-    const { data } = await base44.functions.invoke('csvExport', { entity_type: 'assets' });
-    const blob = new Blob([data.csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = data.filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImport = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setImporting(true);
-    try {
-      const text = await file.text();
-      const { data } = await base44.functions.invoke('csvImport', { 
-        entity_type: 'assets',
-        csv_data: text 
-      });
-      alert(`Import réussi: ${data.created} créés, ${data.updated} mis à jour, ${data.failed} échecs`);
-      queryClient.invalidateQueries({ queryKey: ['assets'] });
-    } catch (error) {
-      alert('Erreur: ' + error.message);
-    } finally {
-      setImporting(false);
     }
   };
 

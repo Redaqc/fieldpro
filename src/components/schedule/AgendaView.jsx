@@ -1,8 +1,8 @@
-import React from "react";
 import { format, isToday, isTomorrow, isThisWeek } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, User, Clock, AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { JOB_STATUS, SERVICE_CALL_STATUS, PRIORITY } from "@/constants/statuses";
 
 export default function AgendaView({ events, onEventClick, startDate }) {
   // Sort events by start date
@@ -28,9 +28,9 @@ export default function AgendaView({ events, onEventClick, startDate }) {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'todo': return 'bg-slate-100 text-slate-800';
+      case JOB_STATUS.COMPLETED: return 'bg-green-100 text-green-800';
+      case JOB_STATUS.IN_PROGRESS: return 'bg-blue-100 text-blue-800';
+      case JOB_STATUS.TODO: return 'bg-slate-100 text-slate-800';
       default: return 'bg-slate-100 text-slate-800';
     }
   };
@@ -70,7 +70,7 @@ export default function AgendaView({ events, onEventClick, startDate }) {
                         <Badge className={getStatusColor(event.status)}>
                           {event.status.replace('_', ' ')}
                         </Badge>
-                        {event.priority === 'urgent' && (
+                        {event.priority === PRIORITY.URGENT && (
                           <Badge className="bg-red-100 text-red-800 flex items-center gap-1">
                             <AlertCircle className="w-3 h-3" />
                             Urgent

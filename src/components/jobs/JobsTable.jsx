@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { ArrowUpDown } from "lucide-react";
+import { JOB_STATUS } from '@/constants/statuses';
+
+/** AUDIT FIX: High Priority Issue #7 - Standardize Status Values */
 
 export default function JobsTable({ jobs, onEditJob }) {
   const [search, setSearch] = useState('');
@@ -139,7 +142,7 @@ export default function JobsTable({ jobs, onEditJob }) {
                     </td>
                     <td className="p-3">
                       {job.due_date ? (
-                        <span className={new Date(job.due_date) < new Date() && job.status !== 'completed' ? 'text-red-600 font-semibold' : ''}>
+                        <span className={new Date(job.due_date) < new Date() && job.status !== JOB_STATUS.COMPLETED ? 'text-red-600 font-semibold' : ''}>
                           {format(new Date(job.due_date), 'dd/MM/yyyy')}
                         </span>
                       ) : (

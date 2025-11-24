@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
+import { PRIORITY, CUSTOMER_STATUS } from "@/constants/statuses";
 
 export default function AutomationDialog({ open, onClose, automation, formTemplates }) {
   const [formData, setFormData] = useState({
@@ -258,18 +259,18 @@ export default function AutomationDialog({ open, onClose, automation, formTempla
                         onChange={(e) => updateAction(index, 'description', e.target.value)}
                         rows={2}
                       />
-                      <Select 
-                        value={action.config.priority || 'medium'} 
+                      <Select
+                        value={action.config.priority || PRIORITY.MEDIUM}
                         onValueChange={(value) => updateAction(index, 'priority', value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Priorité" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="low">Basse</SelectItem>
-                          <SelectItem value="medium">Moyenne</SelectItem>
-                          <SelectItem value="high">Haute</SelectItem>
-                          <SelectItem value="urgent">Urgente</SelectItem>
+                          <SelectItem value={PRIORITY.LOW}>Basse</SelectItem>
+                          <SelectItem value={PRIORITY.MEDIUM}>Moyenne</SelectItem>
+                          <SelectItem value={PRIORITY.HIGH}>Haute</SelectItem>
+                          <SelectItem value={PRIORITY.URGENT}>Urgente</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -297,17 +298,17 @@ export default function AutomationDialog({ open, onClose, automation, formTempla
                   )}
 
                   {action.type === 'update_customer_status' && (
-                    <Select 
-                      value={action.config.status || 'active'} 
+                    <Select
+                      value={action.config.status || CUSTOMER_STATUS.ACTIVE}
                       onValueChange={(value) => updateAction(index, 'status', value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Nouveau statut" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="active">Actif</SelectItem>
-                        <SelectItem value="inactive">Inactif</SelectItem>
-                        <SelectItem value="vip">VIP</SelectItem>
+                        <SelectItem value={CUSTOMER_STATUS.ACTIVE}>Actif</SelectItem>
+                        <SelectItem value={CUSTOMER_STATUS.INACTIVE}>Inactif</SelectItem>
+                        <SelectItem value={CUSTOMER_STATUS.VIP}>VIP</SelectItem>
                       </SelectContent>
                     </Select>
                   )}

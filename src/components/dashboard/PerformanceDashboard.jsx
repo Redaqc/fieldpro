@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { TrendingUp, Clock, CheckCircle, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { JOB_STATUS, TIME_ENTRY_STATUS } from "@/constants/statuses";
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
@@ -10,9 +11,9 @@ export default function PerformanceDashboard({ technicians, jobs, timeEntries })
   const performanceData = useMemo(() => {
     return technicians.map(tech => {
       const techJobs = jobs.filter(j => j.technician_id === tech.id);
-      const techEntries = timeEntries.filter(e => e.technician_id === tech.id && e.status === 'completed');
-      
-      const completedJobs = techJobs.filter(j => j.status === 'completed').length;
+      const techEntries = timeEntries.filter(e => e.technician_id === tech.id && e.status === TIME_ENTRY_STATUS.COMPLETED);
+
+      const completedJobs = techJobs.filter(j => j.status === JOB_STATUS.COMPLETED).length;
       const totalJobs = techJobs.length;
       const completionRate = totalJobs > 0 ? (completedJobs / totalJobs * 100) : 0;
       
@@ -31,11 +32,11 @@ export default function PerformanceDashboard({ technicians, jobs, timeEntries })
   }, [technicians, jobs, timeEntries]);
 
   const jobStatusData = useMemo(() => {
-    const statuses = ['scheduled', 'in_progress', 'completed', 'cancelled'];
+    const statuses = [JOB_STATUS.SCHEDULED, JOB_STATUS.IN_PROGRESS, JOB_STATUS.COMPLETED, JOB_STATUS.CANCELLED];
     return statuses.map(status => ({
-      name: status === 'scheduled' ? 'Planifié' : 
-            status === 'in_progress' ? 'En cours' :
-            status === 'completed' ? 'Complété' : 'Annulé',
+      name: status === JOB_STATUS.SCHEDULED ? 'Planifié' :
+            status === JOB_STATUS.IN_PROGRESS ? 'En cours' :
+            status === JOB_STATUS.COMPLETED ? 'Complété' : 'Annulé',
       value: jobs.filter(j => j.status === status).length,
     }));
   }, [jobs]);
@@ -49,7 +50,7 @@ export default function PerformanceDashboard({ technicians, jobs, timeEntries })
 
     return last7Days.map(date => {
       const dayJobs = jobs.filter(j => j.scheduled_date === date);
-      const completed = dayJobs.filter(j => j.status === 'completed').length;
+      const completed = dayJobs.filter(j => j.status === JOB_STATUS.COMPLETED).length;
       
       return {
         date: new Date(date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }),

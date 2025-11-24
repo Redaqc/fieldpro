@@ -3,16 +3,23 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, CheckSquare, AlertCircle, MapPin, Edit } from "lucide-react";
+import { Calendar, User, MapPin, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { SERVICE_CALL_STATUS, SERVICE_CALL_STATUS_TRANSITIONS, isValidStatusTransition, SERVICE_CALL_STATUS_LABELS } from '@/constants/statuses';
+import { toast } from "sonner";
+
+/**
+ * AUDIT FIX: High Priority Issue #7 - Standardize Status Values
+ * AUDIT FIX: High Priority Issue #8 - Implement State Machine Validation
+ */
 
 const COLUMNS = [
-  { id: 'new', title: 'À faire', color: 'bg-slate-100' },
-  { id: 'in_progress', title: 'En cours', color: 'bg-blue-100' },
-  { id: 'review', title: 'En révision', color: 'bg-purple-100' },
-  { id: 'completed', title: 'Terminé', color: 'bg-green-100' },
-  { id: 'cancelled', title: 'Archivé', color: 'bg-slate-100' },
+  { id: SERVICE_CALL_STATUS.NEW, title: 'À faire', color: 'bg-slate-100' },
+  { id: SERVICE_CALL_STATUS.IN_PROGRESS, title: 'En cours', color: 'bg-blue-100' },
+  { id: SERVICE_CALL_STATUS.REVIEW, title: 'En révision', color: 'bg-purple-100' },
+  { id: SERVICE_CALL_STATUS.COMPLETED, title: 'Terminé', color: 'bg-green-100' },
+  { id: SERVICE_CALL_STATUS.CANCELLED, title: 'Archivé', color: 'bg-slate-100' },
 ];
 
 export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
@@ -34,6 +41,18 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
 
     if (call.status === newStatus) return;
 
+    /**
+     * AUDIT FIX: High Priority Issue #8 - State Machine Validation
+     * Validate status transition before allowing update
+     */
+    const currentStatus = call.status || SERVICE_CALL_STATUS.NEW;
+    if (!isValidStatusTransition(currentStatus, newStatus, SERVICE_CALL_STATUS_TRANSITIONS)) {
+      toast.error('Transition de statut invalide', {
+        description: `Impossible de passer de "${SERVICE_CALL_STATUS_LABELS[currentStatus]}" à "${SERVICE_CALL_STATUS_LABELS[newStatus]}". Cette transition n'est pas autorisée.`
+      });
+      return;
+    }
+
     const updates = {
       status: newStatus,
       activity_log: [
@@ -42,12 +61,12 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
           timestamp: new Date().toISOString(),
           user: currentUser?.email || 'System',
           action: 'status_changed',
-          details: `Statut changé de "${call.status}" à "${newStatus}"`,
+          details: `Statut changé de "${SERVICE_CALL_STATUS_LABELS[currentStatus]}" à "${SERVICE_CALL_STATUS_LABELS[newStatus]}"`,
         },
       ],
     };
 
-    if (newStatus === 'completed' && !call.completed_at) {
+    if (newStatus === SERVICE_CALL_STATUS.COMPLETED && !call.completed_at) {
       updates.completed_at = new Date().toISOString();
     }
 
@@ -56,13 +75,13 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
 
   const getCallsByStatus = (status) => {
     return calls.filter(c => {
-      const callStatus = c.status || 'new';
+      const callStatus = c.status || SERVICE_CALL_STATUS.NEW;
       // Pour la colonne "À faire", inclure aussi les statuts vides, null, undefined, et 'todo' (ancien statut)
-      if (status === 'new') {
-        return !c.status || c.status === 'new' || c.status === '' || c.status === 'todo';
+      if (status === SERVICE_CALL_STATUS.NEW) {
+        return !c.status || c.status === SERVICE_CALL_STATUS.NEW || c.status === '' || c.status === 'todo';
       }
       return callStatus === status;
-    }).sort((a, b) => 
+    }).sort((a, b) =>
       new Date(b.created_date) - new Date(a.created_date)
     );
   };
@@ -77,19 +96,10 @@ export default function ServiceCallKanban({ calls, onEditCall, currentUser }) {
   };
 
   const isOverdue = (call) => {
-    if (!call.due_date || call.status === 'completed') return false;
+    if (!call.due_date || call.status === SERVICE_CALL_STATUS.COMPLETED) return false;
     return new Date(call.due_date) < new Date();
   };
 
-  // Debug: Afficher les appels dans la console
-  React.useEffect(() => {
-    console.log('Total service calls:', calls.length);
-    console.log('Service calls data:', calls);
-    COLUMNS.forEach(column => {
-      const columnCalls = getCallsByStatus(column.id);
-      console.log(`${column.title} (${column.id}):`, columnCalls.length, 'calls');
-    });
-  }, [calls]);
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>

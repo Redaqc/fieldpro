@@ -1,19 +1,19 @@
-import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { INVOICE_STATUS } from "@/constants/statuses";
 
 export default function WidgetInvoiceSummary({ invoices = [] }) {
-  const draft = invoices.filter(inv => inv.status === 'draft').length;
-  const sent = invoices.filter(inv => inv.status === 'sent').length;
-  const paid = invoices.filter(inv => inv.status === 'paid').length;
-  const overdue = invoices.filter(inv => inv.status === 'overdue').length;
+  const draft = invoices.filter(inv => inv.status === INVOICE_STATUS.DRAFT).length;
+  const sent = invoices.filter(inv => inv.status === INVOICE_STATUS.SENT).length;
+  const paid = invoices.filter(inv => inv.status === INVOICE_STATUS.PAID).length;
+  const overdue = invoices.filter(inv => inv.status === INVOICE_STATUS.OVERDUE).length;
 
   const totalPaid = invoices
-    .filter(inv => inv.status === 'paid')
+    .filter(inv => inv.status === INVOICE_STATUS.PAID)
     .reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
 
   const totalPending = invoices
-    .filter(inv => inv.status === 'sent' || inv.status === 'overdue')
+    .filter(inv => inv.status === INVOICE_STATUS.SENT || inv.status === INVOICE_STATUS.OVERDUE)
     .reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
 
   return (

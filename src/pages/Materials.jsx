@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -8,14 +8,20 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import MaterialsList from "../components/materials/MaterialsList";
 import MaterialDialog from "../components/materials/MaterialDialog";
+import { useCsvImportExport } from "@/hooks/useCsvImportExport";
+
+/**
+ * AUDIT FIX: MEDIUM Priority Issue #20 - Refactor Duplicate CSV Patterns
+ * Using centralized useCsvImportExport hook
+ */
 
 export default function Materials() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [showDialog, setShowDialog] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
-  const [importing, setImporting] = useState(false);
   const queryClient = useQueryClient();
+  const { handleExport, handleImport, importing } = useCsvImportExport('materials', 'materials');
 
   const { data: materials = [], isLoading } = useQuery({
     queryKey: ['materials'],
@@ -53,37 +59,6 @@ export default function Materials() {
       updateMutation.mutate({ id: selectedMaterial.id, data });
     } else {
       createMutation.mutate(data);
-    }
-  };
-
-  const handleExport = async () => {
-    const { data } = await base44.functions.invoke('csvExport', { entity_type: 'materials' });
-    const blob = new Blob([data.csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = data.filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImport = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setImporting(true);
-    try {
-      const text = await file.text();
-      const { data } = await base44.functions.invoke('csvImport', { 
-        entity_type: 'materials',
-        csv_data: text 
-      });
-      alert(`Import réussi: ${data.created} créés, ${data.updated} mis à jour, ${data.failed} échecs`);
-      queryClient.invalidateQueries({ queryKey: ['materials'] });
-    } catch (error) {
-      alert('Erreur: ' + error.message);
-    } finally {
-      setImporting(false);
     }
   };
 

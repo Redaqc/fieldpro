@@ -1,9 +1,8 @@
-import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Mail, Phone, MapPin, Building2, Users, Trash2, Image } from "lucide-react";
+import { Mail, Phone, MapPin, Building2, Users, Trash2 } from "lucide-react";
 
 const statusColors = {
   active: "bg-green-100 text-green-800",

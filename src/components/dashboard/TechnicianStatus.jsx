@@ -1,19 +1,18 @@
-import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { UserCircle } from "lucide-react";
+import { JOB_STATUS, TECHNICIAN_STATUS } from '@/constants/statuses';
 
 const statusColors = {
-  available: "bg-green-100 text-green-700 border-green-200",
-  busy: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  off_duty: "bg-gray-100 text-gray-700 border-gray-200"
+  [TECHNICIAN_STATUS.AVAILABLE]: "bg-green-100 text-green-700 border-green-200",
+  [TECHNICIAN_STATUS.BUSY]: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  [TECHNICIAN_STATUS.OFF_DUTY]: "bg-gray-100 text-gray-700 border-gray-200"
 };
 
 export default function TechnicianStatus({ technicians, jobs }) {
   const getTechnicianJobCount = (techId) => {
-    return jobs.filter(job => 
-      job.technician_id === techId && 
-      (job.status === 'scheduled' || job.status === 'in_progress')
+    return jobs.filter(job =>
+      job.technician_id === techId &&
+      (job.status === JOB_STATUS.SCHEDULED || job.status === JOB_STATUS.IN_PROGRESS)
     ).length;
   };
 
@@ -49,8 +48,8 @@ export default function TechnicianStatus({ technicians, jobs }) {
                       </p>
                     </div>
                   </div>
-                  <Badge className={statusColors[tech.status || 'available']}>
-                    {(tech.status || 'available').replace('_', ' ')}
+                  <Badge className={statusColors[tech.status || TECHNICIAN_STATUS.AVAILABLE]}>
+                    {(tech.status || TECHNICIAN_STATUS.AVAILABLE).replace('_', ' ')}
                   </Badge>
                 </div>
               );

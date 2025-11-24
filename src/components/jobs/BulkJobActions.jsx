@@ -1,12 +1,17 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { CheckSquare, Users, Calendar } from "lucide-react";
+import { CheckSquare } from "lucide-react";
+import { JOB_STATUS, JOB_STATUS_LABELS, PRIORITY, PRIORITY_LABELS } from '@/constants/statuses';
+
+/**
+ * AUDIT FIX: High Priority Issue #7 - Standardize Status Values
+ * AUDIT FIX: High Priority Issue #13 - Comprehensive Audit Logging
+ */
 
 export default function BulkJobActions({ jobs, selectedJobs, onClearSelection }) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -16,17 +21,43 @@ export default function BulkJobActions({ jobs, selectedJobs, onClearSelection })
 
   const bulkUpdateMutation = useMutation({
     mutationFn: async ({ action, value }) => {
+      /**
+       * AUDIT FIX: High Priority Issue #13 - Comprehensive Audit Logging
+       * Add activity log for all bulk actions
+       */
+      const user = await base44.auth.me();
+      const timestamp = new Date().toISOString();
+
       for (const jobId of selectedJobs) {
         const job = jobs.find(j => j.id === jobId);
         if (!job) continue;
 
         let updateData = {};
-        if (action === 'status') updateData.status = value;
-        else if (action === 'priority') updateData.priority = value;
-        else if (action === 'assign') {
+        let logDetails = '';
+
+        if (action === 'status') {
+          updateData.status = value;
+          logDetails = `Status changed from "${JOB_STATUS_LABELS[job.status] || job.status}" to "${JOB_STATUS_LABELS[value]}" via bulk action`;
+        } else if (action === 'priority') {
+          updateData.priority = value;
+          logDetails = `Priority changed from "${PRIORITY_LABELS[job.priority] || job.priority}" to "${PRIORITY_LABELS[value]}" via bulk action`;
+        } else if (action === 'assign') {
           const tech = JSON.parse(value);
           updateData.technicians = [...(job.technicians || []), tech];
+          logDetails = `Technician assigned: ${tech.name} via bulk action`;
         }
+
+        // Add activity log for audit trail
+        updateData.activity_log = [
+          ...(job.activity_log || []),
+          {
+            timestamp,
+            user: user.email,
+            action: `bulk_${action}`,
+            details: logDetails,
+            bulk_operation_count: selectedJobs.length
+          }
+        ];
 
         await base44.entities.Job.update(jobId, updateData);
       }
@@ -100,10 +131,10 @@ export default function BulkJobActions({ jobs, selectedJobs, onClearSelection })
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todo">To Do</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="review">Review</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value={JOB_STATUS.TODO}>{JOB_STATUS_LABELS[JOB_STATUS.TODO]}</SelectItem>
+                    <SelectItem value={JOB_STATUS.IN_PROGRESS}>{JOB_STATUS_LABELS[JOB_STATUS.IN_PROGRESS]}</SelectItem>
+                    <SelectItem value={JOB_STATUS.REVIEW}>{JOB_STATUS_LABELS[JOB_STATUS.REVIEW]}</SelectItem>
+                    <SelectItem value={JOB_STATUS.COMPLETED}>{JOB_STATUS_LABELS[JOB_STATUS.COMPLETED]}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -117,10 +148,10 @@ export default function BulkJobActions({ jobs, selectedJobs, onClearSelection })
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
+                    <SelectItem value={PRIORITY.LOW}>{PRIORITY_LABELS[PRIORITY.LOW]}</SelectItem>
+                    <SelectItem value={PRIORITY.MEDIUM}>{PRIORITY_LABELS[PRIORITY.MEDIUM]}</SelectItem>
+                    <SelectItem value={PRIORITY.HIGH}>{PRIORITY_LABELS[PRIORITY.HIGH]}</SelectItem>
+                    <SelectItem value={PRIORITY.URGENT}>{PRIORITY_LABELS[PRIORITY.URGENT]}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

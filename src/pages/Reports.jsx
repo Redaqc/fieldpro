@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { BarChart3, TrendingUp, Clock, DollarSign, Users, FileText, MapPin, AlertTriangle, Download, BarChart2, PhoneCall, Briefcase, Package, Percent, Wrench, Calendar, CheckSquare, Receipt, CreditCard, Activity } from "lucide-react";
+import { BarChart3, TrendingUp, Clock, DollarSign, FileText, AlertTriangle, Download, BarChart2, Briefcase, Package, Percent, Wrench, CheckSquare, Receipt, CreditCard, Activity } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { format, endOfDay, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
+import { format, endOfDay } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { JOB_STATUS, SERVICE_CALL_STATUS, INVOICE_STATUS } from "@/constants/statuses";
 
 const STANDARD_REPORTS = [
   { id: 'jobs', name: 'Jobs', description: 'Rapports complets sur les jobs', icon: Briefcase, color: 'from-blue-500 to-blue-600', isTab: true },
@@ -153,26 +153,26 @@ export default function Reports() {
 
   // Jobs by Status
   const jobsByStatus = useMemo(() => {
-    const statusCounts = { todo: 0, in_progress: 0, review: 0, completed: 0, archived: 0 };
+    const statusCounts = { [JOB_STATUS.TODO]: 0, [JOB_STATUS.IN_PROGRESS]: 0, [JOB_STATUS.REVIEW]: 0, [JOB_STATUS.COMPLETED]: 0, [JOB_STATUS.ARCHIVED]: 0 };
     filteredJobs.forEach(job => {
       statusCounts[job.status] = (statusCounts[job.status] || 0) + 1;
     });
     return Object.entries(statusCounts).map(([status, count]) => ({
-      name: status === 'todo' ? 'À faire' : status === 'in_progress' ? 'En cours' : 
-            status === 'review' ? 'Révision' : status === 'completed' ? 'Terminé' : 'Archivé',
+      name: status === JOB_STATUS.TODO ? 'À faire' : status === JOB_STATUS.IN_PROGRESS ? 'En cours' :
+            status === JOB_STATUS.REVIEW ? 'Révision' : status === JOB_STATUS.COMPLETED ? 'Terminé' : 'Archivé',
       value: count
     }));
   }, [filteredJobs]);
 
   // Service Calls by Status
   const callsByStatus = useMemo(() => {
-    const statusCounts = { todo: 0, in_progress: 0, review: 0, completed: 0, archived: 0 };
+    const statusCounts = { [JOB_STATUS.TODO]: 0, [JOB_STATUS.IN_PROGRESS]: 0, [JOB_STATUS.REVIEW]: 0, [JOB_STATUS.COMPLETED]: 0, [JOB_STATUS.ARCHIVED]: 0 };
     filteredServiceCalls.forEach(call => {
       statusCounts[call.status] = (statusCounts[call.status] || 0) + 1;
     });
     return Object.entries(statusCounts).map(([status, count]) => ({
-      name: status === 'todo' ? 'À faire' : status === 'in_progress' ? 'En cours' : 
-            status === 'review' ? 'Révision' : status === 'completed' ? 'Terminé' : 'Archivé',
+      name: status === JOB_STATUS.TODO ? 'À faire' : status === JOB_STATUS.IN_PROGRESS ? 'En cours' :
+            status === JOB_STATUS.REVIEW ? 'Révision' : status === JOB_STATUS.COMPLETED ? 'Terminé' : 'Archivé',
       value: count
     }));
   }, [filteredServiceCalls]);
@@ -329,13 +329,13 @@ export default function Reports() {
                 <Card className="border-l-4 border-blue-500">
                   <CardContent className="p-4">
                     <p className="text-sm text-slate-500">Factures payées</p>
-                    <p className="text-2xl font-bold text-blue-600">{invoices.filter(i => i.status === 'paid').length}</p>
+                    <p className="text-2xl font-bold text-blue-600">{invoices.filter(i => i.status === INVOICE_STATUS.PAID).length}</p>
                   </CardContent>
                 </Card>
                 <Card className="border-l-4 border-orange-500">
                   <CardContent className="p-4">
                     <p className="text-sm text-slate-500">En attente</p>
-                    <p className="text-2xl font-bold text-orange-600">{invoices.filter(i => i.status === 'pending').length}</p>
+                    <p className="text-2xl font-bold text-orange-600">{invoices.filter(i => i.status === INVOICE_STATUS.SENT).length}</p>
                   </CardContent>
                 </Card>
                 <Card className="border-l-4 border-purple-500">
@@ -415,7 +415,7 @@ export default function Reports() {
             <CardContent className="p-6">
               <h2 className="text-2xl font-bold mb-6">Factures en souffrance</h2>
               <div className="space-y-3">
-                {invoices.filter(i => i.status === 'overdue').map(invoice => (
+                {invoices.filter(i => i.status === INVOICE_STATUS.OVERDUE).map(invoice => (
                   <div key={invoice.id} className="flex items-center justify-between p-4 border-l-4 border-red-500 bg-red-50 rounded-lg">
                     <div>
                       <p className="font-semibold">{invoice.invoice_number}</p>
@@ -512,11 +512,11 @@ export default function Reports() {
                   <SelectTrigger><SelectValue placeholder="Statut" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tous les statuts</SelectItem>
-                    <SelectItem value="todo">À faire</SelectItem>
-                    <SelectItem value="in_progress">En cours</SelectItem>
-                    <SelectItem value="review">Révision</SelectItem>
-                    <SelectItem value="completed">Terminé</SelectItem>
-                    <SelectItem value="archived">Archivé</SelectItem>
+                    <SelectItem value={JOB_STATUS.TODO}>À faire</SelectItem>
+                    <SelectItem value={JOB_STATUS.IN_PROGRESS}>En cours</SelectItem>
+                    <SelectItem value={JOB_STATUS.REVIEW}>Révision</SelectItem>
+                    <SelectItem value={JOB_STATUS.COMPLETED}>Terminé</SelectItem>
+                    <SelectItem value={JOB_STATUS.ARCHIVED}>Archivé</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={selectedWorkType} onValueChange={setSelectedWorkType}>
@@ -565,7 +565,7 @@ export default function Reports() {
               <CardContent className="p-4">
                 <p className="text-sm text-slate-500">En cours</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {filteredJobs.filter(j => j.status === 'in_progress').length}
+                  {filteredJobs.filter(j => j.status === JOB_STATUS.IN_PROGRESS).length}
                 </p>
               </CardContent>
             </Card>
@@ -573,7 +573,7 @@ export default function Reports() {
               <CardContent className="p-4">
                 <p className="text-sm text-slate-500">Terminés</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {filteredJobs.filter(j => j.status === 'completed').length}
+                  {filteredJobs.filter(j => j.status === JOB_STATUS.COMPLETED).length}
                 </p>
               </CardContent>
             </Card>
@@ -623,7 +623,7 @@ export default function Reports() {
                       <tr key={job.id} className="border-t hover:bg-slate-50">
                         <td className="p-3 text-sm">{job.title}</td>
                         <td className="p-3 text-sm">
-                          <Badge variant={job.status === 'completed' ? 'default' : 'secondary'}>
+                          <Badge variant={job.status === JOB_STATUS.COMPLETED ? 'default' : 'secondary'}>
                             {job.status}
                           </Badge>
                         </td>
@@ -667,11 +667,11 @@ export default function Reports() {
                   <SelectTrigger><SelectValue placeholder="Statut" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tous les statuts</SelectItem>
-                    <SelectItem value="todo">À faire</SelectItem>
-                    <SelectItem value="in_progress">En cours</SelectItem>
-                    <SelectItem value="review">Révision</SelectItem>
-                    <SelectItem value="completed">Terminé</SelectItem>
-                    <SelectItem value="archived">Archivé</SelectItem>
+                    <SelectItem value={JOB_STATUS.TODO}>À faire</SelectItem>
+                    <SelectItem value={JOB_STATUS.IN_PROGRESS}>En cours</SelectItem>
+                    <SelectItem value={JOB_STATUS.REVIEW}>Révision</SelectItem>
+                    <SelectItem value={JOB_STATUS.COMPLETED}>Terminé</SelectItem>
+                    <SelectItem value={JOB_STATUS.ARCHIVED}>Archivé</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={selectedWorkType} onValueChange={setSelectedWorkType}>
@@ -720,7 +720,7 @@ export default function Reports() {
               <CardContent className="p-4">
                 <p className="text-sm text-slate-500">En cours</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {filteredServiceCalls.filter(c => c.status === 'in_progress').length}
+                  {filteredServiceCalls.filter(c => c.status === SERVICE_CALL_STATUS.IN_PROGRESS).length}
                 </p>
               </CardContent>
             </Card>
@@ -728,7 +728,7 @@ export default function Reports() {
               <CardContent className="p-4">
                 <p className="text-sm text-slate-500">Terminés</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {filteredServiceCalls.filter(c => c.status === 'completed').length}
+                  {filteredServiceCalls.filter(c => c.status === SERVICE_CALL_STATUS.COMPLETED).length}
                 </p>
               </CardContent>
             </Card>
@@ -778,7 +778,7 @@ export default function Reports() {
                       <tr key={call.id} className="border-t hover:bg-slate-50">
                         <td className="p-3 text-sm">{call.title}</td>
                         <td className="p-3 text-sm">
-                          <Badge variant={call.status === 'completed' ? 'default' : 'secondary'}>
+                          <Badge variant={call.status === SERVICE_CALL_STATUS.COMPLETED ? 'default' : 'secondary'}>
                             {call.status}
                           </Badge>
                         </td>
@@ -924,7 +924,7 @@ export default function Reports() {
                           </span>
                         </td>
                         <td className="p-3 text-sm">
-                          <Badge variant={item.status === 'completed' ? 'default' : 'secondary'}>
+                          <Badge variant={item.status === JOB_STATUS.COMPLETED ? 'default' : 'secondary'}>
                             {item.status}
                           </Badge>
                         </td>

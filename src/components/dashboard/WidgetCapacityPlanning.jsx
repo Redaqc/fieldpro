@@ -1,8 +1,8 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, AlertTriangle } from "lucide-react";
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay } from "date-fns";
+import { startOfWeek, endOfWeek, eachDayOfInterval, format } from "date-fns";
 
 export default function WidgetCapacityPlanning({ jobs, technicians }) {
   const weekStart = startOfWeek(new Date());

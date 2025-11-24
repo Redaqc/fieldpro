@@ -1,4 +1,3 @@
-import React from 'react';
 import { MapPin, Loader2, AlertCircle } from 'lucide-react';
 
 /**

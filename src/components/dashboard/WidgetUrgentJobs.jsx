@@ -1,24 +1,24 @@
-import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AlertTriangle, Calendar, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
+import { JOB_STATUS, PRIORITY } from '@/constants/statuses';
 
 export default function WidgetUrgentJobs({ jobs }) {
   const today = new Date();
   
   const urgentJobs = jobs.filter(job => {
-    if (job.status === 'completed' || job.status === 'archived') return false;
-    
-    const isUrgentPriority = job.priority === 'urgent' || job.priority === 'high';
+    if (job.status === JOB_STATUS.COMPLETED || job.status === JOB_STATUS.ARCHIVED) return false;
+
+    const isUrgentPriority = job.priority === PRIORITY.URGENT || job.priority === PRIORITY.HIGH;
     const isOverdue = job.due_date && new Date(job.due_date) < today;
     const isDueSoon = job.due_date && differenceInDays(new Date(job.due_date), today) <= 3 && differenceInDays(new Date(job.due_date), today) >= 0;
-    
+
     return isUrgentPriority || isOverdue || isDueSoon;
   }).sort((a, b) => {
     // Trier par priorité et date
-    const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+    const priorityOrder = { [PRIORITY.URGENT]: 0, [PRIORITY.HIGH]: 1, [PRIORITY.MEDIUM]: 2, [PRIORITY.LOW]: 3 };
     const aPriority = priorityOrder[a.priority] || 2;
     const bPriority = priorityOrder[b.priority] || 2;
     
@@ -32,9 +32,9 @@ export default function WidgetUrgentJobs({ jobs }) {
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'urgent': return 'bg-red-100 text-red-700 border-red-200';
-      case 'high': return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case PRIORITY.URGENT: return 'bg-red-100 text-red-700 border-red-200';
+      case PRIORITY.HIGH: return 'bg-orange-100 text-orange-700 border-orange-200';
+      case PRIORITY.MEDIUM: return 'bg-yellow-100 text-yellow-700 border-yellow-200';
       default: return 'bg-blue-100 text-blue-700 border-blue-200';
     }
   };
@@ -87,7 +87,7 @@ export default function WidgetUrgentJobs({ jobs }) {
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge className={getPriorityColor(job.priority)} variant="outline">
-                    {job.priority === 'urgent' ? 'URGENT' : job.priority === 'high' ? 'Haute' : job.priority}
+                    {job.priority === PRIORITY.URGENT ? 'URGENT' : job.priority === PRIORITY.HIGH ? 'Haute' : job.priority}
                   </Badge>
                   {job.due_date && (
                     <span className="text-xs text-slate-500 flex items-center gap-1">

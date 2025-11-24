@@ -1,14 +1,14 @@
-import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Users } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { JOB_STATUS } from "@/constants/statuses";
 
 export default function WidgetTasksByTechnician({ jobs, technicians }) {
   const technicianStats = technicians.map(tech => {
-    const techJobs = jobs.filter(job => 
+    const techJobs = jobs.filter(job =>
       job.technicians?.some(t => t.id === tech.id) &&
-      job.status !== 'completed' &&
-      job.status !== 'archived'
+      job.status !== JOB_STATUS.COMPLETED &&
+      job.status !== JOB_STATUS.ARCHIVED
     );
     
     return {

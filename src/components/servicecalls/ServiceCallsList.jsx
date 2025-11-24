@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { SERVICE_CALL_STATUS } from '@/constants/statuses';
+/** AUDIT FIX: High Priority Issue #7 - Standardize Status Values */
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, User, AlertCircle, MapPin } from "lucide-react";
+import { Calendar, User, MapPin } from "lucide-react";
 import { format } from "date-fns";
 
 export default function ServiceCallsList({ calls, onEditCall }) {
@@ -35,7 +37,7 @@ export default function ServiceCallsList({ calls, onEditCall }) {
   };
 
   const isOverdue = (call) => {
-    if (!call.due_date || call.status === 'completed') return false;
+    if (!call.due_date || call.status === SERVICE_CALL_STATUS.COMPLETED) return false;
     return new Date(call.due_date) < new Date();
   };
 
@@ -123,14 +125,14 @@ export default function ServiceCallsList({ calls, onEditCall }) {
                 <div>
                   <p className="text-xs text-slate-500 uppercase font-semibold mb-1">STATUS</p>
                   <Badge className={`${
-                    call.status === 'in_progress' ? 'bg-orange-500' :
-                    call.status === 'completed' ? 'bg-green-500' :
+                    call.status === SERVICE_CALL_STATUS.IN_PROGRESS ? 'bg-orange-500' :
+                    call.status === SERVICE_CALL_STATUS.COMPLETED ? 'bg-green-500' :
                     call.status === 'review' ? 'bg-purple-500' : 'bg-slate-400'
                   } text-white text-xs font-medium`}>
                     {call.status === 'todo' ? 'À faire' :
-                     call.status === 'in_progress' ? 'En cours' :
+                     call.status === SERVICE_CALL_STATUS.IN_PROGRESS ? 'En cours' :
                      call.status === 'review' ? 'En révision' : 
-                     call.status === 'completed' ? 'Terminé' : 'Archivé'}
+                     call.status === SERVICE_CALL_STATUS.COMPLETED ? 'Terminé' : 'Archivé'}
                   </Badge>
                 </div>
 

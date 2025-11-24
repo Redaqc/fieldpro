@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useSequentialNumber } from "@/hooks/useSequentialNumber";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock, List, StopCircle, TrendingDown, GitBranch, Flag, BarChart, Package } from "lucide-react";
+import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, Palette, Play, CheckCircle, List, StopCircle, TrendingDown, GitBranch, Flag, BarChart, Package } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import InvoicingTab from "./InvoicingTab";
@@ -23,14 +24,23 @@ import AssetAssignmentTab from "./AssetAssignmentTab";
 import JobProfitabilityPanel from "../profitability/JobProfitabilityPanel";
 import JobTemplates from "./JobTemplates";
 import AddressAutocompleteInput from "../shared/AddressAutocompleteInput";
+import { JOB_STATUS, PRIORITY, JOB_STATUS_TRANSITIONS, isValidStatusTransition, JOB_STATUS_LABELS } from '@/constants/statuses';
+import { toast } from "sonner";
+
+/**
+ * AUDIT FIX: High Priority Issue #7 - Standardize Status Values
+ * AUDIT FIX: High Priority Issue #8 - Implement State Machine Validation
+ * AUDIT FIX: MEDIUM Priority Issue #23 - Invoice Number Generation
+ * Using sequential numbering instead of timestamps for job/call numbers
+ */
 
 export default function JobDialog({ open, onClose, job, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    status: 'todo',
+    status: JOB_STATUS.TODO,
     due_date: '',
-    priority: 'medium',
+    priority: PRIORITY.MEDIUM,
     technicians: [],
     start_date: '',
     total_time_spent: 0,
@@ -70,6 +80,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
   ];
 
   const queryClient = useQueryClient();
+  const generateNumber = useSequentialNumber();
 
   const currentTech = technicians.find(t => t.email === currentUser?.email);
   const isAdminOrManager = currentUser?.role === 'admin' || currentTech?.role === 'admin' || currentTech?.role === 'manager';
@@ -126,9 +137,9 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
       setFormData({
         title: '',
         description: '',
-        status: 'todo',
+        status: JOB_STATUS.TODO,
         due_date: '',
-        priority: 'medium',
+        priority: PRIORITY.MEDIUM,
         technicians: [],
         start_date: '',
         total_time_spent: 0,
@@ -162,13 +173,46 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
     },
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const job_number = formData.job_number || await generateNumber('job');
     const dataToSave = {
       ...formData,
-      job_number: formData.job_number || `JOB-${Date.now()}`,
+      job_number,
     };
 
     if (job) {
+      /**
+       * AUDIT FIX: MEDIUM Priority Issue #27 - Checklist Completion Validation
+       * Prevent marking job as complete if checklist items aren't done
+       */
+      if (formData.status === JOB_STATUS.COMPLETED && formData.checklist && formData.checklist.length > 0) {
+        const allItems = formData.checklist.flatMap(group => group.items || []);
+        const incompleteItems = allItems.filter(item => !item.completed);
+
+        if (incompleteItems.length > 0) {
+          toast.error('Checklist incomplète', {
+            description: `Impossible de marquer le job comme terminé. ${incompleteItems.length} élément(s) de checklist non cochés. Veuillez compléter la checklist ou retirer les éléments non nécessaires.`
+          });
+          return;
+        }
+      }
+
+      /**
+       * AUDIT FIX: High Priority Issue #8 - State Machine Validation
+       * Validate status transition when updating a job
+       */
+      if (formData.status !== job.status) {
+        const currentStatus = job.status || JOB_STATUS.TODO;
+        const newStatus = formData.status;
+
+        if (!isValidStatusTransition(currentStatus, newStatus, JOB_STATUS_TRANSITIONS)) {
+          toast.error('Transition de statut invalide', {
+            description: `Impossible de passer de "${JOB_STATUS_LABELS[currentStatus]}" à "${JOB_STATUS_LABELS[newStatus]}". Cette transition n'est pas autorisée.`
+          });
+          return;
+        }
+      }
+
       updateJobMutation.mutate({ id: job.id, data: dataToSave });
     } else {
       const activity = [{
@@ -554,7 +598,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
             <DialogTitle className="text-lg sm:text-xl">{job ? 'Modifier le job' : 'Nouveau job'}</DialogTitle>
             {job && (
               <div className="flex gap-2">
-                {formData.status !== 'in_progress' && (
+                {formData.status !== JOB_STATUS.IN_PROGRESS && (
                   <Button
                     size="sm"
                     onClick={() => handleQuickStatus('in_progress')}
@@ -564,7 +608,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
                     Démarrer
                   </Button>
                 )}
-                {formData.status !== 'completed' && (
+                {formData.status !== JOB_STATUS.COMPLETED && (
                   <Button
                     size="sm"
                     onClick={() => handleQuickStatus('completed')}
@@ -1419,7 +1463,7 @@ export default function JobDialog({ open, onClose, job, technicians, currentUser
           </Tabs>
 
           {/* Profitability Panel (if job completed/invoiced) */}
-          {job?.id && (job.status === 'completed' || job.status === 'invoiced') && (
+          {job?.id && (job.status === JOB_STATUS.COMPLETED || job.status === 'invoiced') && (
             <div className="pt-4 border-t">
               <JobProfitabilityPanel job={job} />
             </div>

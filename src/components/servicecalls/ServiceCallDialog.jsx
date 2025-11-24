@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useSequentialNumber } from "@/hooks/useSequentialNumber";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, DollarSign, Palette, Play, CheckCircle, Clock, List, StopCircle, TrendingDown, GitBranch, Flag, BarChart, Package, Wrench } from "lucide-react";
+import { X, Plus, CheckSquare, MessageSquare, Activity, Paperclip, Upload, Trash2, FileText, Palette, Play, CheckCircle, List, StopCircle, TrendingDown, GitBranch, Flag, BarChart, Package, Wrench } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import TaskDependenciesTab from "../jobs/TaskDependenciesTab";
@@ -21,12 +22,21 @@ import InvoicingTab from "../jobs/InvoicingTab";
 import MaterialUsageTab from "../jobs/MaterialUsageTab";
 import AssetAssignmentTab from "../jobs/AssetAssignmentTab";
 import AddressAutocompleteInput from "../shared/AddressAutocompleteInput";
+import { SERVICE_CALL_STATUS, JOB_STATUS, SERVICE_CALL_STATUS_TRANSITIONS, isValidStatusTransition, SERVICE_CALL_STATUS_LABELS } from '@/constants/statuses';
+import { toast } from "sonner";
+
+/**
+ * AUDIT FIX: High Priority Issue #7 - Standardize Status Values
+ * AUDIT FIX: High Priority Issue #8 - Implement State Machine Validation
+ * AUDIT FIX: MEDIUM Priority Issue #23 - Invoice Number Generation
+ * Using sequential numbering instead of timestamps for job/call numbers
+ */
 
 export default function ServiceCallDialog({ open, onClose, call, technicians, currentUser, workTypes = [], customers = [] }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    status: 'new',
+    status: SERVICE_CALL_STATUS.NEW,
     due_date: '',
     priority: 'medium',
     technicians: [],
@@ -68,6 +78,7 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
   ];
 
   const queryClient = useQueryClient();
+  const generateNumber = useSequentialNumber();
 
   const currentTech = technicians.find(t => t.email === currentUser?.email);
   const isAdminOrManager = currentUser?.role === 'admin' || currentTech?.role === 'admin' || currentTech?.role === 'manager';
@@ -124,7 +135,7 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
       setFormData({
         title: '',
         description: '',
-        status: 'new',
+        status: SERVICE_CALL_STATUS.NEW,
         due_date: '',
         priority: 'medium',
         technicians: [],
@@ -160,13 +171,46 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
     },
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const call_number = formData.call_number || await generateNumber('service_call');
     const dataToSave = {
       ...formData,
-      call_number: formData.call_number || `CALL-${Date.now()}`,
+      call_number,
     };
 
     if (call) {
+      /**
+       * AUDIT FIX: MEDIUM Priority Issue #27 - Checklist Completion Validation
+       * Prevent marking service call as complete if checklist items aren't done
+       */
+      if (formData.status === SERVICE_CALL_STATUS.COMPLETED && formData.checklist && formData.checklist.length > 0) {
+        const allItems = formData.checklist.flatMap(group => group.items || []);
+        const incompleteItems = allItems.filter(item => !item.completed);
+
+        if (incompleteItems.length > 0) {
+          toast.error('Checklist incomplète', {
+            description: `Impossible de marquer l'appel comme terminé. ${incompleteItems.length} élément(s) de checklist non cochés. Veuillez compléter la checklist ou retirer les éléments non nécessaires.`
+          });
+          return;
+        }
+      }
+
+      /**
+       * AUDIT FIX: High Priority Issue #8 - State Machine Validation
+       * Validate status transition when updating a service call
+       */
+      if (formData.status !== call.status) {
+        const currentStatus = call.status || SERVICE_CALL_STATUS.NEW;
+        const newStatus = formData.status;
+
+        if (!isValidStatusTransition(currentStatus, newStatus, SERVICE_CALL_STATUS_TRANSITIONS)) {
+          toast.error('Transition de statut invalide', {
+            description: `Impossible de passer de "${SERVICE_CALL_STATUS_LABELS[currentStatus]}" à "${SERVICE_CALL_STATUS_LABELS[newStatus]}". Cette transition n'est pas autorisée.`
+          });
+          return;
+        }
+      }
+
       updateCallMutation.mutate({ id: call.id, data: dataToSave });
     } else {
       const activity = [{
@@ -552,7 +596,7 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
             <DialogTitle className="text-lg sm:text-xl">{call ? 'Modifier l\'appel' : 'Nouvel appel de service'}</DialogTitle>
             {call && (
               <div className="flex gap-2">
-                {formData.status !== 'in_progress' && (
+                {formData.status !== SERVICE_CALL_STATUS.IN_PROGRESS && (
                   <Button
                     size="sm"
                     onClick={() => handleQuickStatus('in_progress')}
@@ -562,7 +606,7 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
                     Démarrer
                   </Button>
                 )}
-                {formData.status !== 'completed' && (
+                {formData.status !== SERVICE_CALL_STATUS.COMPLETED && (
                   <Button
                     size="sm"
                     onClick={() => handleQuickStatus('completed')}
@@ -1424,10 +1468,32 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
 
           <div className="flex flex-col sm:flex-row justify-between gap-2 pt-4">
             <div>
-              {call?.id && call.status !== 'converted' && (
-                <Button 
+              {call?.id && call.status !== SERVICE_CALL_STATUS.CONVERTED && (
+                <Button
                   type="button"
                   onClick={async () => {
+                    /**
+                     * AUDIT FIX: High Priority Issue #12 - Validate Service Call Conversions
+                     * Only allow conversion from valid statuses, add comprehensive logging
+                     */
+                    // VALIDATION: Only allow conversion from specific statuses
+                    const validConversionStatuses = [
+                      SERVICE_CALL_STATUS.IN_PROGRESS,
+                      SERVICE_CALL_STATUS.COMPLETED,
+                      'review' // Allow review status as well
+                    ];
+
+                    if (!validConversionStatuses.includes(call.status)) {
+                      alert(`Cannot convert: Service call must be in progress, completed, or in review. Current status: ${call.status}`);
+                      return;
+                    }
+
+                    // VALIDATION: Prevent re-conversion even if status was manually changed
+                    if (call.converted_to_job_id) {
+                      alert('This service call has already been converted to a job.');
+                      return;
+                    }
+
                     if (confirm('Convert this service call to a full job? This will create a new job with all details.')) {
                       try {
                         const jobData = {
@@ -1440,7 +1506,7 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
                           start_date: call.start_date,
                           due_date: call.due_date,
                           priority: call.priority,
-                          status: 'scheduled',
+                          status: JOB_STATUS.TODO,
                           work_type_id: call.work_type_id,
                           work_type_name: call.work_type_name,
                           work_type_color: call.work_type_color,
@@ -1457,11 +1523,27 @@ export default function ServiceCallDialog({ open, onClose, call, technicians, cu
                         };
                         
                         const newJob = await base44.entities.Job.create(jobData);
-                        await base44.entities.ServiceCall.update(call.id, { 
-                          status: 'converted',
-                          converted_to_job_id: newJob.id
+
+                        /**
+                         * AUDIT FIX: High Priority Issue #12 - Add Activity Logging
+                         * Log conversion on ServiceCall for full audit trail
+                         */
+                        await base44.entities.ServiceCall.update(call.id, {
+                          status: SERVICE_CALL_STATUS.CONVERTED,
+                          converted_to_job_id: newJob.id,
+                          converted_at: new Date().toISOString(),
+                          activity_log: [
+                            ...(call.activity_log || []),
+                            {
+                              timestamp: new Date().toISOString(),
+                              user: currentUser?.email || 'System',
+                              action: 'converted_to_job',
+                              details: `Converted to Job #${newJob.job_number || newJob.id}. Previous status: ${call.status}`,
+                              job_id: newJob.id
+                            }
+                          ]
                         });
-                        
+
                         alert('Service call converted to job successfully!');
                         onClose();
                       } catch (err) {

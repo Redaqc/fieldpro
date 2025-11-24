@@ -1,7 +1,5 @@
 import React from "react";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay } from "date-fns";
-import { Badge } from "@/components/ui/badge";
-import { AlertCircle } from "lucide-react";
 
 export default function MonthView({ date, events, onEventClick, onDayClick }) {
   const monthStart = startOfMonth(date);

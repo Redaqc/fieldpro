@@ -1,22 +1,22 @@
-import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DollarSign, TrendingDown, FileText, AlertCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { INVOICE_STATUS, JOB_STATUS } from "@/constants/statuses";
 
 export default function WidgetFinancialIndicators({ jobs, invoices }) {
   // Calculer les factures en attente
-  const pendingInvoices = invoices.filter(inv => inv.status === 'sent' || inv.status === 'draft');
+  const pendingInvoices = invoices.filter(inv => inv.status === INVOICE_STATUS.SENT || inv.status === INVOICE_STATUS.DRAFT);
   const overdueInvoices = invoices.filter(inv => {
-    if (inv.status !== 'sent') return false;
+    if (inv.status !== INVOICE_STATUS.SENT) return false;
     const dueDate = new Date(inv.due_date);
     return dueDate < new Date();
   });
-  
+
   const totalPending = pendingInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
   const totalOverdue = overdueInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
-  
+
   // Calculer les coûts totaux des jobs actifs
-  const activeJobs = jobs.filter(j => j.status === 'in_progress' || j.status === 'review');
+  const activeJobs = jobs.filter(j => j.status === JOB_STATUS.IN_PROGRESS || j.status === JOB_STATUS.REVIEW);
   const totalCosts = activeJobs.reduce((sum, job) => {
     const jobCost = job.costs?.total_cost || 0;
     return sum + jobCost;

@@ -1,10 +1,10 @@
-import React, { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Pen, Trash2, Save, Check } from "lucide-react";
+import { Pen, Trash2, Check } from "lucide-react";
 
 export default function SignatureCapture({ open, onClose, onSave }) {
   const canvasRef = useRef(null);

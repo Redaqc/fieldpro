@@ -1,13 +1,14 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { TrendingUp, Clock, AlertTriangle, CheckCircle, Users } from "lucide-react";
-import { format, differenceInHours, isAfter, parseISO } from "date-fns";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { TrendingUp, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import { format, differenceInHours, isAfter } from "date-fns";
+import { JOB_STATUS, SERVICE_CALL_STATUS } from "@/constants/statuses";
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
 
@@ -96,9 +97,11 @@ export default function ScheduleAnalytics() {
   // 2. Average Completion Time
   const completionTimeData = useMemo(() => {
     const byType = { job: [], service_call: [] };
-    
+
     filteredEvents.forEach(event => {
-      if (event.status === 'completed' && event.start_date && event.completed_at) {
+      const isCompleted = (event.type === 'job' && event.status === JOB_STATUS.COMPLETED) ||
+                          (event.type === 'service_call' && event.status === SERVICE_CALL_STATUS.COMPLETED);
+      if (isCompleted && event.start_date && event.completed_at) {
         const hours = differenceInHours(new Date(event.completed_at), new Date(event.start_date));
         if (hours > 0 && hours < 1000) { // Filter outliers
           byType[event.type].push(hours);
@@ -114,14 +117,17 @@ export default function ScheduleAnalytics() {
 
   // 3. On-Time Completion Rate
   const onTimeRate = useMemo(() => {
-    const completed = filteredEvents.filter(e => e.status === 'completed');
+    const completed = filteredEvents.filter(e =>
+      (e.type === 'job' && e.status === JOB_STATUS.COMPLETED) ||
+      (e.type === 'service_call' && e.status === SERVICE_CALL_STATUS.COMPLETED)
+    );
     const onTime = completed.filter(e => {
       if (!e.due_date || !e.completed_at) return false;
       return new Date(e.completed_at) <= new Date(e.due_date);
     });
 
     const rate = completed.length > 0 ? ((onTime.length / completed.length) * 100).toFixed(1) : 0;
-    
+
     return [
       { name: 'On Time', value: onTime.length },
       { name: 'Late', value: completed.length - onTime.length }
@@ -132,7 +138,9 @@ export default function ScheduleAnalytics() {
   const overdueData = useMemo(() => {
     const now = new Date();
     const overdue = filteredEvents.filter(event => {
-      return event.status !== 'completed' && event.due_date && isAfter(now, new Date(event.due_date));
+      const isNotCompleted = (event.type === 'job' && event.status !== JOB_STATUS.COMPLETED) ||
+                             (event.type === 'service_call' && event.status !== SERVICE_CALL_STATUS.COMPLETED);
+      return isNotCompleted && event.due_date && isAfter(now, new Date(event.due_date));
     });
 
     return {
@@ -144,7 +152,7 @@ export default function ScheduleAnalytics() {
 
   // 5. Status Distribution
   const statusData = useMemo(() => {
-    const statuses = { todo: 0, in_progress: 0, review: 0, completed: 0 };
+    const statuses = { [JOB_STATUS.TODO]: 0, [JOB_STATUS.IN_PROGRESS]: 0, [JOB_STATUS.REVIEW]: 0, [JOB_STATUS.COMPLETED]: 0 };
     filteredEvents.forEach(event => {
       if (statuses[event.status] !== undefined) {
         statuses[event.status]++;
@@ -159,8 +167,14 @@ export default function ScheduleAnalytics() {
 
   // Summary Stats
   const stats = useMemo(() => {
-    const completed = filteredEvents.filter(e => e.status === 'completed').length;
-    const inProgress = filteredEvents.filter(e => e.status === 'in_progress').length;
+    const completed = filteredEvents.filter(e =>
+      (e.type === 'job' && e.status === JOB_STATUS.COMPLETED) ||
+      (e.type === 'service_call' && e.status === SERVICE_CALL_STATUS.COMPLETED)
+    ).length;
+    const inProgress = filteredEvents.filter(e =>
+      (e.type === 'job' && e.status === JOB_STATUS.IN_PROGRESS) ||
+      (e.type === 'service_call' && e.status === SERVICE_CALL_STATUS.IN_PROGRESS)
+    ).length;
     const totalHours = filteredEvents.reduce((sum, e) => sum + (e.total_time_spent || 0), 0);
 
     return { completed, inProgress, totalHours, total: filteredEvents.length };
