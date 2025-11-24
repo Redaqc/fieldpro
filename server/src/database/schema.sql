@@ -618,6 +618,136 @@ CREATE TABLE IF NOT EXISTS sequential_counters (
 );
 
 -- ============================================
+-- NEW MODULES (Previously Missing)
+-- ============================================
+
+-- Roles table (User roles and permissions)
+CREATE TABLE IF NOT EXISTS roles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    permissions JSONB DEFAULT '{}',
+    is_system_role BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Integration Settings table (Third-party integration configurations)
+CREATE TABLE IF NOT EXISTS integration_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    integration_type VARCHAR(50) NOT NULL,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    company_id UUID,
+    settings JSONB DEFAULT '{}',
+    credentials_encrypted TEXT,
+    is_active BOOLEAN DEFAULT true,
+    last_sync_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Alerts table (System alerts and critical notifications)
+CREATE TABLE IF NOT EXISTS alerts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type VARCHAR(50) NOT NULL CHECK (type IN ('critical', 'warning', 'info')),
+    title VARCHAR(255) NOT NULL,
+    message TEXT,
+    entity_type VARCHAR(50),
+    entity_id UUID,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    is_read BOOLEAN DEFAULT false,
+    is_dismissed BOOLEAN DEFAULT false,
+    action_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Dashboard Configs table (User dashboard customization)
+CREATE TABLE IF NOT EXISTS dashboard_configs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+    role_id INTEGER REFERENCES roles(id) ON DELETE SET NULL,
+    layout JSONB DEFAULT '[]',
+    widgets JSONB DEFAULT '[]',
+    preferences JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Language Settings table (User language and localization preferences)
+CREATE TABLE IF NOT EXISTS language_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+    language_code VARCHAR(10) DEFAULT 'en',
+    locale VARCHAR(20) DEFAULT 'en-US',
+    timezone VARCHAR(50) DEFAULT 'UTC',
+    date_format VARCHAR(20) DEFAULT 'MM/DD/YYYY',
+    time_format VARCHAR(20) DEFAULT 'hh:mm A',
+    currency VARCHAR(10) DEFAULT 'USD',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Maintenance Schedules table (Preventive maintenance for assets)
+CREATE TABLE IF NOT EXISTS maintenance_schedules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
+    schedule_type VARCHAR(50) CHECK (schedule_type IN ('preventive', 'corrective', 'predictive')),
+    frequency VARCHAR(50) CHECK (frequency IN ('daily', 'weekly', 'monthly', 'yearly')),
+    interval_value INTEGER,
+    next_maintenance_date DATE,
+    last_maintenance_date DATE,
+    assigned_technician_id UUID REFERENCES technicians(id) ON DELETE SET NULL,
+    estimated_duration INTEGER,
+    notes TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Bundles table (Service and material packages)
+CREATE TABLE IF NOT EXISTS bundles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    bundle_type VARCHAR(50) CHECK (bundle_type IN ('service', 'material', 'mixed')),
+    items JSONB DEFAULT '[]',
+    base_price DECIMAL(10,2),
+    discounted_price DECIMAL(10,2),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Sync Logs table (Integration synchronization audit trail)
+CREATE TABLE IF NOT EXISTS sync_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    integration_type VARCHAR(50) NOT NULL,
+    sync_type VARCHAR(50) CHECK (sync_type IN ('full', 'incremental', 'manual')),
+    status VARCHAR(20) CHECK (status IN ('running', 'success', 'failed', 'partial')),
+    records_synced INTEGER DEFAULT 0,
+    records_failed INTEGER DEFAULT 0,
+    error_message TEXT,
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Team Messages table (Internal team chat)
+CREATE TABLE IF NOT EXISTS team_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conversation_id VARCHAR(100) NOT NULL,
+    sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    attachments JSONB DEFAULT '[]',
+    is_read BOOLEAN DEFAULT false,
+    parent_message_id UUID REFERENCES team_messages(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
 -- ADDITIONAL INDEXES
 -- ============================================
 
@@ -633,6 +763,23 @@ CREATE INDEX idx_profitability_job ON profitability_records(job_id);
 CREATE INDEX idx_activity_log_user ON activity_log(user_id);
 CREATE INDEX idx_activity_log_entity ON activity_log(entity_type, entity_id);
 CREATE INDEX idx_activity_log_created_at ON activity_log(created_at);
+
+-- New module indexes
+CREATE INDEX idx_integration_settings_user ON integration_settings(user_id);
+CREATE INDEX idx_integration_settings_type ON integration_settings(integration_type);
+CREATE INDEX idx_alerts_user ON alerts(user_id);
+CREATE INDEX idx_alerts_type ON alerts(type);
+CREATE INDEX idx_alerts_is_read ON alerts(is_read);
+CREATE INDEX idx_alerts_expires_at ON alerts(expires_at);
+CREATE INDEX idx_dashboard_configs_user ON dashboard_configs(user_id);
+CREATE INDEX idx_language_settings_user ON language_settings(user_id);
+CREATE INDEX idx_maintenance_schedules_asset ON maintenance_schedules(asset_id);
+CREATE INDEX idx_maintenance_schedules_next_date ON maintenance_schedules(next_maintenance_date);
+CREATE INDEX idx_bundles_type ON bundles(bundle_type);
+CREATE INDEX idx_sync_logs_integration ON sync_logs(integration_type);
+CREATE INDEX idx_sync_logs_status ON sync_logs(status);
+CREATE INDEX idx_team_messages_conversation ON team_messages(conversation_id);
+CREATE INDEX idx_team_messages_sender ON team_messages(sender_id);
 
 -- ============================================
 -- TRIGGERS for updated_at
@@ -658,3 +805,12 @@ CREATE TRIGGER update_assets_updated_at BEFORE UPDATE ON assets FOR EACH ROW EXE
 CREATE TRIGGER update_gps_zones_updated_at BEFORE UPDATE ON gps_zones FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_quotations_updated_at BEFORE UPDATE ON quotations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_company_info_updated_at BEFORE UPDATE ON company_info FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- New module triggers
+CREATE TRIGGER update_roles_updated_at BEFORE UPDATE ON roles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_integration_settings_updated_at BEFORE UPDATE ON integration_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_dashboard_configs_updated_at BEFORE UPDATE ON dashboard_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_language_settings_updated_at BEFORE UPDATE ON language_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_maintenance_schedules_updated_at BEFORE UPDATE ON maintenance_schedules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_bundles_updated_at BEFORE UPDATE ON bundles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_team_messages_updated_at BEFORE UPDATE ON team_messages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

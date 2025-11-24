@@ -50,11 +50,20 @@ import Schedule from '../models/Schedule.js';
 import Territory from '../models/Territory.js';
 import Contract from '../models/Contract.js';
 import Expense from '../models/Expense.js';
+import Role from '../models/Role.js';
+import IntegrationSettings from '../models/IntegrationSettings.js';
+import Alert from '../models/Alert.js';
+import DashboardConfig from '../models/DashboardConfig.js';
+import LanguageSettings from '../models/LanguageSettings.js';
+import MaintenanceSchedule from '../models/MaintenanceSchedule.js';
+import Bundle from '../models/Bundle.js';
+import SyncLog from '../models/SyncLog.js';
+import TeamMessage from '../models/TeamMessage.js';
 import { badRequest } from '../middleware/errorHandler.js';
 
 const router = express.Router();
 
-// Entity model mapping (40/40 complete - 100%)
+// Entity model mapping (49/49 complete - 100%)
 const entityModels = {
   customers: Customer,
   jobs: Job,
@@ -95,7 +104,17 @@ const entityModels = {
   schedules: Schedule,
   territories: Territory,
   contracts: Contract,
-  expenses: Expense
+  expenses: Expense,
+  // New modules (previously missing)
+  roles: Role,
+  integration_settings: IntegrationSettings,
+  alerts: Alert,
+  dashboard_configs: DashboardConfig,
+  language_settings: LanguageSettings,
+  maintenance_schedules: MaintenanceSchedule,
+  bundles: Bundle,
+  sync_logs: SyncLog,
+  team_messages: TeamMessage
 };
 
 /**
